@@ -50,6 +50,7 @@ class DMF_Divi_Import_Admin {
 					'include_pages' => ! empty( $_POST['include_pages'] ),
 					'include_theme' => ! empty( $_POST['include_theme'] ),
 					'include_menu'  => ! empty( $_POST['include_menu'] ),
+					'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
 					'home_slug'     => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
 				]
 			);
@@ -145,6 +146,10 @@ class DMF_Divi_Import_Admin {
 							<th scope="row">Import scope</th>
 							<td>
 								<label style="display:block; margin-bottom:8px;">
+									<input type="checkbox" name="create_missing_pages" value="1" checked>
+									Create missing WordPress pages automatically when needed
+								</label>
+								<label style="display:block; margin-bottom:8px;">
 									<input type="checkbox" name="include_pages" value="1" checked>
 									Update page layouts by slug
 								</label>
@@ -181,6 +186,8 @@ class DMF_Divi_Import_Admin {
 			<div style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
 				<h2 style="margin-top: 0;">What This Does</h2>
 				<ul style="list-style: disc; padding-left: 20px;">
+					<li>Finds pages by slug first, then falls back to exact page-title matching.</li>
+					<li>Can create any missing pages automatically before importing their layouts.</li>
 					<li>Reimports the bundled Divi page layouts onto the existing pages with the expected slugs.</li>
 					<li>Updates the default global Theme Builder template using the bundled header and footer export.</li>
 					<li>Creates or replaces a WordPress menu named <code>Digital MindFlow Primary Navigation</code> and assigns it to <code>primary-menu</code>.</li>
@@ -215,6 +222,7 @@ class DMF_Divi_Import_Admin {
 	private static function render_summary( array $summary ) {
 		$sections = [
 			'pages_updated' => 'Updated pages',
+			'pages_created' => 'Created pages',
 			'pages_missing' => 'Missing pages',
 			'theme_updated' => 'Theme Builder',
 			'menu_updated'  => 'Primary menu',

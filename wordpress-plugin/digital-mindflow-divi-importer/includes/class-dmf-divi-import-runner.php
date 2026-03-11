@@ -162,11 +162,13 @@ class DMF_Divi_Import_Runner {
 		$include_pages = ! empty( $args['include_pages'] );
 		$include_theme = ! empty( $args['include_theme'] );
 		$include_menu  = ! empty( $args['include_menu'] );
+		$create_missing_pages = ! empty( $args['create_missing_pages'] );
 		$home_slug     = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
 
 		$summary = [
 			'dry_run'       => $dry_run,
 			'pages_updated' => [],
+			'pages_created' => [],
 			'pages_missing' => [],
 			'theme_updated' => [],
 			'menu_updated'  => [],
@@ -175,11 +177,28 @@ class DMF_Divi_Import_Runner {
 
 		if ( $include_pages ) {
 			foreach ( $this->page_map as $item ) {
-				$page = $this->find_target_page( $item['slug'], $home_slug );
+				$page = $this->find_target_page( $item['slug'], $home_slug, $item['label'] );
 
 				if ( ! $page ) {
-					$summary['pages_missing'][] = $item['label'];
-					continue;
+					if ( $create_missing_pages ) {
+						$summary['pages_created'][] = sprintf(
+							'%s (slug: %s)%s',
+							$item['label'],
+							$this->target_slug( $item['slug'], $home_slug ),
+							$dry_run ? ' [dry run]' : ''
+						);
+
+						if ( $dry_run ) {
+							continue;
+						}
+
+						$page = $this->create_target_page( $item, $home_slug );
+					}
+
+					if ( ! $page ) {
+						$summary['pages_missing'][] = $item['label'];
+						continue;
+					}
 				}
 
 				$export = $this->load_export_file( $this->exports_dir . '/' . $item['file'], 'et_builder' );
@@ -201,7 +220,7 @@ class DMF_Divi_Import_Runner {
 		}
 
 		if ( $include_menu ) {
-			$summary['menu_updated'] = $this->sync_primary_menu( $home_slug, $dry_run );
+			$summary['menu_updated'] = $this->sync_primary_menu( $home_slug, $dry_run, $create_missing_pages );
 		}
 
 		if ( ! $dry_run ) {
@@ -217,7 +236,7 @@ class DMF_Divi_Import_Runner {
 		$this->warnings[] = (string) $message;
 	}
 
-	private function find_target_page( $slug, $home_slug = '' ) {
+	private function find_target_page( $slug, $home_slug = '', $title = '' ) {
 		if ( '__front_page__' === $slug ) {
 			$front_page_id = (int) get_option( 'page_on_front' );
 
@@ -244,31 +263,85 @@ class DMF_Divi_Import_Runner {
 				}
 			}
 
-			$home_pages = get_posts(
-				[
-					'post_type'      => 'page',
-					'post_status'    => 'publish',
-					'posts_per_page' => 20,
-					'orderby'        => 'ID',
-					'order'          => 'ASC',
-				]
-			);
-
-			foreach ( $home_pages as $candidate_page ) {
-				if (
-					$candidate_page instanceof WP_Post &&
-					0 === strcasecmp( $candidate_page->post_title, 'Home' )
-				) {
-					return $candidate_page;
-				}
-			}
-
-			return null;
+			return $this->find_page_by_title( $title ? $title : 'Home' );
 		}
 
 		$page = get_page_by_path( $slug, OBJECT, 'page' );
 
-		return $page instanceof WP_Post ? $page : null;
+		if ( $page instanceof WP_Post ) {
+			return $page;
+		}
+
+		return $title ? $this->find_page_by_title( $title ) : null;
+	}
+
+	private function find_page_by_title( $title ) {
+		$title = trim( (string) $title );
+
+		if ( '' === $title ) {
+			return null;
+		}
+
+		$pages = get_posts(
+			[
+				'post_type'      => 'page',
+				'post_status'    => [ 'publish', 'private', 'draft', 'pending', 'future' ],
+				'posts_per_page' => 200,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			]
+		);
+
+		foreach ( $pages as $page ) {
+			if ( $page instanceof WP_Post && 0 === strcasecmp( $page->post_title, $title ) ) {
+				return $page;
+			}
+		}
+
+		return null;
+	}
+
+	private function target_slug( $slug, $home_slug = '' ) {
+		if ( '__front_page__' === $slug ) {
+			return $home_slug ? $home_slug : 'home';
+		}
+
+		return sanitize_title( (string) $slug );
+	}
+
+	private function create_target_page( array $item, $home_slug = '' ) {
+		$title = sanitize_text_field( (string) ( $item['label'] ?? 'Imported Page' ) );
+		$slug  = $this->target_slug( (string) ( $item['slug'] ?? '' ), $home_slug );
+
+		$result = wp_insert_post(
+			[
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_title'   => $title,
+				'post_name'    => $slug,
+				'post_content' => '',
+			],
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new RuntimeException(
+				'Failed to create page "' . $title . '": ' . $result->get_error_message()
+			);
+		}
+
+		$page = get_post( (int) $result );
+
+		if ( ! $page instanceof WP_Post ) {
+			throw new RuntimeException( 'Created page could not be loaded: ' . $title );
+		}
+
+		if ( '__front_page__' === ( $item['slug'] ?? '' ) ) {
+			update_option( 'show_on_front', 'page' );
+			update_option( 'page_on_front', (int) $page->ID );
+		}
+
+		return $page;
 	}
 
 	private function load_export_file( $file_path, $expected_context ) {
@@ -516,7 +589,7 @@ class DMF_Divi_Import_Runner {
 		return $target_id;
 	}
 
-	private function sync_primary_menu( $home_slug, $dry_run ) {
+	private function sync_primary_menu( $home_slug, $dry_run, $create_missing_pages = false ) {
 		$location  = 'primary-menu';
 		$menu_name = 'Digital MindFlow Primary Navigation';
 		$menu      = wp_get_nav_menu_object( $menu_name );
@@ -530,11 +603,36 @@ class DMF_Divi_Import_Runner {
 
 		foreach ( $this->menu_blueprint as $index => $item ) {
 			if ( 'page' === ( $item['type'] ?? '' ) ) {
-				$page = $this->find_target_page( (string) ( $item['slug'] ?? '' ), $home_slug );
+				$page = $this->find_target_page(
+					(string) ( $item['slug'] ?? '' ),
+					$home_slug,
+					(string) ( $item['label'] ?? '' )
+				);
 
 				if ( ! $page ) {
-					$this->warn( 'Skipping menu item ' . $item['label'] . ': page not found.' );
-					continue;
+					if ( $create_missing_pages ) {
+						if ( $dry_run ) {
+							$items[] = [
+								'type'     => 'placeholder',
+								'title'    => (string) $item['label'],
+								'position' => $index + 1,
+							];
+							continue;
+						}
+
+						$page = $this->create_target_page(
+							[
+								'label' => (string) $item['label'],
+								'slug'  => (string) ( $item['slug'] ?? '' ),
+							],
+							$home_slug
+						);
+					}
+
+					if ( ! $page ) {
+						$this->warn( 'Skipping menu item ' . $item['label'] . ': page not found.' );
+						continue;
+					}
 				}
 
 				$items[] = [
@@ -592,6 +690,10 @@ class DMF_Divi_Import_Runner {
 		$created_count = 0;
 
 		foreach ( $items as $item ) {
+			if ( 'placeholder' === $item['type'] ) {
+				continue;
+			}
+
 			$menu_item_data = [
 				'menu-item-title'    => $item['title'],
 				'menu-item-position' => $item['position'],
