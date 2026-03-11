@@ -1,0 +1,215 @@
+{
+  "context": "et_builder",
+  "data": {
+    "51005": "<!-- wp:divi/placeholder --><!-- wp:divi/section {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Global Footer Section\"}}}}} --><!-- wp:divi/row {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Main Row\"}}},\"advanced\":{\"columnStructure\":{\"desktop\":{\"value\":\"1_2,1_4,1_4\"}}}}} --><!-- wp:divi/column {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Brand Column\"}}},\"advanced\":{\"type\":{\"desktop\":{\"value\":\"1_2\"}}}}} --><!-- wp:divi/text {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Brand\"}}}},\"content\":{\"innerContent\":{\"desktop\":{\"value\":\"<div style=\\\"background:var(--gcid-dmf-primary, #1f2833);border-radius:1.75rem;padding:2.125rem 2.125rem 1.75rem;color:var(--gcid-dmf-white, #ffffff);height:100%\\\">\\n                  <div style=\\\"font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.61rem, calc(1.61rem + 0.4vw), 1.995rem);font-weight:700;margin-bottom:0.875rem\\\">Digital <span style=\\\"display:inline-block;background:linear-gradient(135deg, var(--gcid-dmf-accent, #f2ad25), var(--gcid-dmf-accent-deep, #e28324));color:transparent;-webkit-background-clip:text;background-clip:text\\\">MindFlow</span></div>\\n                  <p style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);line-height:1.8;color:color-mix(in srgb, var(--gcid-dmf-white, #ffffff) 72%, transparent);margin:0\\\">A studio offering strategic, modern and effective digital marketing solutions for businesses that want to grow their online presence.</p>\\n                </div>\"}}}} /--><!-- /wp:divi/column --><!-- wp:divi/column {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Links Column\"}}},\"advanced\":{\"type\":{\"desktop\":{\"value\":\"1_4\"}}}}} --><!-- wp:divi/text {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Links\"}}}},\"content\":{\"innerContent\":{\"desktop\":{\"value\":\"<div style=\\\"background:var(--gcid-dmf-card, #f2eee7);border:0.0625rem solid var(--gcid-dmf-border, #ddd6c8);border-radius:var(--gvid-dmf-radius-lg);padding:1.75rem;box-shadow:none;height:100%\\\"><h4 style=\\\"font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.265rem, calc(1.265rem + 0.4vw), 1.5675rem);font-weight:700;color:var(--gcid-dmf-foreground, #20262f);margin:0 0 0.875rem 0\\\">Quick Links</h4>\\n                  <div style=\\\"display:flex;flex-direction:column;gap:0.625rem\\\">\\n                    <a href=\\\"/#about\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">About</a><a href=\\\"/#services\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">Services</a><a href=\\\"/#process\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">Process</a><a href=\\\"/#contact\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">Contact</a>\\n                  </div></div>\"}}}} /--><!-- /wp:divi/column --><!-- wp:divi/column {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Contact Column\"}}},\"advanced\":{\"type\":{\"desktop\":{\"value\":\"1_4\"}}}}} --><!-- wp:divi/text {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Contact\"}}}},\"content\":{\"innerContent\":{\"desktop\":{\"value\":\"<div style=\\\"background:var(--gcid-dmf-card, #f2eee7);border:0.0625rem solid var(--gcid-dmf-border, #ddd6c8);border-radius:var(--gvid-dmf-radius-lg);padding:1.75rem;box-shadow:none;height:100%\\\"><h4 style=\\\"font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.265rem, calc(1.265rem + 0.4vw), 1.5675rem);font-weight:700;color:var(--gcid-dmf-foreground, #20262f);margin:0 0 0.875rem 0\\\">Contact</h4>\\n                  <div style=\\\"display:flex;flex-direction:column;gap:0.625rem\\\">\\n                    <a href=\\\"mailto:info@mindflowdigital.com\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">info@mindflowdigital.com</a>\\n                    <a href=\\\"tel:+35799882116\\\" style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280);text-decoration:none\\\">+357 99 882116</a>\\n                    <div style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);color:var(--gcid-dmf-muted, #6b7280)\\\">Paphos, Cyprus</div>\\n                  </div></div>\"}}}} /--><!-- /wp:divi/column --><!-- /wp:divi/row --><!-- wp:divi/row {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Bottom Row\"}}},\"advanced\":{\"columnStructure\":{\"desktop\":{\"value\":\"4_4\"}}}}} --><!-- wp:divi/column {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Bottom Column\"}}},\"advanced\":{\"type\":{\"desktop\":{\"value\":\"4_4\"}}}}} --><!-- wp:divi/text {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"Footer Bottom Bar\"}}}},\"content\":{\"innerContent\":{\"desktop\":{\"value\":\"<div style=\\\"border-top:0.0625rem solid var(--gcid-dmf-border, #ddd6c8);padding:1.125rem 0 0;display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap\\\">\\n                <span style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.7637rem, calc(0.7637rem + 0.12vw), 0.8287rem);color:var(--gcid-dmf-muted, #6b7280)\\\">&copy; 2026 Digital MindFlow. All rights reserved.</span>\\n                <span style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.7637rem, calc(0.7637rem + 0.12vw), 0.8287rem);color:var(--gcid-dmf-muted, #6b7280)\\\">Marketing Services &middot; Paphos, Cyprus</span>\\n              </div>\"}}}} /--><!-- /wp:divi/column --><!-- /wp:divi/row --><!-- /wp:divi/section --><!-- /wp:divi/placeholder -->"
+  },
+  "presets": [],
+  "global_colors": [
+    [
+      "gcid-dmf-background",
+      {
+        "color": "#f8f6f1",
+        "label": "DMF Background",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-card",
+      {
+        "color": "#f2eee7",
+        "label": "DMF Card",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-foreground",
+      {
+        "color": "#20262f",
+        "label": "DMF Foreground",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-muted",
+      {
+        "color": "#6b7280",
+        "label": "DMF Muted",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-primary",
+      {
+        "color": "#1f2833",
+        "label": "DMF Primary Surface",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-overlay",
+      {
+        "color": "#111722",
+        "label": "DMF Overlay",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-border",
+      {
+        "color": "#ddd6c8",
+        "label": "DMF Border",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-accent",
+      {
+        "color": "#f2ad25",
+        "label": "DMF Accent",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-accent-deep",
+      {
+        "color": "#e28324",
+        "label": "DMF Accent Deep",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-white",
+      {
+        "color": "#ffffff",
+        "label": "DMF White",
+        "status": "active"
+      }
+    ]
+  ],
+  "global_variables": [
+    {
+      "type": "fonts",
+      "id": "gvid-dmf-heading-font",
+      "label": "DMF Heading Font",
+      "value": "Sora, 'Trebuchet MS', sans-serif",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "type": "fonts",
+      "id": "gvid-dmf-body-font",
+      "label": "DMF Body Font",
+      "value": "'DM Sans', 'Segoe UI', sans-serif",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-xs",
+      "label": "DMF Text XS",
+      "value": "clamp(0.75rem, calc(0.735rem + 0.12vw), 0.8125rem)",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-sm",
+      "label": "DMF Text SM",
+      "value": "clamp(0.8125rem, calc(0.79rem + 0.16vw), 0.875rem)",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-base",
+      "label": "DMF Text Base",
+      "value": "clamp(0.9375rem, calc(0.915rem + 0.18vw), 1rem)",
+      "order": 5,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-lg",
+      "label": "DMF Text LG",
+      "value": "clamp(1rem, calc(0.97rem + 0.28vw), 1.125rem)",
+      "order": 6,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-xs",
+      "label": "DMF Space XS",
+      "value": "0.75rem",
+      "order": 7,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-sm",
+      "label": "DMF Space SM",
+      "value": "1rem",
+      "order": 8,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-md",
+      "label": "DMF Space MD",
+      "value": "1.5rem",
+      "order": 9,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-lg",
+      "label": "DMF Space LG",
+      "value": "2rem",
+      "order": 10,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-xl",
+      "label": "DMF Space XL",
+      "value": "3rem",
+      "order": 11,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-sm",
+      "label": "DMF Radius SM",
+      "value": "0.875rem",
+      "order": 12,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-md",
+      "label": "DMF Radius MD",
+      "value": "1.25rem",
+      "order": 13,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-lg",
+      "label": "DMF Radius LG",
+      "value": "1.5rem",
+      "order": 14,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-xl",
+      "label": "DMF Radius XL",
+      "value": "2rem",
+      "order": 15,
+      "status": "active"
+    }
+  ],
+  "page_settings_meta": {},
+  "canvases": {},
+  "images": {},
+  "thumbnails": {}
+}

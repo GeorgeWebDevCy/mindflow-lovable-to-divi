@@ -1,0 +1,215 @@
+{
+  "context": "et_builder",
+  "data": {
+    "51003": "<!-- wp:divi/placeholder --><!-- wp:divi/section {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"404 Section\"}}}}} --><!-- wp:divi/row {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"404 Row\"}}},\"advanced\":{\"columnStructure\":{\"desktop\":{\"value\":\"4_4\"}}}}} --><!-- wp:divi/column {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"404 Column\"}}},\"advanced\":{\"type\":{\"desktop\":{\"value\":\"4_4\"}}}}} --><!-- wp:divi/text {\"builderVersion\":0.7,\"module\":{\"meta\":{\"adminLabel\":{\"desktop\":{\"value\":\"404 Content\"}}}},\"content\":{\"innerContent\":{\"desktop\":{\"value\":\"<div style=\\\"min-height:70vh;display:flex;align-items:center;justify-content:center;padding:7.5rem 1.25rem\\\">\\n              <div style=\\\"background:var(--gcid-dmf-white, #ffffff);border:0.0625rem solid var(--gcid-dmf-border, #ddd6c8);border-radius:1.75rem;padding:2.875rem 2.125rem;text-align:center;max-width:38.75rem;width:100%;box-shadow:0 1.5rem 3.5rem color-mix(in srgb, var(--gcid-dmf-primary, #1f2833) 8%, transparent)\\\">\\n                <div style=\\\"font-family:var(--gvid-dmf-heading-font);font-size:clamp(4.05rem, calc(4.05rem + 0.7vw), 5.31rem);font-weight:700;color:var(--gcid-dmf-foreground, #20262f);line-height:1;margin:0 0 0.75rem 0\\\">404</div>\\n                <h1 style=\\\"font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.9125rem, calc(1.9125rem + 0.7vw), 2.5075rem);font-weight:700;color:var(--gcid-dmf-foreground, #20262f);margin:0 0 0.875rem 0\\\">Oops! Page not found</h1>\\n                <p style=\\\"font-family:var(--gvid-dmf-body-font);font-size:clamp(0.95rem, calc(0.95rem + 0.18vw), 1.06rem);line-height:1.8;color:var(--gcid-dmf-muted, #6b7280);margin:0 0 1.375rem 0\\\">The page you were looking for does not exist, was moved, or has not been created yet.</p>\\n                <a href=\\\"/\\\" style=\\\"display:inline-block;padding:calc(var(--gvid-dmf-space-sm) - 0.125rem) calc(var(--gvid-dmf-space-md) + 0rem);border-radius:var(--gvid-dmf-radius-md);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-base);font-weight:700;line-height:1.1;text-align:center;text-decoration:none;transition:all 0.2s ease;color:var(--gcid-dmf-foreground, #20262f);border:0.0625rem solid var(--gcid-dmf-accent, #f2ad25);background:linear-gradient(135deg, var(--gcid-dmf-accent, #f2ad25), var(--gcid-dmf-accent-deep, #e28324));box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-accent, #f2ad25) 25%, transparent)\\\">Return to Home</a>\\n              </div>\\n            </div>\"}}}} /--><!-- /wp:divi/column --><!-- /wp:divi/row --><!-- /wp:divi/section --><!-- /wp:divi/placeholder -->"
+  },
+  "presets": [],
+  "global_colors": [
+    [
+      "gcid-dmf-background",
+      {
+        "color": "#f8f6f1",
+        "label": "DMF Background",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-card",
+      {
+        "color": "#f2eee7",
+        "label": "DMF Card",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-foreground",
+      {
+        "color": "#20262f",
+        "label": "DMF Foreground",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-muted",
+      {
+        "color": "#6b7280",
+        "label": "DMF Muted",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-primary",
+      {
+        "color": "#1f2833",
+        "label": "DMF Primary Surface",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-overlay",
+      {
+        "color": "#111722",
+        "label": "DMF Overlay",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-border",
+      {
+        "color": "#ddd6c8",
+        "label": "DMF Border",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-accent",
+      {
+        "color": "#f2ad25",
+        "label": "DMF Accent",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-accent-deep",
+      {
+        "color": "#e28324",
+        "label": "DMF Accent Deep",
+        "status": "active"
+      }
+    ],
+    [
+      "gcid-dmf-white",
+      {
+        "color": "#ffffff",
+        "label": "DMF White",
+        "status": "active"
+      }
+    ]
+  ],
+  "global_variables": [
+    {
+      "type": "fonts",
+      "id": "gvid-dmf-heading-font",
+      "label": "DMF Heading Font",
+      "value": "Sora, 'Trebuchet MS', sans-serif",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "type": "fonts",
+      "id": "gvid-dmf-body-font",
+      "label": "DMF Body Font",
+      "value": "'DM Sans', 'Segoe UI', sans-serif",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-xs",
+      "label": "DMF Text XS",
+      "value": "clamp(0.75rem, calc(0.735rem + 0.12vw), 0.8125rem)",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-sm",
+      "label": "DMF Text SM",
+      "value": "clamp(0.8125rem, calc(0.79rem + 0.16vw), 0.875rem)",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-base",
+      "label": "DMF Text Base",
+      "value": "clamp(0.9375rem, calc(0.915rem + 0.18vw), 1rem)",
+      "order": 5,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-text-lg",
+      "label": "DMF Text LG",
+      "value": "clamp(1rem, calc(0.97rem + 0.28vw), 1.125rem)",
+      "order": 6,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-xs",
+      "label": "DMF Space XS",
+      "value": "0.75rem",
+      "order": 7,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-sm",
+      "label": "DMF Space SM",
+      "value": "1rem",
+      "order": 8,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-md",
+      "label": "DMF Space MD",
+      "value": "1.5rem",
+      "order": 9,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-lg",
+      "label": "DMF Space LG",
+      "value": "2rem",
+      "order": 10,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-space-xl",
+      "label": "DMF Space XL",
+      "value": "3rem",
+      "order": 11,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-sm",
+      "label": "DMF Radius SM",
+      "value": "0.875rem",
+      "order": 12,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-md",
+      "label": "DMF Radius MD",
+      "value": "1.25rem",
+      "order": 13,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-lg",
+      "label": "DMF Radius LG",
+      "value": "1.5rem",
+      "order": 14,
+      "status": "active"
+    },
+    {
+      "type": "numbers",
+      "id": "gvid-dmf-radius-xl",
+      "label": "DMF Radius XL",
+      "value": "2rem",
+      "order": 15,
+      "status": "active"
+    }
+  ],
+  "page_settings_meta": {},
+  "canvases": {},
+  "images": {},
+  "thumbnails": {}
+}
