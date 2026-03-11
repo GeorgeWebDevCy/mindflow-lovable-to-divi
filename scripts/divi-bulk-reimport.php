@@ -26,6 +26,7 @@ $exports_dir = isset( $assoc_args['exports'] )
 $dry_run     = array_key_exists( 'dry-run', $assoc_args ) || dmf_cli_flag( 'dry-run' );
 $skip_pages  = array_key_exists( 'skip-pages', $assoc_args ) || dmf_cli_flag( 'skip-pages' );
 $skip_theme  = array_key_exists( 'skip-theme', $assoc_args ) || dmf_cli_flag( 'skip-theme' );
+$skip_menu   = array_key_exists( 'skip-menu', $assoc_args ) || dmf_cli_flag( 'skip-menu' );
 $home_slug   = isset( $assoc_args['home-slug'] )
 	? sanitize_title( (string) $assoc_args['home-slug'] )
 	: ( ! empty( $home_slug_arg )
@@ -75,6 +76,45 @@ $page_map = [
 	],
 ];
 
+$menu_blueprint = [
+	[
+		'type'  => 'page',
+		'label' => 'Home',
+		'slug'  => '__front_page__',
+	],
+	[
+		'type'  => 'custom',
+		'label' => 'About',
+		'url'   => '/#about',
+	],
+	[
+		'type'  => 'custom',
+		'label' => 'Services',
+		'url'   => '/#services',
+	],
+	[
+		'type'  => 'page',
+		'label' => 'Portfolio',
+		'slug'  => 'portfolio',
+	],
+	[
+		'type'  => 'custom',
+		'label' => 'Process',
+		'url'   => '/#process',
+	],
+	[
+		'type'  => 'custom',
+		'label' => 'Contact',
+		'url'   => '/#contact',
+	],
+	[
+		'type'    => 'custom',
+		'label'   => 'Free Consultation',
+		'url'     => '/#contact',
+		'classes' => [ 'dmf-menu-cta' ],
+	],
+];
+
 if ( ! is_dir( $exports_dir ) ) {
 	dmf_error( "Export directory not found: {$exports_dir}" );
 }
@@ -87,6 +127,7 @@ $summary = [
 	'pages_updated' => [],
 	'pages_missing' => [],
 	'theme_updated' => [],
+	'menu_updated'  => [],
 ];
 
 dmf_log( $dry_run ? 'Dry run enabled. No database writes will be made.' : 'Starting Divi bulk reimport.' );
@@ -121,6 +162,10 @@ if ( ! $skip_theme ) {
 	$summary['theme_updated'] = $updated_theme;
 }
 
+if ( ! $skip_menu ) {
+	$summary['menu_updated'] = dmf_sync_primary_menu( $menu_blueprint, $home_slug, $dry_run );
+}
+
 if ( ! $dry_run ) {
 	dmf_flush_divi_caches();
 }
@@ -129,6 +174,7 @@ dmf_log( 'Reimport complete.' );
 dmf_log( 'Updated pages: ' . ( empty( $summary['pages_updated'] ) ? 'none' : implode( ', ', $summary['pages_updated'] ) ) );
 dmf_log( 'Missing pages: ' . ( empty( $summary['pages_missing'] ) ? 'none' : implode( ', ', $summary['pages_missing'] ) ) );
 dmf_log( 'Theme template: ' . ( empty( $summary['theme_updated'] ) ? 'none' : implode( ', ', $summary['theme_updated'] ) ) );
+dmf_log( 'Primary menu: ' . ( empty( $summary['menu_updated'] ) ? 'none' : implode( ', ', $summary['menu_updated'] ) ) );
 
 function dmf_bootstrap_admin_user(): void {
 	if ( get_current_user_id() > 0 ) {
@@ -224,6 +270,142 @@ function dmf_find_target_page( string $slug, string $home_slug = '' ): ?WP_Post 
 	$page = get_page_by_path( $slug, OBJECT, 'page' );
 
 	return $page instanceof WP_Post ? $page : null;
+}
+
+function dmf_sync_primary_menu( array $blueprint, string $home_slug, bool $dry_run ): array {
+	$location  = 'primary-menu';
+	$menu_name = 'Digital MindFlow Primary Navigation';
+	$menu      = wp_get_nav_menu_object( $menu_name );
+	$menu_id   = $menu ? (int) $menu->term_id : 0;
+	$items     = [];
+
+	if ( ! isset( get_registered_nav_menus()[ $location ] ) ) {
+		dmf_warn( "Theme location '{$location}' is not registered on this install. The menu will still be created." );
+	}
+
+	dmf_log(
+		sprintf(
+			'%s WordPress primary navigation menu.',
+			$dry_run ? 'Would sync' : 'Syncing'
+		)
+	);
+
+	foreach ( $blueprint as $index => $item ) {
+		if ( 'page' === ( $item['type'] ?? '' ) ) {
+			$page = dmf_find_target_page( (string) ( $item['slug'] ?? '' ), $home_slug );
+
+			if ( ! $page ) {
+				dmf_warn( "Skipping menu item {$item['label']}: page not found." );
+				continue;
+			}
+
+			$items[] = [
+				'type'       => 'post_type',
+				'title'      => (string) $item['label'],
+				'position'   => $index + 1,
+				'object_id'  => (int) $page->ID,
+				'object'     => 'page',
+				'classes'    => $item['classes'] ?? [],
+			];
+
+			continue;
+		}
+
+		$items[] = [
+			'type'       => 'custom',
+			'title'      => (string) $item['label'],
+			'position'   => $index + 1,
+			'url'        => dmf_menu_url( (string) ( $item['url'] ?? '/' ) ),
+			'classes'    => $item['classes'] ?? [],
+		];
+	}
+
+	if ( $dry_run ) {
+		return [
+			"Would sync {$menu_name}",
+			"Location {$location}",
+			'Items ' . count( $items ),
+		];
+	}
+
+	if ( $menu_id <= 0 ) {
+		$menu_id = wp_create_nav_menu( $menu_name );
+
+		if ( is_wp_error( $menu_id ) ) {
+			dmf_error( 'Failed to create navigation menu: ' . $menu_id->get_error_message() );
+		}
+
+		$menu_id = (int) $menu_id;
+	}
+
+	$existing_items = wp_get_nav_menu_items(
+		$menu_id,
+		[
+			'post_status' => 'any',
+		]
+	);
+
+	foreach ( $existing_items ?: [] as $existing_item ) {
+		if ( $existing_item instanceof WP_Post ) {
+			wp_delete_post( $existing_item->ID, true );
+		}
+	}
+
+	$created_count = 0;
+
+	foreach ( $items as $item ) {
+		$menu_item_data = [
+			'menu-item-title'    => $item['title'],
+			'menu-item-position' => $item['position'],
+			'menu-item-status'   => 'publish',
+			'menu-item-type'     => $item['type'],
+		];
+
+		if ( 'post_type' === $item['type'] ) {
+			$menu_item_data['menu-item-object-id'] = $item['object_id'];
+			$menu_item_data['menu-item-object']    = $item['object'];
+		} else {
+			$menu_item_data['menu-item-url'] = $item['url'];
+		}
+
+		$menu_item_id = wp_update_nav_menu_item( $menu_id, 0, $menu_item_data );
+
+		if ( is_wp_error( $menu_item_id ) ) {
+			dmf_error( 'Failed to create menu item ' . $item['title'] . ': ' . $menu_item_id->get_error_message() );
+		}
+
+		if ( ! empty( $item['classes'] ) ) {
+			update_post_meta( (int) $menu_item_id, '_menu_item_classes', array_values( (array) $item['classes'] ) );
+		}
+
+		$created_count++;
+	}
+
+	$locations              = get_theme_mod( 'nav_menu_locations', [] );
+	$locations[ $location ] = $menu_id;
+	set_theme_mod( 'nav_menu_locations', $locations );
+
+	return [
+		"Menu {$menu_name} #{$menu_id}",
+		"Location {$location}",
+		'Items ' . $created_count,
+	];
+}
+
+function dmf_menu_url( string $url ): string {
+	if ( preg_match( '#^https?://#i', $url ) ) {
+		return esc_url_raw( $url );
+	}
+
+	if ( 0 === strpos( $url, '/#' ) ) {
+		return esc_url_raw( home_url( '/' ) . substr( $url, 1 ) );
+	}
+
+	if ( 0 === strpos( $url, '#' ) ) {
+		return esc_url_raw( home_url( '/' ) . $url );
+	}
+
+	return esc_url_raw( home_url( $url ) );
 }
 
 function dmf_load_export_file( string $file_path, string $expected_context ): array {

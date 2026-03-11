@@ -23,5 +23,6 @@ Notes:
 - Asset files are embedded in each JSON export, so Divi should upload and relink them during import.
 - Internal links assume the homepage is the site root and the portfolio page uses `/portfolio/`.
 - Shared Divi 5 variables for colors, fonts, spacing, and radii are included in each import payload.
+- The global header uses the Divi 5 Menu block and resolves against the normal WordPress `primary-menu` location.
 - Layout styling uses responsive `rem`, `clamp()`, `calc()`, `var(--gcid-...)`, and `var(--gvid-...)` references instead of hardcoded theme values.
 - The contact section includes a visual form replica. Replace it with a Divi Contact Form module after import if you need live submissions.

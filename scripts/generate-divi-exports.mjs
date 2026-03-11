@@ -35,52 +35,52 @@ const COLOR_DEFINITIONS = {
   background: {
     id: "gcid-dmf-background",
     label: "DMF Background",
-    value: "#f8f6f1",
+    value: "#fafafa",
   },
   card: {
     id: "gcid-dmf-card",
     label: "DMF Card",
-    value: "#f2eee7",
+    value: "#edeced",
   },
   foreground: {
     id: "gcid-dmf-foreground",
     label: "DMF Foreground",
-    value: "#20262f",
+    value: "#131b26",
   },
   muted: {
     id: "gcid-dmf-muted",
     label: "DMF Muted",
-    value: "#6b7280",
+    value: "#486262",
   },
   primary: {
     id: "gcid-dmf-primary",
     label: "DMF Primary Surface",
-    value: "#1f2833",
+    value: "#131b26",
   },
   overlay: {
     id: "gcid-dmf-overlay",
     label: "DMF Overlay",
-    value: "#111722",
+    value: "#2b5b5b",
   },
   border: {
     id: "gcid-dmf-border",
     label: "DMF Border",
-    value: "#ddd6c8",
+    value: "#a1a5a4",
   },
   accent: {
     id: "gcid-dmf-accent",
     label: "DMF Accent",
-    value: "#f2ad25",
+    value: "#941213",
   },
   accentDeep: {
     id: "gcid-dmf-accent-deep",
     label: "DMF Accent Deep",
-    value: "#e28324",
+    value: "#893637",
   },
   white: {
     id: "gcid-dmf-white",
     label: "DMF White",
-    value: "#ffffff",
+    value: "#fafafa",
   },
 };
 
@@ -667,6 +667,195 @@ function textModule(html, label) {
       innerContent: {
         desktop: {
           value: html,
+        },
+      },
+    },
+  });
+}
+
+function menuModule(label) {
+  return block("menu", {
+    builderVersion: BUILDER_VERSION,
+    module: {
+      meta: {
+        adminLabel: {
+          desktop: {
+            value: label,
+          },
+        },
+      },
+    },
+    logo: {
+      innerContent: {
+        desktop: {
+          value: {
+            src: assetUrl("dm-logo.jpg"),
+            alt: "Digital MindFlow",
+            titleText: "Digital MindFlow",
+            linkUrl: "/",
+            linkTarget: "off",
+          },
+        },
+      },
+      decoration: {
+        sizing: {
+          desktop: {
+            value: {
+              width: "clamp(8rem, calc(7.1rem + 3vw), 10.25rem)",
+              maxWidth: "clamp(8rem, calc(7.1rem + 3vw), 10.25rem)",
+              height: "auto",
+              maxHeight: "4.25rem",
+            },
+          },
+        },
+      },
+    },
+    menu: {
+      advanced: {
+        menuId: {
+          desktop: {
+            value: "",
+          },
+        },
+        style: {
+          desktop: {
+            value: "left_aligned",
+          },
+        },
+        activeLinkColor: {
+          desktop: {
+            value: COLORS.accent,
+          },
+        },
+      },
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                family: FONTS.body,
+                weight: "600",
+                size: TOKENS.textSm,
+                color: COLORS.foreground,
+                lineHeight: "1.5em",
+                letterSpacing: "0.01em",
+              },
+            },
+          },
+        },
+      },
+    },
+    menuDropdown: {
+      advanced: {
+        direction: {
+          desktop: {
+            value: "downwards",
+          },
+        },
+        lineColor: {
+          desktop: {
+            value: COLORS.border,
+          },
+        },
+        activeLinkColor: {
+          desktop: {
+            value: COLORS.accent,
+          },
+        },
+      },
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                family: FONTS.body,
+                weight: "500",
+                size: TOKENS.textSm,
+                color: COLORS.foreground,
+                lineHeight: "1.5em",
+              },
+            },
+          },
+        },
+      },
+    },
+    menuMobile: {
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                family: FONTS.body,
+                weight: "600",
+                size: TOKENS.textBase,
+                color: COLORS.foreground,
+                lineHeight: "1.5em",
+              },
+            },
+          },
+        },
+      },
+    },
+    cartQuantity: {
+      advanced: {
+        show: {
+          desktop: {
+            value: "off",
+          },
+        },
+      },
+    },
+    cartIcon: {
+      advanced: {
+        show: {
+          desktop: {
+            value: "off",
+          },
+        },
+      },
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                color: COLORS.foreground,
+              },
+            },
+          },
+        },
+      },
+    },
+    searchIcon: {
+      advanced: {
+        show: {
+          desktop: {
+            value: "off",
+          },
+        },
+      },
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                color: COLORS.foreground,
+              },
+            },
+          },
+        },
+      },
+    },
+    hamburgerMenuIcon: {
+      decoration: {
+        font: {
+          font: {
+            desktop: {
+              value: {
+                color: COLORS.foreground,
+                size: TOKENS.textLg,
+              },
+            },
+          },
         },
       },
     },
@@ -2155,82 +2344,8 @@ function buildHeaderLayout() {
   return placeholder(
     section(
       row(
-        [
-          column(
-            textModule(
-              `<div style="${styleString({
-                padding: "0.5rem 0",
-              })}">
-                <a href="/" style="${styleString({
-                  display: "inline-flex",
-                  "align-items": "center",
-                  gap: "0.75rem",
-                  "text-decoration": "none",
-                })}">
-                  <img src="${escapeAttr(assetUrl("dm-logo.jpg"))}" alt="Digital MindFlow" style="${styleString({
-                    width: "2.5rem",
-                    height: "2.5rem",
-                    "object-fit": "contain",
-                    "border-radius": "0.75rem",
-                  })}">
-                  <span style="${styleString({
-                    "font-family": FONTS.heading,
-                    "font-size": "1.125rem",
-                    "font-weight": "700",
-                    color: COLORS.foreground,
-                  })}">Digital ${gradientText("MindFlow")}</span>
-                </a>
-              </div>`,
-              "Header Brand"
-            ),
-            "1_4",
-            "Header Brand Column"
-          ),
-          column(
-            textModule(
-              `<div style="${styleString({
-                display: "flex",
-                "justify-content": "flex-end",
-                "align-items": "center",
-                height: "100%",
-                padding: "0.25rem 0",
-              })}">
-                <div style="${styleString({
-                  display: "flex",
-                  gap: "1.25rem",
-                  "align-items": "center",
-                  "justify-content": "flex-end",
-                  "flex-wrap": "wrap",
-                })}">
-                  ${[
-                    ["Home", "/"],
-                    ["About", "/#about"],
-                    ["Services", "/#services"],
-                    ["Portfolio", "/portfolio/"],
-                    ["Process", "/#process"],
-                    ["Contact", "/#contact"],
-                  ]
-                    .map(
-                      ([label, href]) =>
-                        `<a href="${escapeAttr(href)}" style="${styleString({
-                          "font-family": FONTS.body,
-                          "font-size": "0.875rem",
-                          "font-weight": "500",
-                          color: COLORS.muted,
-                          "text-decoration": "none",
-                        })}">${escapeHtml(label)}</a>`
-                    )
-                    .join("")}
-                  ${buttonLink("Free Consultation", "/#contact")}
-                </div>
-              </div>`,
-              "Header Navigation"
-            ),
-            "3_4",
-            "Header Navigation Column"
-          ),
-        ].join(""),
-        "1_4,3_4",
+        column(menuModule("Primary Navigation"), "4_4", "Header Menu Column"),
+        "4_4",
         "Header Row"
       ),
       "Global Header Section"
@@ -2597,6 +2712,7 @@ Notes:
 - Asset files are embedded in each JSON export, so Divi should upload and relink them during import.
 - Internal links assume the homepage is the site root and the portfolio page uses \`/portfolio/\`.
 - Shared Divi 5 variables for colors, fonts, spacing, and radii are included in each import payload.
+- The global header uses the Divi 5 Menu block and resolves against the normal WordPress \`primary-menu\` location.
 - Layout styling uses responsive \`rem\`, \`clamp()\`, \`calc()\`, \`var(--gcid-...)\`, and \`var(--gvid-...)\` references instead of hardcoded theme values.
 - The contact section includes a visual form replica. Replace it with a Divi Contact Form module after import if you need live submissions.
 `
