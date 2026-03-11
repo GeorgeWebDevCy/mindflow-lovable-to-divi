@@ -9,6 +9,28 @@ const PROJECTS_FILE = path.join(SRC_DIR, "data", "projects.ts");
 const ASSET_BASE_URL = "https://digitalmindflow.local/assets";
 const BUILDER_VERSION = 0.7;
 
+const MEDIA_LIBRARY_ASSETS = {
+  "dm-logo.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/Artboard-2_9.png",
+  "portfolio-ai.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-ai.jpg",
+  "portfolio-email.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-email.jpg",
+  "portfolio-ads.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-ads.jpg",
+  "portfolio-web.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-web.jpg",
+  "portfolio-social.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-social.jpg",
+  "portfolio-brand.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/portfolio-brand.jpg",
+  "hero-bg.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/hero-bg.jpg",
+  "about-creative.jpg": "https://mindflowdigital.com/wp-content/uploads/2026/02/about-creative.jpg",
+  "approach.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/approach.svg",
+  "vision.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/vision.svg",
+  "mission.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/mission.svg",
+  "web.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/web.svg",
+  "ppc.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/ppc.svg",
+  "seo.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/seo.svg",
+  "email.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/email.svg",
+  "social.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/social.svg",
+  "consultation.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/consultation.svg",
+  "ai-ads.svg": "https://mindflowdigital.com/wp-content/uploads/2026/02/ai-ads.svg",
+};
+
 const COLOR_DEFINITIONS = {
   background: {
     id: "gcid-dmf-background",
@@ -259,16 +281,19 @@ const ABOUT_VALUES = [
   {
     title: "Our Mission",
     marker: "M",
+    iconFile: "mission.svg",
     text: "To develop trusted business partnerships by providing the highest level of digital marketing services that contribute to our client's growth, success, and the community's development.",
   },
   {
     title: "Our Vision",
     marker: "V",
+    iconFile: "vision.svg",
     text: "Our team consists of highly skilled professionals who are passionate about what they do. We believe that if you communicate with people right, you can gain excellence.",
   },
   {
     title: "Our Approach",
     marker: "A",
+    iconFile: "approach.svg",
     text: "Through creative and customized strategy, we meet your business expectations. We use the latest tools, trends, and the appropriate platforms for your brand to achieve the best results.",
   },
 ];
@@ -276,6 +301,7 @@ const ABOUT_VALUES = [
 const SERVICE_CARDS = [
   {
     title: "Consultation",
+    iconFile: "consultation.svg",
     description:
       "Digital marketing services built on strategy, driven by data and delivering effective practices.",
     items: [
@@ -287,6 +313,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "Social Media Marketing",
+    iconFile: "social.svg",
     description:
       "Custom content for the proper platform for your niche that attracts potential customers.",
     items: [
@@ -298,6 +325,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "Email Marketing",
+    iconFile: "email.svg",
     description:
       "We can make some inboxes really happy. We know how your potential customers actually open your emails.",
     items: [
@@ -309,6 +337,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "SEO",
+    iconFile: "seo.svg",
     description:
       "Comprehensive search engine optimization to boost your organic visibility and rankings.",
     items: [
@@ -320,6 +349,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "PPC & Google Ads",
+    iconFile: "ppc.svg",
     description:
       "Beat the competition and take your business to the top of results with the right strategy and keywords.",
     items: [
@@ -331,6 +361,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "Web Design",
+    iconFile: "web.svg",
     description:
       "Increase your online presence with a website that reflects your brand and takes your business to the next level.",
     items: [
@@ -342,6 +373,7 @@ const SERVICE_CARDS = [
   },
   {
     title: "AI-Powered Advertising",
+    iconFile: "ai-ads.svg",
     description:
       "Next-gen advertising leveraging AI for smarter targeting, creative generation, and presence across AI answer engines.",
     items: [
@@ -524,7 +556,7 @@ function rgba(color, alpha) {
 }
 
 function assetUrl(fileName) {
-  return `${ASSET_BASE_URL}/${fileName}`;
+  return MEDIA_LIBRARY_ASSETS[fileName] || `${ASSET_BASE_URL}/${fileName}`;
 }
 
 function chunk(items, size) {
@@ -764,6 +796,15 @@ function imageHtml(src, alt, options = {}) {
   })}">`;
 }
 
+function iconBadgeHtml(fileName, label, size = "1.5rem") {
+  return `<img src="${escapeAttr(assetUrl(fileName))}" alt="${escapeAttr(label)}" style="${styleString({
+    width: size,
+    height: size,
+    display: "block",
+    "object-fit": "contain",
+  })}">`;
+}
+
 function contentCard(inner, extra = {}) {
   return `<div style="${styleString({
     background: extra.background || COLORS.white,
@@ -923,37 +964,37 @@ function serviceCardHtml(service) {
   return contentCard(
     `<div style="${styleString({
       display: "inline-flex",
-      width: "44px",
-      height: "44px",
+      width: "3rem",
+      height: "3rem",
       "align-items": "center",
       "justify-content": "center",
-      "border-radius": "14px",
+      "border-radius": TOKENS.radiusMd,
       background: rgba(COLORS.accent, 0.14),
-      color: COLORS.accentDeep,
+      color: COLORS.accent,
       "font-family": FONTS.heading,
-      "font-size": "16px",
+      "font-size": "1rem",
       "font-weight": "700",
-      "margin-bottom": "18px",
-    })}">${escapeHtml(service.title.charAt(0))}</div>
+      "margin-bottom": TOKENS.spaceMd,
+    })}">${service.iconFile ? iconBadgeHtml(service.iconFile, service.title, "1.25rem") : escapeHtml(service.title.charAt(0))}</div>
     <h3 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "24px",
-      "font-weight": "700",
+      "font-size": "1.125rem",
+      "font-weight": "600",
       "line-height": "1.25",
       color: COLORS.foreground,
-      "margin": "0 0 12px 0",
+      "margin": "0 0 0.5rem 0",
     })}">${escapeHtml(service.title)}</h3>
     <p style="${styleString({
       "font-family": FONTS.body,
-      "font-size": "15px",
+      "font-size": "0.875rem",
       "line-height": "1.7",
       color: COLORS.muted,
-      "margin": "0 0 18px 0",
+      "margin": "0 0 1rem 0",
     })}">${escapeHtml(service.description)}</p>
     ${listHtml(service.items)}`,
     {
       background: COLORS.background,
-      padding: "26px",
+      padding: "2rem",
     }
   );
 }
@@ -961,95 +1002,182 @@ function serviceCardHtml(service) {
 function valueCardHtml(value) {
   return contentCard(
     `<div style="${styleString({
+      "text-align": "center",
+    })}"><div style="${styleString({
       display: "inline-flex",
-      width: "52px",
-      height: "52px",
+      width: "3.5rem",
+      height: "3.5rem",
       "align-items": "center",
       "justify-content": "center",
-      "border-radius": "16px",
+      "border-radius": TOKENS.radiusMd,
       background: rgba(COLORS.accent, 0.14),
-      color: COLORS.accentDeep,
+      color: COLORS.accent,
       "font-family": FONTS.heading,
-      "font-size": "18px",
+      "font-size": "1.125rem",
       "font-weight": "700",
-      "margin-bottom": "18px",
-    })}">${escapeHtml(value.marker)}</div>
+      "margin-bottom": TOKENS.spaceMd,
+    })}">${value.iconFile ? iconBadgeHtml(value.iconFile, value.title) : escapeHtml(value.marker)}</div>
     <h3 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "24px",
-      "font-weight": "700",
+      "font-size": "1.25rem",
+      "font-weight": "600",
       "line-height": "1.25",
       color: COLORS.foreground,
-      "margin": "0 0 12px 0",
+      "margin": "0 0 0.75rem 0",
     })}">${escapeHtml(value.title)}</h3>
     <p style="${styleString({
       "font-family": FONTS.body,
-      "font-size": "15px",
+      "font-size": "0.875rem",
       "line-height": "1.8",
       color: COLORS.muted,
       "margin": "0",
-    })}">${escapeHtml(value.text)}</p>`,
+    })}">${escapeHtml(value.text)}</p></div>`,
     {
       background: COLORS.card,
-      padding: "28px",
+      padding: "2rem",
     }
   );
 }
 
 function processCardHtml(step) {
-  return contentCard(
-    `<div style="${styleString({
+  return `<div style="${styleString({
+    "text-align": "center",
+    padding: "1rem 0",
+  })}">
+    <div style="${styleString({
       display: "inline-flex",
-      width: "64px",
-      height: "64px",
+      width: "4rem",
+      height: "4rem",
       "align-items": "center",
       "justify-content": "center",
-      "border-radius": "18px",
+      "border-radius": TOKENS.radiusLg,
       background: COLORS.primary,
       color: COLORS.white,
       "font-family": FONTS.heading,
-      "font-size": "18px",
+      "font-size": "1.125rem",
       "font-weight": "700",
-      "margin-bottom": "20px",
+      "margin-bottom": "1.5rem",
+      "box-shadow": `0 1.25rem 3.75rem ${rgba(COLORS.primary, 0.15)}`,
     })}">${escapeHtml(step.step)}</div>
+    <div style="${styleString({
+      display: "inline-flex",
+      width: "2.5rem",
+      height: "2.5rem",
+      "align-items": "center",
+      "justify-content": "center",
+      "border-radius": "999rem",
+      background: rgba(COLORS.accent, 0.14),
+      color: COLORS.accent,
+      "font-family": FONTS.heading,
+      "font-size": "1rem",
+      "font-weight": "700",
+      "margin-bottom": "1rem",
+    })}">${escapeHtml(step.step.charAt(1) || step.step.charAt(0))}</div>
     <h3 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "24px",
-      "font-weight": "700",
+      "font-size": "1.25rem",
+      "font-weight": "600",
       "line-height": "1.25",
       color: COLORS.foreground,
-      "margin": "0 0 12px 0",
+      "margin": "0 0 0.75rem 0",
     })}">${escapeHtml(step.title)}</h3>
     <p style="${styleString({
       "font-family": FONTS.body,
-      "font-size": "15px",
+      "font-size": "0.875rem",
       "line-height": "1.8",
       color: COLORS.muted,
-      "margin": "0",
-    })}">${escapeHtml(step.description)}</p>`,
-    {
-      background: COLORS.background,
-      padding: "28px",
-    }
-  );
+      margin: "0 auto",
+      "max-width": "16rem",
+    })}">${escapeHtml(step.description)}</p>
+  </div>`;
+}
+
+function featuredProjectPreviewHtml(project) {
+  return `<div style="${styleString({
+    height: "100%",
+  })}">
+    <a href="/portfolio/" style="${styleString({
+      display: "block",
+      color: COLORS.foreground,
+      "text-decoration": "none",
+    })}">
+      <div style="${styleString({
+        position: "relative",
+        overflow: "hidden",
+        "border-radius": TOKENS.radiusLg,
+        "aspect-ratio": "4 / 3",
+        "margin-bottom": "1rem",
+        background: COLORS.card,
+      })}">
+        ${imageHtml(assetUrl(project.imageFile), project.title, {
+          height: "100%",
+          radius: TOKENS.radiusLg,
+          shadow: "none",
+        })}
+        <div style="${styleString({
+          position: "absolute",
+          inset: "0",
+          background: rgba(COLORS.primary, 0.06),
+        })}"></div>
+        <div style="${styleString({
+          position: "absolute",
+          top: "0.75rem",
+          left: "0.75rem",
+        })}">
+          ${tag(project.category)}
+        </div>
+      </div>
+      <p style="${styleString({
+        "font-family": FONTS.body,
+        "font-size": "0.75rem",
+        "font-weight": "500",
+        color: COLORS.muted,
+        "text-transform": "uppercase",
+        "letter-spacing": "0.14em",
+        "margin": "0 0 0.25rem 0",
+      })}">${escapeHtml(project.client)}</p>
+      <h3 style="${styleString({
+        "font-family": FONTS.heading,
+        "font-size": "1.125rem",
+        "font-weight": "600",
+        color: COLORS.foreground,
+        margin: "0",
+      })}">${escapeHtml(project.title)}</h3>
+    </a>
+  </div>`;
 }
 
 function heroShellHtml(inner) {
   return `<div style="${styleString({
-    background: `linear-gradient(180deg, ${rgba(COLORS.primary, 0.88)}, ${rgba(COLORS.overlay, 0.92)}), url('${assetUrl("hero-bg.jpg")}') center/cover no-repeat`,
-    "border-radius": "32px",
-    padding: "148px 40px 132px",
-    "min-height": "70vh",
-    display: "flex",
-    "align-items": "center",
-    "justify-content": "center",
-    "text-align": "center",
+    position: "relative",
+    width: "100vw",
+    "margin-left": "calc(50% - 50vw)",
+    "margin-right": "calc(50% - 50vw)",
+    overflow: "hidden",
+    background: `url('${assetUrl("hero-bg.jpg")}') center/cover no-repeat`,
   })}">
     <div style="${styleString({
+      position: "absolute",
+      inset: "0",
+      background: `linear-gradient(180deg, ${rgba(COLORS.primary, 0.7)}, ${rgba(COLORS.overlay, 0.82)})`,
+    })}"></div>
+    <div style="${styleString({
+      position: "relative",
+      "z-index": "1",
+      "min-height": "calc(100vh - 1rem)",
+      display: "flex",
+      "align-items": "center",
+      "justify-content": "center",
+      "text-align": "center",
+      padding: "clamp(6rem, 10vw, 8rem) 1.5rem clamp(4rem, 8vw, 6rem)",
       width: "100%",
-      "max-width": "960px",
+    })}">
+      <div style="${styleString({
+      width: "100%",
+      "max-width": "64rem",
       margin: "0 auto",
     })}">${inner}</div>
+    </div>
   </div>`;
 }
 
@@ -1058,41 +1186,63 @@ function homeHeroHtml() {
     `<div style="${styleString({
       display: "inline-flex",
       "align-items": "center",
-      gap: "8px",
-      padding: "8px 16px",
-      "border-radius": "999px",
+      gap: "0.5rem",
+      padding: "0.375rem 1rem",
+      "border-radius": "999rem",
       border: `1px solid ${rgba(COLORS.accent, 0.28)}`,
       background: rgba(COLORS.accent, 0.1),
       color: COLORS.accent,
       "font-family": FONTS.body,
-      "font-size": "14px",
+      "font-size": "0.875rem",
       "font-weight": "700",
-      "margin-bottom": "28px",
+      "margin-bottom": "2rem",
     })}">Strategy &middot; Data &middot; Creativity</div>
     <h1 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "clamp(40px, 7vw, 76px)",
+      "font-size": "clamp(2.5rem, 6.5vw, 4.75rem)",
       "font-weight": "700",
       "line-height": "1.08",
       color: COLORS.white,
-      margin: "0 0 20px 0",
+      margin: "0 0 1.5rem 0",
     })}">Providing a Strong ${gradientText("Online Presence")} Through Strategic Digital Marketing</h1>
     <p style="${styleString({
       "font-family": FONTS.body,
-      "font-size": "18px",
+      "font-size": "1.125rem",
       "line-height": "1.8",
       color: rgba(COLORS.white, 0.74),
-      margin: "0 auto 34px",
-      "max-width": "720px",
+      margin: "0 auto 2.5rem",
+      "max-width": "42rem",
     })}">We offer strategic, modern and effective solutions for businesses that want to grow their online presence. Let us take you one step closer to your business goals.</p>
     <div style="${styleString({
       display: "flex",
-      gap: "14px",
+      gap: "1rem",
       "justify-content": "center",
       "flex-wrap": "wrap",
     })}">
       ${buttonLink("Request Free Consultation", "/#contact")}
       ${buttonLink("Explore Our Services", "/#services", "outline")}
+    </div>
+    <div style="${styleString({
+      position: "absolute",
+      left: "50%",
+      bottom: "2rem",
+      transform: "translateX(-50%)",
+      display: "flex",
+      "align-items": "flex-start",
+      "justify-content": "center",
+      width: "1.5rem",
+      height: "2.5rem",
+      border: `0.125rem solid ${rgba(COLORS.white, 0.3)}`,
+      "border-radius": "999rem",
+      padding: "0.5rem 0 0",
+    })}">
+      <span style="${styleString({
+        display: "inline-block",
+        width: "0.375rem",
+        height: "0.375rem",
+        "border-radius": "999rem",
+        background: COLORS.accent,
+      })}"></span>
     </div>`
   );
 }
@@ -1100,25 +1250,27 @@ function homeHeroHtml() {
 function portfolioHeroHtml() {
   return `<div style="${styleString({
     background: COLORS.primary,
-    "border-radius": "32px",
-    padding: "132px 40px 108px",
+    width: "100vw",
+    "margin-left": "calc(50% - 50vw)",
+    "margin-right": "calc(50% - 50vw)",
+    padding: "clamp(6rem, 10vw, 7.5rem) 1.5rem clamp(4rem, 8vw, 5.5rem)",
     "text-align": "center",
   })}">
     ${kicker("Our Work")}
     <h1 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "clamp(38px, 6vw, 68px)",
+      "font-size": "clamp(2.5rem, 6vw, 4.25rem)",
       "font-weight": "700",
       "line-height": "1.1",
       color: COLORS.white,
-      margin: "0 0 18px 0",
+      margin: "0 0 1.125rem 0",
     })}">Recent ${gradientText("Projects")}</h1>
     <p style="${styleString({
       "font-family": FONTS.body,
-      "font-size": "18px",
+      "font-size": "1.125rem",
       "line-height": "1.8",
       color: rgba(COLORS.white, 0.72),
-      "max-width": "760px",
+      "max-width": "42rem",
       margin: "0 auto",
     })}">Explore our portfolio of successful campaigns and projects. Each case study showcases our strategic approach and measurable results.</p>
   </div>`;
@@ -1172,59 +1324,75 @@ function caseStudyHeroLeftHtml(project) {
 
 function contactInfoHtml() {
   return `<div id="contact" style="${styleString({
-    padding: "10px 0",
+    padding: "0.625rem 0",
   })}">
     <h3 style="${styleString({
       "font-family": FONTS.heading,
-      "font-size": "28px",
-      "font-weight": "700",
+      "font-size": "1.25rem",
+      "font-weight": "600",
       color: COLORS.foreground,
-      margin: "0 0 18px 0",
+      margin: "0 0 1.5rem 0",
     })}">Contact Information</h3>
     <div style="${styleString({
       display: "flex",
       "flex-direction": "column",
-      gap: "14px",
-      "margin-bottom": "28px",
+      gap: "1.25rem",
+      "margin-bottom": "2rem",
     })}">
-      <a href="mailto:info@mindflowdigital.com" style="${styleString({
-        "font-family": FONTS.body,
-        "font-size": "15px",
-        color: COLORS.foreground,
-        "text-decoration": "none",
-      })}">info@mindflowdigital.com</a>
-      <a href="tel:+35799882116" style="${styleString({
-        "font-family": FONTS.body,
-        "font-size": "15px",
-        color: COLORS.foreground,
-        "text-decoration": "none",
-      })}">+357 99 882116</a>
-      <div style="${styleString({
-        "font-family": FONTS.body,
-        "font-size": "15px",
-        color: COLORS.muted,
-      })}">Paphos, Cyprus</div>
+      ${[
+        ["@","info@mindflowdigital.com","mailto:info@mindflowdigital.com"],
+        ["P","+357 99 882116","tel:+35799882116"],
+        ["M","Paphos, Cyprus",""],
+      ].map(([icon,label,href]) =>
+        `<${href ? "a" : "div"} ${href ? `href="${escapeAttr(href)}"` : ""} style="${styleString({
+          display: "flex",
+          "align-items": "center",
+          gap: "0.75rem",
+          color: href ? COLORS.muted : COLORS.muted,
+          "text-decoration": "none",
+        })}">
+          <span style="${styleString({
+            display: "inline-flex",
+            width: "2.5rem",
+            height: "2.5rem",
+            "align-items": "center",
+            "justify-content": "center",
+            "border-radius": TOKENS.radiusMd,
+            background: rgba(COLORS.accent, 0.12),
+            color: COLORS.accent,
+            "font-family": FONTS.heading,
+            "font-size": "0.875rem",
+            "font-weight": "700",
+            "flex-shrink": "0",
+          })}">${icon}</span>
+          <span style="${styleString({
+            "font-family": FONTS.body,
+            "font-size": "0.875rem",
+            color: href ? COLORS.muted : COLORS.muted,
+          })}">${escapeHtml(label)}</span>
+        </${href ? "a" : "div"}>`
+      ).join("")}
     </div>
     ${contentCard(
       `<h4 style="${styleString({
         "font-family": FONTS.heading,
-        "font-size": "24px",
-        "font-weight": "700",
+        "font-size": "1.125rem",
+        "font-weight": "600",
         color: COLORS.white,
-        margin: "0 0 10px 0",
+        margin: "0 0 0.5rem 0",
       })}">Book a Discovery Call</h4>
       <p style="${styleString({
         "font-family": FONTS.body,
-        "font-size": "15px",
+        "font-size": "0.875rem",
         "line-height": "1.8",
         color: rgba(COLORS.white, 0.74),
-        margin: "0 0 18px 0",
+        margin: "0 0 1rem 0",
       })}">Schedule a free 30-minute call with our team to discuss your business goals and how we can help.</p>
       ${buttonLink("Call Now", "tel:+35799882116")}`,
       {
         background: COLORS.primary,
         borderColor: rgba(COLORS.white, 0.08),
-        padding: "26px",
+        padding: "1.5rem",
         shadow: "none",
       }
     )}`;
@@ -1318,12 +1486,23 @@ function buildHomeLayout(projects) {
               column(
                 textModule(
                   `<div id="about" style="${styleString({
-                    padding: "8px 18px 8px 0",
+                    position: "relative",
+                    padding: "0.5rem 1rem 0.5rem 0",
                   })}">
                     ${imageHtml(assetUrl("about-creative.jpg"), "Digital MindFlow creative concept", {
                       height: "auto",
-                      radius: "28px",
+                      radius: "1.5rem",
                     })}
+                    <span style="${styleString({
+                      position: "absolute",
+                      right: "-1rem",
+                      bottom: "-1rem",
+                      width: "6rem",
+                      height: "6rem",
+                      "border-radius": "1.5rem",
+                      background: rgba(COLORS.accent, 0.2),
+                      "z-index": "-1",
+                    })}"></span>
                   </div>`,
                   "About Image"
                 ),
@@ -1463,12 +1642,7 @@ function buildHomeLayout(projects) {
           ),
           layoutRowsForCards(
             featuredProjects,
-            (project) =>
-              projectCardHtml(project, {
-                withGoal: false,
-                linkLabel: "View Case Study",
-                imageHeight: "245px",
-              }),
+            featuredProjectPreviewHtml,
             3,
             "1_3"
           ),
@@ -1551,10 +1725,10 @@ function buildHomeLayout(projects) {
           ),
           row(
             [
-              column(textModule(contactInfoHtml(), "Contact Info"), "1_3", "Contact Info Column"),
-              column(textModule(contactFormHtml(), "Contact Form"), "2_3", "Contact Form Column"),
+              column(textModule(contactInfoHtml(), "Contact Info"), "2_5", "Contact Info Column"),
+              column(textModule(contactFormHtml(), "Contact Form"), "3_5", "Contact Form Column"),
             ].join(""),
-            "1_3,2_3",
+            "2_5,3_5",
             "Contact Content Row"
           ),
         ].join(""),
@@ -1985,23 +2159,23 @@ function buildHeaderLayout() {
           column(
             textModule(
               `<div style="${styleString({
-                padding: "6px 0",
+                padding: "0.5rem 0",
               })}">
                 <a href="/" style="${styleString({
                   display: "inline-flex",
                   "align-items": "center",
-                  gap: "12px",
+                  gap: "0.75rem",
                   "text-decoration": "none",
                 })}">
                   <img src="${escapeAttr(assetUrl("dm-logo.jpg"))}" alt="Digital MindFlow" style="${styleString({
-                    width: "44px",
-                    height: "44px",
+                    width: "2.5rem",
+                    height: "2.5rem",
                     "object-fit": "contain",
-                    "border-radius": "12px",
+                    "border-radius": "0.75rem",
                   })}">
                   <span style="${styleString({
                     "font-family": FONTS.heading,
-                    "font-size": "24px",
+                    "font-size": "1.125rem",
                     "font-weight": "700",
                     color: COLORS.foreground,
                   })}">Digital ${gradientText("MindFlow")}</span>
@@ -2009,20 +2183,21 @@ function buildHeaderLayout() {
               </div>`,
               "Header Brand"
             ),
-            "1_3",
+            "1_4",
             "Header Brand Column"
           ),
           column(
             textModule(
               `<div style="${styleString({
-                background: rgba(COLORS.background, 0.96),
-                border: `1px solid ${COLORS.border}`,
-                "border-radius": "20px",
-                padding: "14px 16px",
+                display: "flex",
+                "justify-content": "flex-end",
+                "align-items": "center",
+                height: "100%",
+                padding: "0.25rem 0",
               })}">
                 <div style="${styleString({
                   display: "flex",
-                  gap: "16px",
+                  gap: "1.25rem",
                   "align-items": "center",
                   "justify-content": "flex-end",
                   "flex-wrap": "wrap",
@@ -2039,8 +2214,8 @@ function buildHeaderLayout() {
                       ([label, href]) =>
                         `<a href="${escapeAttr(href)}" style="${styleString({
                           "font-family": FONTS.body,
-                          "font-size": "14px",
-                          "font-weight": "600",
+                          "font-size": "0.875rem",
+                          "font-weight": "500",
                           color: COLORS.muted,
                           "text-decoration": "none",
                         })}">${escapeHtml(label)}</a>`
@@ -2051,11 +2226,11 @@ function buildHeaderLayout() {
               </div>`,
               "Header Navigation"
             ),
-            "2_3",
+            "3_4",
             "Header Navigation Column"
           ),
         ].join(""),
-        "1_3,2_3",
+        "1_4,3_4",
         "Header Row"
       ),
       "Global Header Section"
@@ -2068,159 +2243,141 @@ function buildFooterLayout() {
 
   return placeholder(
     section(
-      [
-        row(
-          [
-            column(
-              textModule(
-                `<div style="${styleString({
-                  background: COLORS.primary,
-                  "border-radius": "28px",
-                  padding: "34px 34px 28px",
-                  color: COLORS.white,
-                  height: "100%",
-                })}">
-                  <div style="${styleString({
-                    "font-family": FONTS.heading,
-                    "font-size": "28px",
-                    "font-weight": "700",
-                    "margin-bottom": "14px",
-                  })}">Digital ${gradientText("MindFlow")}</div>
-                  <p style="${styleString({
-                    "font-family": FONTS.body,
-                    "font-size": "15px",
-                    "line-height": "1.8",
-                    color: rgba(COLORS.white, 0.72),
-                    margin: "0",
-                  })}">A studio offering strategic, modern and effective digital marketing solutions for businesses that want to grow their online presence.</p>
-                </div>`,
-                "Footer Brand"
-              ),
-              "1_2",
-              "Footer Brand Column"
-            ),
-            column(
-              textModule(
-                `${contentCard(
-                  `<h4 style="${styleString({
-                    "font-family": FONTS.heading,
-                    "font-size": "22px",
-                    "font-weight": "700",
-                    color: COLORS.foreground,
-                    margin: "0 0 14px 0",
-                  })}">Quick Links</h4>
-                  <div style="${styleString({
-                    display: "flex",
-                    "flex-direction": "column",
-                    gap: "10px",
-                  })}">
-                    ${[
-                      ["About", "/#about"],
-                      ["Services", "/#services"],
-                      ["Process", "/#process"],
-                      ["Contact", "/#contact"],
-                    ]
-                      .map(
-                        ([label, href]) =>
-                          `<a href="${escapeAttr(href)}" style="${styleString({
-                            "font-family": FONTS.body,
-                            "font-size": "15px",
-                            color: COLORS.muted,
-                            "text-decoration": "none",
-                          })}">${escapeHtml(label)}</a>`
-                      )
-                      .join("")}
-                  </div>`,
-                  {
-                    background: COLORS.card,
-                    padding: "28px",
-                    shadow: "none",
-                  }
-                )}`,
-                "Footer Links"
-              ),
-              "1_4",
-              "Footer Links Column"
-            ),
-            column(
-              textModule(
-                `${contentCard(
-                  `<h4 style="${styleString({
-                    "font-family": FONTS.heading,
-                    "font-size": "22px",
-                    "font-weight": "700",
-                    color: COLORS.foreground,
-                    margin: "0 0 14px 0",
-                  })}">Contact</h4>
-                  <div style="${styleString({
-                    display: "flex",
-                    "flex-direction": "column",
-                    gap: "10px",
-                  })}">
-                    <a href="mailto:info@mindflowdigital.com" style="${styleString({
-                      "font-family": FONTS.body,
-                      "font-size": "15px",
-                      color: COLORS.muted,
-                      "text-decoration": "none",
-                    })}">info@mindflowdigital.com</a>
-                    <a href="tel:+35799882116" style="${styleString({
-                      "font-family": FONTS.body,
-                      "font-size": "15px",
-                      color: COLORS.muted,
-                      "text-decoration": "none",
-                    })}">+357 99 882116</a>
-                    <div style="${styleString({
-                      "font-family": FONTS.body,
-                      "font-size": "15px",
-                      color: COLORS.muted,
-                    })}">Paphos, Cyprus</div>
-                  </div>`,
-                  {
-                    background: COLORS.card,
-                    padding: "28px",
-                    shadow: "none",
-                  }
-                )}`,
-                "Footer Contact"
-              ),
-              "1_4",
-              "Footer Contact Column"
-            ),
-          ].join(""),
-          "1_2,1_4,1_4",
-          "Footer Main Row"
-        ),
-        row(
-          column(
-            textModule(
-              `<div style="${styleString({
-                "border-top": `1px solid ${COLORS.border}`,
-                padding: "18px 0 0",
-                display: "flex",
-                "justify-content": "space-between",
-                gap: "12px",
-                "flex-wrap": "wrap",
+      row(
+        column(
+          textModule(
+            `<div style="${styleString({
+              width: "100vw",
+              "margin-left": "calc(50% - 50vw)",
+              "margin-right": "calc(50% - 50vw)",
+              background: COLORS.primary,
+              color: COLORS.white,
+              padding: "4rem 1.5rem 2rem",
+            })}">
+              <div style="${styleString({
+                width: "100%",
+                "max-width": "80rem",
+                margin: "0 auto",
               })}">
-                <span style="${styleString({
-                  "font-family": FONTS.body,
-                  "font-size": "13px",
-                  color: COLORS.muted,
-                })}">&copy; ${year} Digital MindFlow. All rights reserved.</span>
-                <span style="${styleString({
-                  "font-family": FONTS.body,
-                  "font-size": "13px",
-                  color: COLORS.muted,
-                })}">Marketing Services &middot; Paphos, Cyprus</span>
-              </div>`,
-              "Footer Bottom Bar"
-            ),
-            "4_4",
-            "Footer Bottom Column"
+                <div style="${styleString({
+                  display: "grid",
+                  "grid-template-columns": "repeat(auto-fit, minmax(min(100%, 14rem), 1fr))",
+                  gap: "2.5rem",
+                })}">
+                  <div>
+                    <div style="${styleString({
+                      "font-family": FONTS.heading,
+                      "font-size": "1.25rem",
+                      "font-weight": "700",
+                      margin: "0 0 1rem 0",
+                    })}">Digital ${gradientText("MindFlow")}</div>
+                    <p style="${styleString({
+                      "font-family": FONTS.body,
+                      "font-size": "0.875rem",
+                      "line-height": "1.8",
+                      color: rgba(COLORS.white, 0.6),
+                      margin: "0",
+                      "max-width": "32rem",
+                    })}">A studio offering strategic, modern and effective digital marketing solutions for businesses that want to grow their online presence.</p>
+                  </div>
+                  <div>
+                    <h4 style="${styleString({
+                      "font-family": FONTS.heading,
+                      "font-size": "0.875rem",
+                      "font-weight": "600",
+                      color: rgba(COLORS.white, 0.8),
+                      "text-transform": "uppercase",
+                      "letter-spacing": "0.1em",
+                      margin: "0 0 1rem 0",
+                    })}">Quick Links</h4>
+                    <div style="${styleString({
+                      display: "flex",
+                      "flex-direction": "column",
+                      gap: "0.625rem",
+                    })}">
+                      ${[
+                        ["About", "/#about"],
+                        ["Services", "/#services"],
+                        ["Process", "/#process"],
+                        ["Contact", "/#contact"],
+                      ]
+                        .map(
+                          ([label, href]) =>
+                            `<a href="${escapeAttr(href)}" style="${styleString({
+                              "font-family": FONTS.body,
+                              "font-size": "0.875rem",
+                              color: rgba(COLORS.white, 0.6),
+                              "text-decoration": "none",
+                            })}">${escapeHtml(label)}</a>`
+                        )
+                        .join("")}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 style="${styleString({
+                      "font-family": FONTS.heading,
+                      "font-size": "0.875rem",
+                      "font-weight": "600",
+                      color: rgba(COLORS.white, 0.8),
+                      "text-transform": "uppercase",
+                      "letter-spacing": "0.1em",
+                      margin: "0 0 1rem 0",
+                    })}">Contact</h4>
+                    <div style="${styleString({
+                      display: "flex",
+                      "flex-direction": "column",
+                      gap: "0.75rem",
+                    })}">
+                      <a href="mailto:info@mindflowdigital.com" style="${styleString({
+                        "font-family": FONTS.body,
+                        "font-size": "0.875rem",
+                        color: rgba(COLORS.white, 0.6),
+                        "text-decoration": "none",
+                      })}">info@mindflowdigital.com</a>
+                      <a href="tel:+35799882116" style="${styleString({
+                        "font-family": FONTS.body,
+                        "font-size": "0.875rem",
+                        color: rgba(COLORS.white, 0.6),
+                        "text-decoration": "none",
+                      })}">+357 99 882116</a>
+                      <div style="${styleString({
+                        "font-family": FONTS.body,
+                        "font-size": "0.875rem",
+                        color: rgba(COLORS.white, 0.6),
+                      })}">Paphos, Cyprus</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="${styleString({
+                  "margin-top": "3rem",
+                  padding: "1.5rem 0 0",
+                  "border-top": `1px solid ${rgba(COLORS.white, 0.1)}`,
+                  display: "flex",
+                  "justify-content": "space-between",
+                  gap: "0.75rem",
+                  "flex-wrap": "wrap",
+                })}">
+                  <span style="${styleString({
+                    "font-family": FONTS.body,
+                    "font-size": "0.75rem",
+                    color: rgba(COLORS.white, 0.4),
+                  })}">&copy; ${year} Digital MindFlow. All rights reserved.</span>
+                  <span style="${styleString({
+                    "font-family": FONTS.body,
+                    "font-size": "0.75rem",
+                    color: rgba(COLORS.white, 0.4),
+                  })}">Marketing Services &middot; Paphos, Cyprus</span>
+                </div>
+              </div>
+            </div>`,
+            "Footer Content"
           ),
           "4_4",
-          "Footer Bottom Row"
+          "Footer Column"
         ),
-      ].join(""),
+        "4_4",
+        "Footer Row"
+      ),
       "Global Footer Section"
     )
   );
@@ -2272,8 +2429,11 @@ function imageEntries(imageFiles) {
   const entries = {};
   for (const fileName of [...new Set(imageFiles)].sort()) {
     const filePath = path.join(ASSETS_DIR, fileName);
-    const encoded = fs.readFileSync(filePath).toString("base64");
     const url = assetUrl(fileName);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const encoded = fs.readFileSync(filePath).toString("base64");
     entries[url] = {
       encoded,
       url,
