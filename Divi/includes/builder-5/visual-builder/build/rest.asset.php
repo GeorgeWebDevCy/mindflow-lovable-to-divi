@@ -1,0 +1,1 @@
+<?php return array('dependencies' => array('divi-data', 'divi-middleware', 'divi-module-utils', 'divi-vendor-react', 'divi-vendor-wp-hooks', 'divi-vendor-wp-i18n', 'divi-window', 'lodash', 'moment'), 'version' => '2312b5fa8938ce74f285');
