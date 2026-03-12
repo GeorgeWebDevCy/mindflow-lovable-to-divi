@@ -3692,9 +3692,7 @@ HTML;
 	}
 
 	private function apply_global_header_layout_fix( $content ) {
-		$header_layout = $this->build_global_header_layout_content( (string) $content );
-
-		return $this->upsert_runtime_snippet( $header_layout, 'header', $this->build_header_runtime_markup() );
+		return $this->build_global_header_layout_content( (string) $content );
 	}
 
 	private function build_global_header_layout_content( $content ) {
@@ -3727,6 +3725,21 @@ HTML;
 		return $this->build_section_module(
 			'Global Header Section',
 			[
+				$this->build_row_module(
+					'Header Runtime Row',
+					[
+						$this->build_column_module(
+							'Header Runtime Column',
+							[
+								$this->build_header_runtime_block_markup(),
+							],
+							'4_4',
+							'dmf-header-runtime-column'
+						),
+					],
+					'4_4',
+					'dmf-header-runtime-row'
+				),
 				$this->build_row_module(
 					'Header Row',
 					[
@@ -3922,11 +3935,46 @@ HTML;
 	}
 
 	private function build_header_runtime_block_markup() {
-		return $this->build_code_module(
-			'Header Runtime',
-			$this->build_header_runtime_markup(),
-			'dmf-header-runtime',
-			false
+		return $this->render_divi_block(
+			'code',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Header Runtime',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-header-runtime',
+								'style' => $this->build_inline_style(
+									[
+										'position'       => 'absolute',
+										'width'          => '0',
+										'height'         => '0',
+										'overflow'       => 'hidden',
+										'opacity'        => '0',
+										'pointer-events' => 'none',
+										'margin'         => '0',
+										'padding'        => '0',
+									]
+								),
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => $this->build_header_runtime_markup(),
+						],
+					],
+				],
+			]
 		);
 	}
 
@@ -3943,9 +3991,36 @@ HTML;
 	private function build_header_runtime_markup() {
 		return <<<'HTML'
 <style id="dmf-header-runtime-styles">
+.et-l--header{
+	position:absolute !important;
+	top:0 !important;
+	right:0 !important;
+	left:0 !important;
+	width:100% !important;
+	z-index:999 !important;
+	background:transparent !important;
+}
+.et-l--header .et_builder_inner_content,
+.et-l--header .et_pb_section{
+	background:transparent !important;
+}
 .dmf-global-header-shell{
+	position:absolute !important;
+	top:0 !important;
+	right:0 !important;
+	left:0 !important;
+	width:100% !important;
 	background:transparent !important;
 	transition:background-color 220ms ease, color 220ms ease;
+}
+.dmf-header-runtime-row,
+.dmf-header-runtime-column{
+	width:0 !important;
+	max-width:0 !important;
+	height:0 !important;
+	margin:0 !important;
+	padding:0 !important;
+	overflow:hidden !important;
 }
 .dmf-global-header-shell,
 .dmf-global-header-shell .et_pb_section{
