@@ -2653,7 +2653,7 @@ function createExports() {
           },
           body: {
             id: 0,
-            enabled: false,
+            enabled: true,
           },
           footer: {
             id: 61002,

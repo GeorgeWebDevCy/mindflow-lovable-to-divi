@@ -526,6 +526,10 @@ function dmf_import_global_theme_template( array $export, bool $dry_run ): array
 	dmf_log( $dry_run ? 'Would update default Theme Builder template.' : 'Updating default Theme Builder template.' );
 
 	if ( $dry_run ) {
+		foreach ( dmf_find_templates_with_body_overrides( $default_template ? (int) $default_template->ID : 0 ) as $template ) {
+			$updated[] = sprintf( 'Clear stale body override on template #%d', $template->ID );
+		}
+
 		return $updated;
 	}
 
@@ -552,7 +556,8 @@ function dmf_import_global_theme_template( array $export, bool $dry_run ): array
 			],
 			'body'   => [
 				'id'      => $layout_ids['body'],
-				'enabled' => ! empty( $template_export['layouts']['body']['enabled'] ) ? '1' : '0',
+				// Divi treats a disabled body area as a full body override even with no body layout.
+				'enabled' => dmf_theme_template_area_enabled_flag( 'body', $layout_ids['body'], $template_export ),
 			],
 			'footer' => [
 				'id'      => $layout_ids['footer'],
@@ -577,6 +582,65 @@ function dmf_import_global_theme_template( array $export, bool $dry_run ): array
 
 	if ( ! in_array( (string) $template_id, $existing_template_ids, true ) ) {
 		add_post_meta( $theme_builder_id, '_et_template', $template_id );
+	}
+
+	$updated = array_merge( $updated, dmf_neutralize_other_theme_builder_body_overrides( (int) $template_id ) );
+
+	return $updated;
+}
+
+function dmf_theme_template_area_enabled_flag( string $layout_type, int $layout_id, array $template_export ): string {
+	if ( 'body' === $layout_type && $layout_id <= 0 ) {
+		return '1';
+	}
+
+	return ! empty( $template_export['layouts'][ $layout_type ]['enabled'] ) ? '1' : '0';
+}
+
+function dmf_find_templates_with_body_overrides( int $exclude_template_id = 0 ): array {
+	if ( ! defined( 'ET_THEME_BUILDER_TEMPLATE_POST_TYPE' ) ) {
+		return [];
+	}
+
+	$templates = get_posts(
+		[
+			'post_type'      => ET_THEME_BUILDER_TEMPLATE_POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+		]
+	);
+
+	$matches = [];
+
+	foreach ( $templates as $template ) {
+		if ( ! $template instanceof WP_Post ) {
+			continue;
+		}
+
+		if ( $exclude_template_id > 0 && (int) $template->ID === $exclude_template_id ) {
+			continue;
+		}
+
+		$body_id      = (int) get_post_meta( $template->ID, '_et_body_layout_id', true );
+		$body_enabled = get_post_meta( $template->ID, '_et_body_layout_enabled', true );
+
+		if ( $body_id > 0 || '1' !== (string) $body_enabled ) {
+			$matches[] = $template;
+		}
+	}
+
+	return $matches;
+}
+
+function dmf_neutralize_other_theme_builder_body_overrides( int $keep_template_id ): array {
+	$updated = [];
+
+	foreach ( dmf_find_templates_with_body_overrides( $keep_template_id ) as $template ) {
+		update_post_meta( $template->ID, '_et_body_layout_id', 0 );
+		update_post_meta( $template->ID, '_et_body_layout_enabled', '1' );
+		$updated[] = sprintf( 'Cleared stale body override on template #%d', $template->ID );
 	}
 
 	return $updated;

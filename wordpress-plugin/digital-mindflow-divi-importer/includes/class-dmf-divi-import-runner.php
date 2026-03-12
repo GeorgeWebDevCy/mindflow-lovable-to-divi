@@ -341,6 +341,9 @@ class DMF_Divi_Import_Runner {
 			update_option( 'page_on_front', (int) $page->ID );
 		}
 
+		update_post_meta( $page->ID, '_et_pb_page_layout', 'et_full_width_page' );
+		update_post_meta( $page->ID, '_wp_page_template', 'default' );
+
 		return $page;
 	}
 
@@ -418,6 +421,8 @@ class DMF_Divi_Import_Runner {
 		update_post_meta( $page->ID, '_et_pb_use_divi_5', 'on' );
 		update_post_meta( $page->ID, '_et_pb_built_for_post_type', 'page' );
 		update_post_meta( $page->ID, '_et_pb_show_page_creation', 'off' );
+		update_post_meta( $page->ID, '_et_pb_page_layout', 'et_full_width_page' );
+		update_post_meta( $page->ID, '_wp_page_template', 'default' );
 	}
 
 	private function import_global_theme_template( array $export, $dry_run ) {
@@ -462,6 +467,10 @@ class DMF_Divi_Import_Runner {
 		}
 
 		if ( $dry_run ) {
+			foreach ( $this->find_templates_with_body_overrides( $default_template ? (int) $default_template->ID : 0 ) as $template ) {
+				$updated[] = sprintf( 'Clear stale body override on template #%d', $template->ID );
+			}
+
 			return $updated;
 		}
 
@@ -488,7 +497,8 @@ class DMF_Divi_Import_Runner {
 				],
 				'body'   => [
 					'id'      => $layout_ids['body'],
-					'enabled' => ! empty( $template_export['layouts']['body']['enabled'] ) ? '1' : '0',
+					// Divi treats a disabled body area as a full body override even with no body layout.
+					'enabled' => $this->theme_template_area_enabled_flag( 'body', $layout_ids['body'], $template_export ),
 				],
 				'footer' => [
 					'id'      => $layout_ids['footer'],
@@ -514,6 +524,8 @@ class DMF_Divi_Import_Runner {
 		if ( ! in_array( (string) $template_id, $existing_template_ids, true ) ) {
 			add_post_meta( $theme_builder_id, '_et_template', $template_id );
 		}
+
+		$updated = array_merge( $updated, $this->neutralize_other_theme_builder_body_overrides( (int) $template_id ) );
 
 		return $updated;
 	}
@@ -587,6 +599,63 @@ class DMF_Divi_Import_Runner {
 		update_post_meta( $target_id, '_et_pb_use_divi_5', 'on' );
 
 		return $target_id;
+	}
+
+	private function theme_template_area_enabled_flag( $layout_type, $layout_id, array $template_export ) {
+		if ( 'body' === $layout_type && (int) $layout_id <= 0 ) {
+			return '1';
+		}
+
+		return ! empty( $template_export['layouts'][ $layout_type ]['enabled'] ) ? '1' : '0';
+	}
+
+	private function find_templates_with_body_overrides( $exclude_template_id = 0 ) {
+		if ( ! defined( 'ET_THEME_BUILDER_TEMPLATE_POST_TYPE' ) ) {
+			return [];
+		}
+
+		$templates = get_posts(
+			[
+				'post_type'      => ET_THEME_BUILDER_TEMPLATE_POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			]
+		);
+
+		$matches = [];
+
+		foreach ( $templates as $template ) {
+			if ( ! $template instanceof WP_Post ) {
+				continue;
+			}
+
+			if ( $exclude_template_id > 0 && (int) $template->ID === $exclude_template_id ) {
+				continue;
+			}
+
+			$body_id      = (int) get_post_meta( $template->ID, '_et_body_layout_id', true );
+			$body_enabled = get_post_meta( $template->ID, '_et_body_layout_enabled', true );
+
+			if ( $body_id > 0 || '1' !== (string) $body_enabled ) {
+				$matches[] = $template;
+			}
+		}
+
+		return $matches;
+	}
+
+	private function neutralize_other_theme_builder_body_overrides( $keep_template_id ) {
+		$updated = [];
+
+		foreach ( $this->find_templates_with_body_overrides( $keep_template_id ) as $template ) {
+			update_post_meta( $template->ID, '_et_body_layout_id', 0 );
+			update_post_meta( $template->ID, '_et_body_layout_enabled', '1' );
+			$updated[] = sprintf( 'Cleared stale body override on template #%d', $template->ID );
+		}
+
+		return $updated;
 	}
 
 	private function sync_primary_menu( $home_slug, $dry_run, $create_missing_pages = false ) {
