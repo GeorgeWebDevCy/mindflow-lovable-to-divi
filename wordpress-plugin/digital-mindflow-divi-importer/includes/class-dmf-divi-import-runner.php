@@ -422,7 +422,10 @@ class DMF_Divi_Import_Runner {
 	}
 
 	private function import_page_layout( WP_Post $page, array $export, $dry_run ) {
-		$content = $this->get_single_layout_content( $export['data'] ?? [] );
+		$content = $this->normalize_imported_page_layout_content(
+			$page,
+			$this->get_single_layout_content( $export['data'] ?? [] )
+		);
 
 		if ( $dry_run ) {
 			return;
@@ -1346,6 +1349,8 @@ HTML;
 		}
 
 		if ( $dry_run ) {
+			$updated = array_merge( $updated, $this->normalize_divi_header_theme_options( true ) );
+
 			foreach ( $this->find_templates_with_body_overrides( $default_template ? (int) $default_template->ID : 0 ) as $template ) {
 				$updated[] = sprintf( 'Clear stale body override on template #%d', $template->ID );
 			}
@@ -1405,6 +1410,7 @@ HTML;
 		}
 
 		$updated = array_merge( $updated, $this->neutralize_other_theme_builder_body_overrides( (int) $template_id ) );
+		$updated = array_merge( $updated, $this->normalize_divi_header_theme_options( false ) );
 
 		return $updated;
 	}
@@ -1412,7 +1418,10 @@ HTML;
 	private function upsert_theme_builder_layout( array $layout_export, $existing_layout_id, $dry_run ) {
 		$post_type = sanitize_key( (string) ( $layout_export['post_type'] ?? '' ) );
 		$title     = sanitize_text_field( (string) ( $layout_export['post_title'] ?? 'Theme Builder Layout' ) );
-		$content   = $this->get_single_layout_content( $layout_export['data'] ?? [] );
+		$content   = $this->normalize_theme_builder_layout_content(
+			$layout_export,
+			$this->get_single_layout_content( $layout_export['data'] ?? [] )
+		);
 
 		if ( '' === $post_type ) {
 			throw new RuntimeException( 'Theme Builder layout export is missing post_type.' );
@@ -1478,6 +1487,286 @@ HTML;
 		update_post_meta( $target_id, '_et_pb_use_divi_5', 'on' );
 
 		return $target_id;
+	}
+
+	private function normalize_theme_builder_layout_content( array $layout_export, $content ) {
+		$post_type = sanitize_key( (string) ( $layout_export['post_type'] ?? '' ) );
+
+		if ( 'et_header_layout' !== $post_type ) {
+			return (string) $content;
+		}
+
+		return $this->apply_global_header_layout_fix( (string) $content );
+	}
+
+	private function apply_global_header_layout_fix( $content ) {
+		if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
+			return (string) $content;
+		}
+
+		$blocks = parse_blocks( (string) $content );
+
+		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
+			return (string) $content;
+		}
+
+		$blocks     = $this->mutate_global_header_blocks( $blocks );
+		$serialized = serialize_blocks( $blocks );
+
+		return is_string( $serialized ) && '' !== $serialized ? $serialized : (string) $content;
+	}
+
+	private function mutate_global_header_blocks( array $blocks ) {
+		foreach ( $blocks as &$block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$block_name  = (string) ( $block['blockName'] ?? '' );
+			$admin_label = $this->get_divi_block_admin_label( $block );
+
+			if ( 'divi/section' === $block_name && 'Global Header Section' === $admin_label ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-global-header-shell',
+						'style' => $this->build_inline_style(
+							[
+								'position'   => 'absolute',
+								'top'        => '0',
+								'left'       => '0',
+								'right'      => '0',
+								'width'      => '100%',
+								'z-index'    => '999',
+								'background' => 'transparent',
+								'margin'     => '0',
+								'padding'    => '0',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/row' === $block_name && 'Header Row' === $admin_label ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-global-header-row',
+						'style' => $this->build_inline_style(
+							[
+								'width'      => '100%',
+								'max-width'  => '80rem',
+								'margin'     => '0 auto',
+								'padding'    => '1rem 1.5rem 0.75rem',
+								'box-sizing' => 'border-box',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/column' === $block_name && 'Header Menu Column' === $admin_label ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-global-header-column',
+						'style' => $this->build_inline_style(
+							[
+								'margin'  => '0',
+								'padding' => '0',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/menu' === $block_name && 'Primary Navigation' === $admin_label ) {
+				$block['attrs'] = $this->mutate_global_header_menu_attrs( $block['attrs'] ?? [] );
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->mutate_global_header_blocks( $block['innerBlocks'] );
+			}
+		}
+
+		unset( $block );
+
+		return $blocks;
+	}
+
+	private function get_divi_block_admin_label( array $block ) {
+		return (string) ( $block['attrs']['module']['meta']['adminLabel']['desktop']['value'] ?? '' );
+	}
+
+	private function mutate_global_header_menu_attrs( array $attrs ) {
+		$nav_color        = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 76%, transparent)';
+		$nav_active_color = 'var(--gcid-dmf-white, #fafafa)';
+
+		$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes(
+			[
+				'class' => 'dmf-global-header-menu',
+				'style' => $this->build_inline_style(
+					[
+						'width' => '100%',
+					]
+				),
+			]
+		);
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['width']       = 'clamp(7.5rem, calc(6.8rem + 2vw), 9rem)';
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxWidth']    = 'clamp(7.5rem, calc(6.8rem + 2vw), 9rem)';
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxHeight']   = '3.25rem';
+		$attrs['menu']['advanced']['activeLinkColor']['desktop']['value']         = $nav_active_color;
+		$attrs['menu']['decoration']['font']['font']['desktop']['value']['color'] = $nav_color;
+		$attrs['menuDropdown']['advanced']['activeLinkColor']['desktop']['value'] = 'var(--gcid-dmf-accent, #941213)';
+		$attrs['menuDropdown']['advanced']['lineColor']['desktop']['value']       = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 14%, transparent)';
+		$attrs['menuDropdown']['decoration']['font']['font']['desktop']['value']['color'] = 'var(--gcid-dmf-foreground, #131b26)';
+		$attrs['menuMobile']['decoration']['font']['font']['desktop']['value']['color']   = $nav_active_color;
+		$attrs['cartIcon']['decoration']['font']['font']['desktop']['value']['color']      = $nav_active_color;
+		$attrs['searchIcon']['decoration']['font']['font']['desktop']['value']['color']    = $nav_active_color;
+		$attrs['hamburgerMenuIcon']['decoration']['font']['font']['desktop']['value']['color'] = $nav_active_color;
+
+		return $attrs;
+	}
+
+	private function normalize_divi_header_theme_options( $dry_run ) {
+		$current_value = (string) $this->get_divi_theme_option( 'divi_fixed_nav', 'on' );
+
+		if ( 'off' === $current_value ) {
+			return [];
+		}
+
+		if ( ! $dry_run ) {
+			$this->set_divi_theme_option( 'divi_fixed_nav', 'off' );
+		}
+
+		return [ 'Disable Divi fixed navigation scroll effect' ];
+	}
+
+	private function get_divi_theme_option( $option_name, $default_value = '' ) {
+		if ( function_exists( 'et_get_option' ) ) {
+			return et_get_option( (string) $option_name, $default_value );
+		}
+
+		$options = get_option( 'et_divi', [] );
+
+		if ( is_array( $options ) && array_key_exists( (string) $option_name, $options ) ) {
+			return $options[ (string) $option_name ];
+		}
+
+		return $default_value;
+	}
+
+	private function set_divi_theme_option( $option_name, $value ) {
+		if ( function_exists( 'et_update_option' ) ) {
+			et_update_option( (string) $option_name, $value );
+			return;
+		}
+
+		$options = get_option( 'et_divi', [] );
+
+		if ( ! is_array( $options ) ) {
+			$options = [];
+		}
+
+		$options[ (string) $option_name ] = $value;
+
+		update_option( 'et_divi', $options );
+	}
+
+	private function normalize_imported_page_layout_content( WP_Post $page, $content ) {
+		if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
+			return (string) $content;
+		}
+
+		$blocks = parse_blocks( (string) $content );
+
+		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
+			return (string) $content;
+		}
+
+		$blocks     = $this->mutate_overlay_hero_page_blocks( $blocks );
+		$serialized = serialize_blocks( $blocks );
+
+		return is_string( $serialized ) && '' !== $serialized ? $serialized : (string) $content;
+	}
+
+	private function mutate_overlay_hero_page_blocks( array $blocks ) {
+		foreach ( $blocks as &$block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$block_name  = (string) ( $block['blockName'] ?? '' );
+			$admin_label = $this->get_divi_block_admin_label( $block );
+
+			if ( 'divi/section' === $block_name && in_array( $admin_label, [ 'Home Hero Section', 'Portfolio Hero Section', 'Case Study Hero Section' ], true ) ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-overlay-hero-section',
+						'style' => $this->build_inline_style(
+							[
+								'background' => 'var(--gcid-dmf-primary, #131b26)',
+								'margin'     => '0',
+								'padding'    => '0',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/row' === $block_name && in_array( $admin_label, [ 'Hero Row', 'Portfolio Hero Row' ], true ) ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-overlay-hero-row',
+						'style' => $this->build_inline_style(
+							[
+								'width'      => '100%',
+								'max-width'  => '100%',
+								'margin'     => '0',
+								'padding'    => '0',
+								'box-sizing' => 'border-box',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/column' === $block_name && in_array( $admin_label, [ 'Hero Column', 'Portfolio Hero Column' ], true ) ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-overlay-hero-column',
+						'style' => $this->build_inline_style(
+							[
+								'margin'  => '0',
+								'padding' => '0',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/row' === $block_name && 'Case Study Hero Row' === $admin_label ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-case-study-hero-row',
+						'style' => $this->build_inline_style(
+							[
+								'width'      => '100%',
+								'max-width'  => '80rem',
+								'margin'     => '0 auto',
+								'padding'    => 'clamp(7rem, 10vw, 8.5rem) 1.5rem clamp(3rem, 6vw, 4.25rem)',
+								'box-sizing' => 'border-box',
+							]
+						),
+					]
+				);
+			} elseif ( 'divi/column' === $block_name && in_array( $admin_label, [ 'Hero Copy Column', 'Hero Image Column' ], true ) ) {
+				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
+					[
+						'class' => 'dmf-case-study-hero-column',
+						'style' => $this->build_inline_style(
+							[
+								'margin'  => '0',
+								'padding' => '0',
+							]
+						),
+					]
+				);
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->mutate_overlay_hero_page_blocks( $block['innerBlocks'] );
+			}
+		}
+
+		unset( $block );
+
+		return $blocks;
 	}
 
 	private function theme_template_area_enabled_flag( $layout_type, $layout_id, array $template_export ) {
