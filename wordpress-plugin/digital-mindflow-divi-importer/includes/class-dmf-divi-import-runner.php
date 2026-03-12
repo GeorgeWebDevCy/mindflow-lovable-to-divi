@@ -2219,20 +2219,357 @@ HTML;
 	}
 
 	private function build_contact_section() {
+		$email_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/email.svg' );
+		$phone_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/phone.svg' );
+		$location_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/location-icon.svg' );
+		$send_icon_url  = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/send-icon.svg' );
+
+		$wrapper_style = $this->build_inline_style(
+			[
+				'width'      => '100%',
+				'max-width'  => '82rem',
+				'margin'     => '0 auto',
+				'box-sizing' => 'border-box',
+			]
+		);
+		$header_style  = $this->build_inline_style(
+			[
+				'max-width'  => '46rem',
+				'margin'     => '0 auto 3rem',
+				'text-align' => 'center',
+			]
+		);
+		$eyebrow_style = $this->build_inline_style(
+			[
+				'font-family'    => 'var(--gvid-dmf-body-font)',
+				'font-size'      => 'var(--gvid-dmf-text-xs)',
+				'font-weight'    => '700',
+				'letter-spacing' => '0.22em',
+				'text-transform' => 'uppercase',
+				'color'          => 'var(--gcid-dmf-accent, #941213)',
+				'margin-bottom'  => '0.875rem',
+			]
+		);
+		$title_style   = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-heading-font)',
+				'font-size'   => 'clamp(2rem, 4.5vw, 3.375rem)',
+				'font-weight' => '700',
+				'line-height' => '1.15',
+				'color'       => 'var(--gcid-dmf-foreground, #131b26)',
+				'margin'      => '0 0 1.125rem 0',
+			]
+		);
+		$accent_text_style = $this->build_inline_style(
+			[
+				'display'               => 'inline-block',
+				'background'            => 'linear-gradient(135deg, var(--gcid-dmf-accent, #941213), var(--gcid-dmf-accent-deep, #893637))',
+				'color'                 => 'transparent',
+				'-webkit-background-clip' => 'text',
+				'background-clip'       => 'text',
+			]
+		);
+		$body_style         = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-body-font)',
+				'font-size'   => 'clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem)',
+				'line-height' => '1.8',
+				'color'       => 'var(--gcid-dmf-muted, #486262)',
+				'margin'      => '0 auto',
+				'max-width'   => '45rem',
+			]
+		);
+		$panel_wrap_style   = $this->build_inline_style(
+			[
+				'display'         => 'flex',
+				'flex-wrap'       => 'wrap',
+				'align-items'     => 'flex-start',
+				'justify-content' => 'space-between',
+				'gap'             => '2.5rem',
+			]
+		);
+		$info_panel_style   = $this->build_inline_style(
+			[
+				'flex'           => '0 1 24rem',
+				'min-width'      => 'min(100%, 22rem)',
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'gap'            => '1.75rem',
+			]
+		);
+		$form_panel_style   = $this->build_inline_style(
+			[
+				'flex'      => '1 1 34rem',
+				'min-width' => 'min(100%, 22rem)',
+				'display'   => 'block',
+			]
+		);
+		$info_title_style   = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-heading-font)',
+				'font-size'   => 'clamp(1.175rem, calc(1.175rem + 0.24vw), 1.375rem)',
+				'font-weight' => '600',
+				'line-height' => '1.25',
+				'color'       => 'var(--gcid-dmf-foreground, #131b26)',
+				'margin'      => '0 0 1.5rem 0',
+			]
+		);
+		$info_links_style   = $this->build_inline_style(
+			[
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'gap'            => '1.125rem',
+			]
+		);
+		$contact_item_style = $this->build_inline_style(
+			[
+				'display'         => 'flex',
+				'align-items'     => 'center',
+				'gap'             => '0.9rem',
+				'text-decoration' => 'none',
+				'color'           => 'var(--gcid-dmf-muted, #486262)',
+			]
+		);
+		$contact_icon_style = $this->build_inline_style(
+			[
+				'display'         => 'inline-flex',
+				'align-items'     => 'center',
+				'justify-content' => 'center',
+				'width'           => '3rem',
+				'height'          => '3rem',
+				'flex-shrink'     => '0',
+				'border-radius'   => '1rem',
+				'background'      => 'color-mix(in srgb, var(--gcid-dmf-accent, #941213) 12%, transparent)',
+				'color'           => 'var(--gcid-dmf-accent, #941213)',
+			]
+		);
+		$contact_icon_image_style = $this->build_inline_style(
+			[
+				'display'    => 'block',
+				'width'      => '1.2rem',
+				'height'     => '1.2rem',
+				'object-fit' => 'contain',
+			]
+		);
+		$contact_text_style = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-body-font)',
+				'font-size'   => 'clamp(0.95rem, calc(0.95rem + 0.18vw), 1.06rem)',
+				'line-height' => '1.65',
+				'color'       => 'var(--gcid-dmf-muted, #486262)',
+			]
+		);
+		$callout_style      = $this->build_inline_style(
+			[
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'align-items'    => 'flex-start',
+				'gap'            => '1rem',
+				'padding'        => '1.75rem',
+				'border-radius'  => '1.35rem',
+				'background'     => 'var(--gcid-dmf-primary, #131b26)',
+				'color'          => 'var(--gcid-dmf-white, #fafafa)',
+			]
+		);
+		$callout_title_style = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-heading-font)',
+				'font-size'   => 'clamp(1.175rem, calc(1.175rem + 0.24vw), 1.375rem)',
+				'font-weight' => '600',
+				'line-height' => '1.25',
+				'color'       => 'var(--gcid-dmf-white, #fafafa)',
+				'margin'      => '0',
+			]
+		);
+		$callout_body_style = $this->build_inline_style(
+			[
+				'font-family' => 'var(--gvid-dmf-body-font)',
+				'font-size'   => 'clamp(0.89rem, calc(0.89rem + 0.16vw), 0.98rem)',
+				'line-height' => '1.75',
+				'color'       => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 78%, transparent)',
+				'margin'      => '0',
+			]
+		);
+		$button_style        = $this->build_inline_style(
+			[
+				'display'         => 'inline-flex',
+				'align-items'     => 'center',
+				'justify-content' => 'center',
+				'align-self'      => 'flex-start',
+				'gap'             => '0.5rem',
+				'width'           => 'fit-content',
+				'max-width'       => '100%',
+				'min-height'      => '2.95rem',
+				'padding'         => '0.85rem 1.35rem',
+				'border-radius'   => '0.8rem',
+				'border'          => '0.0625rem solid color-mix(in srgb, var(--gcid-dmf-accent, #941213) 88%, var(--gcid-dmf-primary, #131b26))',
+				'background'      => 'var(--gcid-dmf-accent, #941213)',
+				'color'           => 'var(--gcid-dmf-white, #fafafa)',
+				'font-family'     => 'var(--gvid-dmf-body-font)',
+				'font-size'       => '0.95rem',
+				'font-weight'     => '700',
+				'line-height'     => '1',
+				'text-decoration' => 'none',
+				'white-space'     => 'nowrap',
+				'box-shadow'      => '0 0.95rem 1.9rem color-mix(in srgb, var(--gcid-dmf-accent, #941213) 22%, transparent)',
+			]
+		);
+		$form_style          = $this->build_inline_style(
+			[
+				'display'    => 'block',
+				'margin'     => '0',
+				'padding'    => '0',
+				'width'      => '100%',
+				'box-sizing' => 'border-box',
+			]
+		);
+		$field_style         = $this->build_inline_style(
+			[
+				'display' => 'block',
+				'margin'  => '0 0 1.2rem 0',
+			]
+		);
+		$field_label_style   = $this->build_inline_style(
+			[
+				'display'     => 'block',
+				'font-family' => 'var(--gvid-dmf-body-font)',
+				'font-size'   => 'clamp(0.7637rem, calc(0.7637rem + 0.12vw), 0.8287rem)',
+				'font-weight' => '700',
+				'line-height' => '1.3',
+				'color'       => 'var(--gcid-dmf-foreground, #131b26)',
+				'margin'      => '0 0 0.5rem 0',
+			]
+		);
+		$field_input_style   = $this->build_inline_style(
+			[
+				'width'         => '100%',
+				'min-height'    => '3.1rem',
+				'padding'       => '0.95rem 1.125rem',
+				'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius' => '1rem',
+				'background'    => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 28%, transparent)',
+				'font-family'   => 'var(--gvid-dmf-body-font)',
+				'font-size'     => 'clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem)',
+				'color'         => 'var(--gcid-dmf-foreground, #131b26)',
+				'box-sizing'    => 'border-box',
+			]
+		);
+		$field_textarea_style = $this->build_inline_style(
+			[
+				'width'         => '100%',
+				'min-height'    => '5.9rem',
+				'padding'       => '0.95rem 1.125rem',
+				'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius' => '1rem',
+				'background'    => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 28%, transparent)',
+				'font-family'   => 'var(--gvid-dmf-body-font)',
+				'font-size'     => 'clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem)',
+				'color'         => 'var(--gcid-dmf-foreground, #131b26)',
+				'box-sizing'    => 'border-box',
+				'resize'        => 'vertical',
+			]
+		);
+		$send_button_icon_style = $this->build_inline_style(
+			[
+				'display'    => 'block',
+				'width'      => '1rem',
+				'height'     => '1rem',
+				'object-fit' => 'contain',
+			]
+		);
+
 		$info_items = [
 			sprintf(
-				'<a class="dmf-contact-link" href="mailto:info@mindflowdigital.com"><span class="dmf-contact-link__icon">%1$s</span><span class="dmf-contact-link__text">info@mindflowdigital.com</span></a>',
-				$this->build_icon_markup( 'mail' )
+				'<a href="mailto:info@mindflowdigital.com" style="%1$s"><span style="%2$s"><img src="%3$s" alt="" style="%4$s"></span><span style="%5$s">info@mindflowdigital.com</span></a>',
+				$contact_item_style,
+				$contact_icon_style,
+				$email_icon_url,
+				$contact_icon_image_style,
+				$contact_text_style
 			),
 			sprintf(
-				'<a class="dmf-contact-link" href="tel:+35799882116"><span class="dmf-contact-link__icon">%1$s</span><span class="dmf-contact-link__text">+357 99 882116</span></a>',
-				$this->build_icon_markup( 'phone' )
+				'<a href="tel:+35799882116" style="%1$s"><span style="%2$s"><img src="%3$s" alt="" style="%4$s"></span><span style="%5$s">+357 99 882116</span></a>',
+				$contact_item_style,
+				$contact_icon_style,
+				$phone_icon_url,
+				$contact_icon_image_style,
+				$contact_text_style
 			),
 			sprintf(
-				'<div class="dmf-contact-link"><span class="dmf-contact-link__icon">%1$s</span><span class="dmf-contact-link__text">Paphos, Cyprus</span></div>',
-				$this->build_icon_markup( 'map-pin' )
+				'<div style="%1$s"><span style="%2$s"><img src="%3$s" alt="" style="%4$s"></span><span style="%5$s">Paphos, Cyprus</span></div>',
+				$contact_item_style,
+				$contact_icon_style,
+				$location_icon_url,
+				$contact_icon_image_style,
+				$contact_text_style
 			),
 		];
+
+		$content = sprintf(
+			<<<HTML
+<div id="contact" style="%1\$s">
+	<div style="%2\$s">
+		<div style="%3\$s">Get In Touch</div>
+		<h2 style="%4\$s">Let's <span style="%5\$s">Work Together</span></h2>
+		<p style="%6\$s">Ready to grow your online presence? Get in touch for a free consultation and let's discuss your goals.</p>
+	</div>
+	<div style="%7\$s">
+		<div style="%8\$s">
+			<div>
+				<h3 style="%9\$s">Contact Information</h3>
+				<div style="%10\$s">%11\$s</div>
+			</div>
+			<div style="%12\$s">
+				<h4 style="%13\$s">Book a Discovery Call</h4>
+				<p style="%14\$s">Schedule a free 30-minute call with our team to discuss your business goals and how we can help.</p>
+				<a href="tel:+35799882116" style="%15\$s">Call Now</a>
+			</div>
+		</div>
+		<div style="%16\$s">
+			<form action="mailto:info@mindflowdigital.com" method="post" enctype="text/plain" style="%17\$s">
+				<div style="%18\$s">
+					<label for="dmf-contact-name" style="%19\$s">Full Name *</label>
+					<input id="dmf-contact-name" type="text" name="name" placeholder="Your name" required style="%20\$s">
+				</div>
+				<div style="%18\$s">
+					<label for="dmf-contact-email" style="%19\$s">Email Address *</label>
+					<input id="dmf-contact-email" type="email" name="email" placeholder="you@company.com" required style="%20\$s">
+				</div>
+				<div style="%18\$s">
+					<label for="dmf-contact-message" style="%19\$s">Message *</label>
+					<textarea id="dmf-contact-message" name="message" rows="5" maxlength="1000" placeholder="Tell us about your project and goals..." required style="%21\$s"></textarea>
+				</div>
+				<button type="submit" style="%22\$s">Send Message <img src="%23\$s" alt="" style="%24\$s"></button>
+			</form>
+		</div>
+	</div>
+</div>
+HTML,
+			$wrapper_style,
+			$header_style,
+			$eyebrow_style,
+			$title_style,
+			$accent_text_style,
+			$body_style,
+			$panel_wrap_style,
+			$info_panel_style,
+			$info_title_style,
+			$info_links_style,
+			implode( '', $info_items ),
+			$callout_style,
+			$callout_title_style,
+			$callout_body_style,
+			$button_style,
+			$form_panel_style,
+			$form_style,
+			$field_style,
+			$field_label_style,
+			$field_input_style,
+			$field_textarea_style,
+			$button_style,
+			$send_icon_url,
+			$send_button_icon_style
+		);
 
 		return $this->build_section_module(
 			'Contact Section',
@@ -2243,58 +2580,31 @@ HTML;
 						$this->build_column_module(
 							'Contact Layout Column',
 							[
-								$this->build_group_module(
-									'Contact Section Shell',
-									[
-										$this->build_text_module( 'Contact Eyebrow', '<span class="dmf-section-eyebrow">Get In Touch</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
-										$this->build_text_module( 'Contact Title', '<h2 class="dmf-section-title dmf-section-title--center">Let&#39;s <span class="dmf-text-gradient">Work Together</span></h2>', 'dmf-home-text' ),
-										$this->build_text_module( 'Contact Body', '<p class="dmf-section-body dmf-section-body--center">Ready to grow your online presence? Get in touch for a free consultation and let&#39;s discuss your goals.</p>', 'dmf-home-text' ),
-										$this->build_group_module(
-											'Contact Panels',
-											[
-												$this->build_group_module(
-													'Contact Info Panel',
-													[
-														$this->build_text_module( 'Contact Info Title', '<h3 class="dmf-panel-title">Contact Information</h3>', 'dmf-home-text' ),
-														$this->build_text_module( 'Contact Links', '<div class="dmf-contact-links">' . implode( '', $info_items ) . '</div>', 'dmf-home-text' ),
-														$this->build_group_module(
-															'Contact Callout',
-															[
-																$this->build_text_module( 'Contact Callout Title', '<h4 class="dmf-callout-title">Book a Discovery Call</h4>', 'dmf-home-text' ),
-																$this->build_text_module( 'Contact Callout Copy', '<p class="dmf-callout-copy">Schedule a free 30-minute call with our team to discuss your business goals and how we can help.</p>', 'dmf-home-text' ),
-																$this->build_button_module( 'Contact Call Button', 'Call Now', 'tel:+35799882116', 'left', 'dmf-button dmf-button--accent' ),
-															],
-															'dmf-contact-callout'
-														),
-													],
-													'dmf-contact-panel dmf-contact-panel--info'
-												),
-												$this->build_group_module(
-													'Contact Form Panel',
-													[
-														$this->build_code_module( 'Contact Form Markup', $this->build_contact_form_markup(), 'dmf-contact-form-runtime', false ),
-													],
-													'dmf-contact-panel dmf-contact-panel--form'
-												),
-											],
-											'dmf-contact-panels'
-										),
-									],
-									'dmf-home-shell dmf-home-stack'
-								),
+								$this->build_text_module( 'Contact Layout', $content ),
 							],
 							'4_4',
-							'dmf-home-shell-column'
+							'',
+							[
+								'padding' => '0',
+								'margin'  => '0',
+							]
 						),
 					],
 					'4_4',
-					'dmf-home-shell-row'
+					'',
+					[
+						'width'      => '100%',
+						'max-width'  => 'none',
+						'margin'     => '0',
+						'padding'    => '0 1.5rem',
+						'box-sizing' => 'border-box',
+					]
 				),
 			],
-			'dmf-home-section dmf-home-section--muted dmf-contact-section',
-			[],
+			'',
 			[
-				'id' => 'contact',
+				'background' => 'var(--gcid-dmf-card, #edeced)',
+				'padding'    => 'clamp(5rem, 8vw, 7rem) 0',
 			]
 		);
 	}
@@ -2803,13 +3113,22 @@ HTML;
 			$serialized = $content;
 		}
 
-		return $this->upsert_divi_block_in_container_by_label(
+		$replaced_contact = $this->replace_divi_section_by_label( $serialized, 'Contact Section', $this->build_contact_section() );
+		if ( is_string( $replaced_contact ) ) {
+			$serialized = $replaced_contact;
+		}
+
+		$serialized = $this->upsert_divi_block_in_container_by_label(
 			$serialized,
 			'Home Hero Section',
 			'section',
 			'Home Card Hover Runtime Row',
 			$this->build_home_card_hover_runtime_row_markup()
 		);
+
+		$removed = $this->replace_divi_block_by_label( $serialized, 'Featured Projects CTA Row', '' );
+
+		return is_string( $removed ) ? $removed : $serialized;
 	}
 
 	private function mutate_home_hover_blocks( array $blocks ) {
@@ -2873,6 +3192,8 @@ HTML;
 		$block_name            = (string) ( $block['blockName'] ?? '' );
 		$admin_label           = $this->get_divi_block_admin_label( $block );
 
+		$this->append_home_layout_classes( $block, $admin_label );
+
 		if ( 'divi/text' === $block_name ) {
 			$markup = (string) ( $block['attrs']['content']['innerContent']['desktop']['value'] ?? '' );
 
@@ -2914,6 +3235,88 @@ HTML;
 		];
 	}
 
+	private function append_home_layout_classes( array &$block, $admin_label ) {
+		$admin_label = (string) $admin_label;
+
+		$class_map = [
+			'Contact Section'      => 'dmf-home-contact-section',
+			'Contact Header Row'   => 'dmf-home-contact-header-row',
+			'Contact Content Row'  => 'dmf-home-contact-content-row',
+			'Contact Info Column'  => 'dmf-home-contact-info-column',
+			'Contact Form Column'  => 'dmf-home-contact-form-column',
+		];
+
+		if ( isset( $class_map[ $admin_label ] ) ) {
+			$this->append_divi_block_class( $block, $class_map[ $admin_label ] );
+		}
+
+		if ( 'Contact Section' === $admin_label ) {
+			$this->append_divi_block_style_properties(
+				$block,
+				[
+					'background' => 'var(--gcid-dmf-card, #edeced)',
+					'padding'    => 'clamp(5rem, 8vw, 7rem) 0',
+				]
+			);
+		} elseif ( 'Contact Header Row' === $admin_label ) {
+			$this->append_divi_block_style_properties(
+				$block,
+				[
+					'width'      => 'min(82rem, calc(100% - 3rem))',
+					'max-width'  => 'none',
+					'margin'     => '0 auto',
+					'padding'    => '0 0 1rem',
+					'box-sizing' => 'border-box',
+				]
+			);
+		} elseif ( 'Contact Content Row' === $admin_label ) {
+			$this->append_divi_block_style_properties(
+				$block,
+				[
+					'width'          => 'min(82rem, calc(100% - 3rem))',
+					'max-width'      => 'none',
+					'margin'         => '0 auto',
+					'padding'        => '1.25rem 0 0',
+					'box-sizing'     => 'border-box',
+					'display'        => 'flex',
+					'flex-wrap'      => 'nowrap',
+					'align-items'    => 'stretch',
+					'justify-content'=> 'space-between',
+					'gap'            => '2.5rem',
+				]
+			);
+		} elseif ( 'Contact Info Column' === $admin_label ) {
+			$this->append_divi_block_style_properties(
+				$block,
+				[
+					'float'      => 'none',
+					'clear'      => 'none',
+					'margin'     => '0',
+					'padding'    => '0',
+					'width'      => '24rem',
+					'max-width'  => '24rem',
+					'flex'       => '0 0 24rem',
+					'box-sizing' => 'border-box',
+				]
+			);
+		} elseif ( 'Contact Form Column' === $admin_label ) {
+			$this->append_divi_block_style_properties(
+				$block,
+				[
+					'float'      => 'none',
+					'clear'      => 'none',
+					'margin'     => '0',
+					'padding'    => '0',
+					'width'      => 'auto',
+					'max-width'  => 'none',
+					'min-width'  => '0',
+					'flex'       => '1 1 0',
+					'box-sizing' => 'border-box',
+				]
+			);
+		}
+	}
+
 	private function classify_home_card_label( $admin_label ) {
 		$admin_label = (string) $admin_label;
 
@@ -2934,6 +3337,10 @@ HTML;
 
 		if ( 'About Image' === $admin_label ) {
 			return $this->remove_about_image_decorative_square( $markup );
+		}
+
+		if ( array_key_exists( $admin_label, $this->get_home_process_card_icon_map() ) ) {
+			return $this->decorate_home_process_card_markup( $admin_label, $markup );
 		}
 
 		if ( in_array( $admin_label, $this->get_home_about_card_labels(), true ) || in_array( $admin_label, $this->get_home_service_card_labels(), true ) ) {
@@ -2958,6 +3365,46 @@ HTML;
 		);
 
 		return is_string( $updated ) ? $updated : $markup;
+	}
+
+	private function get_home_process_card_icon_map() {
+		return [
+			'Discovery & Strategy Card' => [
+				'url' => 'https://mindflowdigital.com/wp-content/uploads/2026/03/message.svg',
+				'alt' => 'Message icon',
+			],
+			'Execute & Optimize Card'   => [
+				'url' => 'https://mindflowdigital.com/wp-content/uploads/2026/03/chart.svg',
+				'alt' => 'Chart icon',
+			],
+			'Grow & Scale Card'         => [
+				'url' => 'https://mindflowdigital.com/wp-content/uploads/2026/03/rocket.svg',
+				'alt' => 'Rocket icon',
+			],
+		];
+	}
+
+	private function decorate_home_process_card_markup( $admin_label, $markup ) {
+		$icon = $this->get_home_process_card_icon_map()[ (string) $admin_label ] ?? null;
+
+		if ( ! is_array( $icon ) || empty( $icon['url'] ) ) {
+			return (string) $markup;
+		}
+
+		$replacement = sprintf(
+			'<div class="dmf-home-process-icon-frame"><span class="dmf-home-process-icon" style="--dmf-process-icon:url(\'%1$s\')" aria-hidden="true"></span><span class="screen-reader-text">%2$s</span></div>',
+			esc_url( (string) $icon['url'] ),
+			esc_html( (string) ( $icon['alt'] ?? '' ) )
+		);
+
+		$updated = preg_replace(
+			'#<div\b(?=[^>]*style="[^"]*display:inline-flex[^"]*width:2\.5rem[^"]*height:2\.5rem[^"]*border-radius:999rem[^"]*")[^>]*>\s*[123]\s*</div>#i',
+			$replacement,
+			(string) $markup,
+			1
+		);
+
+		return is_string( $updated ) ? $updated : (string) $markup;
 	}
 
 	private function get_home_about_card_labels() {
@@ -3128,6 +3575,77 @@ HTML;
 		$block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] = array_values( $entries );
 	}
 
+	private function append_divi_block_style_properties( array &$block, array $styles ) {
+		$entries = $block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] ?? [];
+
+		if ( ! is_array( $entries ) ) {
+			$entries = [];
+		}
+
+		$style_index = null;
+		$style_map   = [];
+
+		foreach ( $entries as $index => $entry ) {
+			if ( ! is_array( $entry ) || 'style' !== (string) ( $entry['name'] ?? '' ) ) {
+				continue;
+			}
+
+			$style_index = $index;
+			$style_map   = $this->parse_inline_style_map( (string) ( $entry['value'] ?? '' ) );
+			break;
+		}
+
+		foreach ( $styles as $property => $value ) {
+			$property = trim( (string) $property );
+			$value    = trim( (string) $value );
+
+			if ( '' === $property || '' === $value ) {
+				continue;
+			}
+
+			$style_map[ $property ] = $value;
+		}
+
+		$style_value = $this->build_inline_style( $style_map );
+
+		if ( null !== $style_index ) {
+			$entries[ $style_index ]['value'] = $style_value;
+		} elseif ( '' !== $style_value ) {
+			$entries[] = [
+				'id'            => uniqid( 'dmfAttr', true ),
+				'name'          => 'style',
+				'value'         => $style_value,
+				'adminLabel'    => 'Inline Style',
+				'targetElement' => '',
+			];
+		}
+
+		$block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] = array_values( $entries );
+	}
+
+	private function parse_inline_style_map( $style_string ) {
+		$style_string = (string) $style_string;
+		$style_map    = [];
+
+		foreach ( explode( ';', $style_string ) as $declaration ) {
+			$declaration = trim( (string) $declaration );
+
+			if ( '' === $declaration || false === strpos( $declaration, ':' ) ) {
+				continue;
+			}
+
+			list( $property, $value ) = array_map( 'trim', explode( ':', $declaration, 2 ) );
+
+			if ( '' === $property || '' === $value ) {
+				continue;
+			}
+
+			$style_map[ $property ] = $value;
+		}
+
+		return $style_map;
+	}
+
 	private function build_home_card_hover_runtime_row_markup() {
 		return $this->build_row_module(
 			'Home Card Hover Runtime Row',
@@ -3190,7 +3708,18 @@ HTML;
 .dmf-home-hover-project:hover .dmf-home-hover-project-media::after{transform:translate(-50%,-50%) scale(1)}
 .dmf-home-hover-project:hover .dmf-home-hover-project-image{transform:scale(1.05)}
 .dmf-home-hover-project:hover .dmf-home-hover-project-title{color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-home-process-icon-frame{display:inline-flex;align-items:center;justify-content:center;width:2.5rem;height:2.5rem;border-radius:999rem;background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 14%,transparent);margin-bottom:1rem}
+.dmf-home-process-icon{display:block;width:1.15rem;height:1.15rem;background:var(--gcid-dmf-accent,#941213);-webkit-mask:var(--dmf-process-icon) center/contain no-repeat;mask:var(--dmf-process-icon) center/contain no-repeat}
+.dmf-home-contact-section{background:var(--gcid-dmf-card,#edeced)!important;padding:clamp(5rem,8vw,7rem) 0!important}
+.dmf-home-contact-header-row,.dmf-home-contact-content-row{width:min(82rem,calc(100% - 3rem))!important;max-width:none!important;margin:0 auto!important}
+.dmf-home-contact-header-row{padding:0 0 1rem!important}
+.dmf-home-contact-content-row{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:2.5rem!important;padding:1.25rem 0 0!important}
+.dmf-home-contact-content-row>.et_pb_column{float:none!important;clear:none!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important}
+.dmf-home-contact-content-row>.dmf-home-contact-info-column{flex:0 0 24rem!important;width:24rem!important;max-width:24rem!important}
+.dmf-home-contact-content-row>.dmf-home-contact-form-column{flex:1 1 0!important;width:auto!important;max-width:none!important;min-width:0!important}
+.dmf-home-contact-form-column .et_pb_module,.dmf-home-contact-form-column .et_pb_module_inner,.dmf-home-contact-info-column .et_pb_module,.dmf-home-contact-info-column .et_pb_module_inner{height:100%!important}
 @media (max-width: 980px){.dmf-home-equal-row{display:flex!important}.dmf-home-equal-column{width:100%!important}}
+@media (max-width: 980px){.dmf-home-contact-header-row,.dmf-home-contact-content-row{width:min(82rem,calc(100% - 2rem))!important}.dmf-home-contact-content-row{flex-wrap:wrap!important}.dmf-home-contact-content-row>.dmf-home-contact-info-column,.dmf-home-contact-content-row>.dmf-home-contact-form-column{flex:1 1 100%!important;width:100%!important;max-width:100%!important}}
 </style>
 HTML;
 	}
