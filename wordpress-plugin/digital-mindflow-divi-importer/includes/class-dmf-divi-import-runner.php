@@ -3692,40 +3692,71 @@ HTML;
 	}
 
 	private function apply_global_header_layout_fix( $content ) {
-		$content = (string) $content;
+		$header_layout = $this->build_global_header_layout_content( (string) $content );
 
-		if ( function_exists( 'parse_blocks' ) && function_exists( 'serialize_blocks' ) ) {
+		return $this->upsert_runtime_snippet( $header_layout, 'header', $this->build_header_runtime_markup() );
+	}
+
+	private function build_global_header_layout_content( $content ) {
+		$content    = (string) $content;
+		$menu_block = null;
+
+		if ( function_exists( 'parse_blocks' ) ) {
 			$blocks = parse_blocks( $content );
 
 			if ( ! empty( $blocks ) && is_array( $blocks ) ) {
-				$blocks     = $this->mutate_global_header_blocks( $blocks );
-				$serialized = serialize_blocks( $blocks );
-
-				if ( is_string( $serialized ) && '' !== $serialized ) {
-					$content = $serialized;
-				}
+				$menu_block = $this->find_divi_block_by_admin_label( $blocks, 'Primary Navigation' );
 			}
 		}
 
-		$updated_content = $this->upsert_divi_block_in_container_by_label(
-			$content,
-			'Header Menu Column',
-			'column',
-			'Header CTA Button',
-			$this->build_header_cta_button_block_markup()
+		if ( is_array( $menu_block ) ) {
+			$menu_block['attrs'] = $this->mutate_global_header_menu_attrs( $menu_block['attrs'] ?? [] );
+			$menu_markup         = function_exists( 'serialize_blocks' ) ? serialize_blocks( [ $menu_block ] ) : '';
+		} else {
+			$menu_markup = '';
+		}
+
+		if ( ! is_string( $menu_markup ) || '' === trim( $menu_markup ) ) {
+			$menu_markup = $this->render_divi_block(
+				'placeholder',
+				[],
+				'<!-- Missing Primary Navigation menu block -->'
+			);
+		}
+
+		return $this->build_section_module(
+			'Global Header Section',
+			[
+				$this->build_row_module(
+					'Header Row',
+					[
+						$this->build_column_module(
+							'Header Menu Column',
+							[
+								$menu_markup,
+								$this->build_header_cta_button_block_markup(),
+							],
+							'4_4',
+							'dmf-global-header-column'
+						),
+					],
+					'4_4',
+					'dmf-global-header-row'
+				),
+			],
+			'dmf-global-header-shell',
+			[
+				'position' => 'absolute',
+				'top'      => '0',
+				'right'    => '0',
+				'left'     => '0',
+				'width'    => '100%',
+				'margin'   => '0',
+				'padding'  => '0',
+				'z-index'  => '999',
+				'overflow' => 'visible',
+			]
 		);
-
-		if ( is_string( $updated_content ) && '' !== $updated_content ) {
-			$content = $updated_content;
-		}
-
-		$removed_runtime_block = $this->replace_divi_block_by_label( $content, 'Header Runtime', '' );
-
-		if ( is_string( $removed_runtime_block ) ) {
-			$content = $removed_runtime_block;
-		}
-
-		return $this->upsert_runtime_snippet( $content, 'header', $this->build_header_runtime_markup() );
 	}
 
 	private function mutate_global_header_blocks( array $blocks ) {
@@ -3916,6 +3947,17 @@ HTML;
 	background:transparent !important;
 	transition:background-color 220ms ease, color 220ms ease;
 }
+.dmf-global-header-shell,
+.dmf-global-header-shell .et_pb_section{
+	margin:0 !important;
+	padding:0 !important;
+}
+.dmf-global-header-shell .dmf-global-header-row{
+	width:min(80rem,calc(100% - 3rem)) !important;
+	max-width:none !important;
+	margin:0 auto !important;
+	padding:.45rem 0 .35rem !important;
+}
 .dmf-global-header-shell.dmf-header-is-scrolled{
 	background:rgba(237,236,237,0.96) !important;
 	position:fixed !important;
@@ -3929,11 +3971,36 @@ HTML;
 .dmf-global-header-shell .dmf-global-header-column{
 	display:flex !important;
 	align-items:center !important;
+	justify-content:space-between !important;
+	flex-wrap:nowrap !important;
 	gap:.9rem !important;
+	padding:0 !important;
+	margin:0 !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu{
 	flex:1 1 auto !important;
 	min-width:0 !important;
+	background:transparent !important;
+	margin:0 !important;
+	padding:0 !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__wrap{
+	width:100% !important;
+	justify-content:space-between !important;
+	align-items:center !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__logo-wrap{
+	margin-right:1.15rem !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav{
+	margin-left:auto !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu ul.et-menu{
+	gap:1.05rem !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .et-menu > li{
+	padding:0 !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu .et-menu>li>a,
 .dmf-global-header-shell .dmf-global-header-menu .et-menu-nav>ul>li>a,
@@ -3944,6 +4011,9 @@ HTML;
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__search-button,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__cart-button{
 	color:rgba(250,250,250,0.76) !important;
+	font-family:var(--gvid-dmf-body-font) !important;
+	font-size:.94rem !important;
+	font-weight:600 !important;
 	transition:color 220ms ease, opacity 220ms ease, background-color 220ms ease;
 }
 .dmf-global-header-shell .dmf-global-header-menu .current-menu-item>a,
@@ -3972,6 +4042,9 @@ HTML;
 	flex:0 0 auto !important;
 	margin:0 !important;
 }
+.dmf-global-header-shell .dmf-header-cta-button .et_pb_button_module_wrapper{
+	margin:0 !important;
+}
 .dmf-global-header-shell .dmf-header-cta-button .et_pb_button,
 .dmf-global-header-shell .dmf-header-cta-button a.et_pb_button{
 	background:var(--gcid-dmf-white,#fafafa) !important;
@@ -3989,10 +4062,22 @@ HTML;
 	white-space:nowrap !important;
 	text-decoration:none !important;
 }
+.dmf-global-header-shell .dmf-header-cta-button .et_pb_button:after,
+.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button:after{
+	display:none !important;
+}
 .dmf-global-header-shell .dmf-header-cta-button .et_pb_button:hover,
 .dmf-global-header-shell .dmf-header-cta-button a.et_pb_button:hover{
 	background:var(--gcid-dmf-card,#edeced) !important;
 	opacity:1 !important;
+}
+@media (max-width: 980px){
+	.dmf-global-header-shell .dmf-global-header-row{
+		width:min(80rem,calc(100% - 2rem)) !important;
+	}
+	.dmf-global-header-shell .dmf-header-cta-button{
+		display:none !important;
+	}
 }
 </style>
 <script id="dmf-header-runtime-script">
