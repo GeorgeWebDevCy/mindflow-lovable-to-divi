@@ -673,29 +673,6 @@ class DMF_Divi_Import_Runner {
 	}
 
 	private function build_portfolio_loop_row( $context ) {
-		$text_block = $this->render_divi_block(
-			'text',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta' => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'DMF Portfolio Loop Card Content',
-							],
-						],
-					],
-				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => $this->build_portfolio_card_markup(),
-						],
-					],
-				],
-			]
-		);
-
 		$loop_group_block = $this->render_divi_block(
 			'group',
 			[
@@ -730,30 +707,39 @@ class DMF_Divi_Import_Runner {
 						],
 					],
 					'decoration' => [
-						'sizing' => [
-							'desktop' => [
-								'value' => [
-									'width'    => 'calc((100% - 3rem) / 3)',
-									'maxWidth' => 'calc((100% - 3rem) / 3)',
-								],
-							],
-							'tablet'  => [
-								'value' => [
-									'width'    => 'calc((100% - 1.5rem) / 2)',
-									'maxWidth' => 'calc((100% - 1.5rem) / 2)',
-								],
-							],
-							'phone'   => [
-								'value' => [
-									'width'    => '100%',
-									'maxWidth' => '100%',
-								],
-							],
-						],
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-loop-item',
+								'style' => $this->build_inline_style(
+									[
+										'display'       => 'flex',
+										'flex-direction' => 'column',
+										'gap'           => '1rem',
+										'flex'          => '1 1 20rem',
+										'min-width'     => '18rem',
+										'max-width'     => 'calc((100% - 3rem) / 3)',
+										'padding'       => '1.5rem',
+										'background'    => 'var(--gcid-dmf-card, #edeced)',
+										'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+										'border-radius' => 'var(--gvid-dmf-radius-lg)',
+										'box-shadow'    => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)',
+										'box-sizing'    => 'border-box',
+									]
+								),
+							]
+						),
 					],
 				],
 			],
-			$text_block
+			implode(
+				"\n",
+				[
+					$this->build_portfolio_card_image_block(),
+					$this->build_portfolio_card_title_block(),
+					$this->build_portfolio_card_excerpt_block(),
+					$this->build_portfolio_card_button_block(),
+				]
+			)
 		);
 
 		$container_group_block = $this->render_divi_block(
@@ -769,20 +755,21 @@ class DMF_Divi_Import_Runner {
 						],
 					],
 					'decoration' => [
-						'layout' => [
-							'desktop' => [
-								'value' => [
-									'display'       => 'flex',
-									'flexDirection' => 'row',
-									'flexWrap'      => 'wrap',
-									'alignItems'    => 'stretch',
-									'alignContent'  => 'stretch',
-									'justifyContent' => 'flex-start',
-									'columnGap'     => '1.5rem',
-									'rowGap'        => '1.5rem',
-								],
-							],
-						],
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-loop-container',
+								'style' => $this->build_inline_style(
+									[
+										'display'         => 'flex',
+										'flex-wrap'       => 'wrap',
+										'align-items'     => 'stretch',
+										'justify-content' => 'flex-start',
+										'gap'             => '1.5rem',
+										'width'           => '100%',
+									]
+								),
+							]
+						),
 					],
 				],
 			],
@@ -839,29 +826,6 @@ class DMF_Divi_Import_Runner {
 	}
 
 	private function build_portfolio_archive_button_row() {
-		$text_block = $this->render_divi_block(
-			'text',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta' => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'DMF Portfolio Archive Button',
-							],
-						],
-					],
-				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => $this->build_portfolio_archive_button_markup(),
-						],
-					],
-				],
-			]
-		);
-
 		$column_block = $this->render_divi_block(
 			'column',
 			[
@@ -883,7 +847,12 @@ class DMF_Divi_Import_Runner {
 					],
 				],
 			],
-			$text_block
+			$this->build_portfolio_button_block(
+				'DMF Portfolio Archive Button',
+				'View Full Portfolio',
+				esc_url( $this->get_portfolio_page_url() ),
+				'center'
+			)
 		);
 
 		return $this->render_divi_block(
@@ -929,82 +898,277 @@ HTML;
 HTML;
 	}
 
-	private function build_portfolio_card_markup() {
-		$link_token          = $this->build_dynamic_content_token(
-			'loop_post_link',
+	private function build_portfolio_card_image_block() {
+		return $this->render_divi_block(
+			'image',
 			[
-				'before' => '',
-				'after'  => '',
-			]
-		);
-		$image_token         = $this->build_dynamic_content_token(
-			'loop_post_featured_image',
-			[
-				'before'         => '',
-				'after'          => '',
-				'thumbnail_size' => 'large',
-			]
-		);
-		$image_alt_token     = $this->build_dynamic_content_token(
-			'loop_post_featured_image_alt_text',
-			[
-				'before' => '',
-				'after'  => '',
-			]
-		);
-		$title_token         = $this->build_dynamic_content_token(
-			'loop_post_title',
-			[
-				'before' => '',
-				'after'  => '',
-			]
-		);
-		$excerpt_token       = $this->build_dynamic_content_token(
-			'loop_post_excerpt',
-			[
-				'before' => '',
-				'after'  => '',
-				'words'  => 24,
-			]
-		);
-		$card_markup_template = <<<'HTML'
-<div style="display:flex;flex-direction:column;height:100%;background:var(--gcid-dmf-card, #edeced);border:0.0625rem solid var(--gcid-dmf-border, #a1a5a4);border-radius:var(--gvid-dmf-radius-lg);padding:1.5rem;box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)">
-	<a href="__DMF_LINK__" style="display:block;text-decoration:none;margin-bottom:1.125rem">
-		<img src="__DMF_IMAGE__" alt="__DMF_IMAGE_ALT__" style="display:block;width:100%;height:17.5rem;object-fit:cover;border-radius:1.25rem;box-shadow:none">
-	</a>
-	<h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.61rem, calc(1.61rem + 0.4vw), 1.995rem);font-weight:700;line-height:1.2;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.875rem 0">
-		<a href="__DMF_LINK__" style="color:inherit;text-decoration:none">__DMF_TITLE__</a>
-	</h3>
-	<div style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 0 1.25rem 0">__DMF_EXCERPT__</div>
-	<div style="margin-top:auto">
-		<a href="__DMF_LINK__" style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);font-weight:700;color:var(--gcid-dmf-accent-deep, #893637);text-decoration:none">View Project &rarr;</a>
-	</div>
-</div>
-HTML;
-
-		return strtr(
-			$card_markup_template,
-			[
-				'__DMF_LINK__'      => $link_token,
-				'__DMF_IMAGE__'     => $image_token,
-				'__DMF_IMAGE_ALT__' => $image_alt_token,
-				'__DMF_TITLE__'     => $title_token,
-				'__DMF_EXCERPT__'   => $excerpt_token,
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Card Image',
+							],
+						],
+					],
+					'advanced'   => [
+						'spacing' => [
+							'desktop' => [
+								'value' => [
+									'showBottomSpace' => 'off',
+								],
+							],
+						],
+						'sizing'  => [
+							'desktop' => [
+								'value' => [
+									'forceFullwidth' => 'on',
+								],
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-image',
+								'style' => $this->build_inline_style(
+									[
+										'width'         => '100%',
+										'overflow'      => 'hidden',
+										'border-radius' => '1.25rem',
+									]
+								),
+							]
+						),
+					],
+				],
+				'image'          => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => [
+								'src'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image',
+									[
+										'before'         => '',
+										'after'          => '',
+										'thumbnail_size' => 'large',
+									]
+								),
+								'alt'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image_alt_text',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkUrl'    => $this->build_dynamic_content_token(
+									'loop_post_link',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkTarget' => 'off',
+							],
+						],
+					],
+					'advanced'     => [
+						'lightbox' => [
+							'desktop' => [
+								'value' => 'off',
+							],
+						],
+						'overlay'  => [
+							'desktop' => [
+								'value' => [
+									'use' => 'off',
+								],
+							],
+						],
+					],
+				],
 			]
 		);
 	}
 
-	private function build_portfolio_archive_button_markup() {
-		$button_markup_template = <<<'HTML'
-<div style="text-align:center;padding:0.5rem 0 0.25rem">
-	<a href="__DMF_PORTFOLIO_URL__" style="display:inline-block;padding:calc(var(--gvid-dmf-space-sm) - 0.125rem) calc(var(--gvid-dmf-space-md) + 0rem);border-radius:var(--gvid-dmf-radius-md);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-base);font-weight:700;line-height:1.1;text-align:center;text-decoration:none;transition:all 0.2s ease;color:var(--gcid-dmf-foreground, #131b26);border:0.0625rem solid var(--gcid-dmf-accent, #941213);background:linear-gradient(135deg, var(--gcid-dmf-accent, #941213), var(--gcid-dmf-accent-deep, #893637));box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-accent, #941213) 25%, transparent)">View Full Portfolio</a>
-</div>
-HTML;
-
-		return strtr(
-			$button_markup_template,
+	private function build_portfolio_card_title_block() {
+		return $this->render_divi_block(
+			'text',
 			[
-				'__DMF_PORTFOLIO_URL__' => esc_url( $this->get_portfolio_page_url() ),
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Card Title',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-title',
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => sprintf(
+								'<h3 style="%1$s">%2$s</h3>',
+								esc_attr(
+									$this->build_inline_style(
+										[
+											'font-family' => 'var(--gvid-dmf-heading-font)',
+											'font-size'   => 'clamp(1.61rem, calc(1.61rem + 0.4vw), 1.995rem)',
+											'font-weight' => '700',
+											'line-height' => '1.2',
+											'color'       => 'var(--gcid-dmf-foreground, #131b26)',
+											'margin'      => '0',
+										]
+									)
+								),
+								$this->build_dynamic_content_token(
+									'loop_post_title',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								)
+							),
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_card_excerpt_block() {
+		return $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Card Excerpt',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-excerpt',
+								'style' => $this->build_inline_style(
+									[
+										'flex' => '1 0 auto',
+									]
+								),
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => sprintf(
+								'<p style="%1$s">%2$s</p>',
+								esc_attr(
+									$this->build_inline_style(
+										[
+											'font-family' => 'var(--gvid-dmf-body-font)',
+											'font-size'   => 'clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem)',
+											'line-height' => '1.8',
+											'color'       => 'var(--gcid-dmf-muted, #486262)',
+											'margin'      => '0',
+										]
+									)
+								),
+								$this->build_dynamic_content_token(
+									'loop_post_excerpt',
+									[
+										'before' => '',
+										'after'  => '',
+										'words'  => 24,
+									]
+								)
+							),
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_card_button_block() {
+		return $this->build_portfolio_button_block(
+			'DMF Portfolio Card Button',
+			'View Project',
+			$this->build_dynamic_content_token(
+				'loop_post_link',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			),
+			'left'
+		);
+	}
+
+	private function build_portfolio_button_block( $admin_label, $text, $url, $alignment = 'left' ) {
+		return $this->render_divi_block(
+			'button',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => (string) $admin_label,
+							],
+						],
+					],
+					'advanced' => [
+						'html'      => [
+							'desktop' => [
+								'value' => [
+									'elementType' => 'a',
+								],
+							],
+						],
+						'alignment' => [
+							'desktop' => [
+								'value' => (string) $alignment,
+							],
+						],
+					],
+				],
+				'button'         => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => [
+								'text'       => (string) $text,
+								'linkUrl'    => (string) $url,
+								'linkTarget' => 'off',
+								'rel'        => [],
+							],
+						],
+					],
+					'decoration'   => [
+						'button' => [
+							'desktop' => [
+								'value' => [
+									'enable' => 'off',
+									'icon'   => [
+										'enable' => 'off',
+									],
+								],
+							],
+						],
+					],
+				],
 			]
 		);
 	}
@@ -1024,6 +1188,56 @@ HTML;
 
 	private function get_portfolio_loop_posts_per_page( $context ) {
 		return 'home' === $context ? 3 : 999;
+	}
+
+	private function build_inline_style( array $declarations ) {
+		$styles = [];
+
+		foreach ( $declarations as $property => $value ) {
+			$property = trim( (string) $property );
+			$value    = trim( (string) $value );
+
+			if ( '' === $property || '' === $value ) {
+				continue;
+			}
+
+			$styles[] = $property . ': ' . $value;
+		}
+
+		return empty( $styles ) ? '' : implode( '; ', $styles ) . ';';
+	}
+
+	private function build_custom_attributes( array $attributes, $target_element = '' ) {
+		$entries = [];
+
+		foreach ( $attributes as $name => $value ) {
+			$name  = trim( (string) $name );
+			$value = trim( (string) $value );
+
+			if ( '' === $name || '' === $value ) {
+				continue;
+			}
+
+			$entries[] = [
+				'id'            => uniqid( 'dmfAttr', true ),
+				'name'          => $name,
+				'value'         => $value,
+				'adminLabel'    => 'class' === $name ? 'CSS Class' : ( 'style' === $name ? 'Inline Style' : ucfirst( $name ) ),
+				'targetElement' => (string) $target_element,
+			];
+		}
+
+		if ( empty( $entries ) ) {
+			return [];
+		}
+
+		return [
+			'desktop' => [
+				'value' => [
+					'attributes' => array_values( $entries ),
+				],
+			],
+		];
 	}
 
 	private function build_dynamic_content_token( $name, array $settings = [] ) {
