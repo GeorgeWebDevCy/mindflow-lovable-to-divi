@@ -2624,14 +2624,12 @@ HTML;
 				'class' => 'dmf-global-header-shell',
 				'style' => $this->build_inline_style(
 					[
-						'position'   => 'absolute',
-						'top'        => '0',
-						'right'      => '0',
-						'left'       => '0',
+						'position'   => 'relative',
 						'width'      => '100%',
-						'margin'     => '0',
+						'margin'     => '0 0 -4.1rem 0',
 						'padding'    => '0',
 						'z-index'    => '999',
+						'overflow'   => 'visible',
 					]
 				),
 			]
@@ -2738,7 +2736,7 @@ HTML;
 			if ( 'boxed_layout' === $option_name ) {
 				$updated_messages[] = 'Disable Divi boxed layout for a full-width header';
 			} elseif ( 'divi_fixed_nav' === $option_name ) {
-				$updated_messages[] = 'Enable Divi fixed navigation scroll behavior';
+				$updated_messages[] = 'Disable Divi fixed navigation so the Theme Builder header controls the sticky state';
 			} elseif ( in_array( $option_name, [ 'primary_nav_bg', 'fixed_primary_nav_bg', 'menu_link', 'menu_link_active', 'fixed_menu_link', 'fixed_menu_link_active' ], true ) ) {
 				$updated_messages[] = 'Apply palette-aware initial and scrolled header colors';
 			}
@@ -2749,7 +2747,7 @@ HTML;
 
 	private function get_desired_divi_header_theme_options() {
 		return [
-			'divi_fixed_nav'                  => 'on',
+			'divi_fixed_nav'                  => 'off',
 			'boxed_layout'                    => false,
 			'primary_nav_bg'                  => 'rgba(19, 27, 38, 0.82)',
 			'fixed_primary_nav_bg'            => '#edeced',
