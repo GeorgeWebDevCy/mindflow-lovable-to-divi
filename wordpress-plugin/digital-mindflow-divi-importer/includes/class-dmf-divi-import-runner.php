@@ -917,6 +917,8 @@ class DMF_Divi_Import_Runner {
 
 		if ( 'home' === $context ) {
 			$blocks[] = $this->build_portfolio_archive_button_row();
+		} else {
+			$blocks[] = $this->build_portfolio_archive_cta_row();
 		}
 
 		return $this->render_divi_block(
@@ -1037,11 +1039,11 @@ class DMF_Divi_Import_Runner {
 			: [
 				'display'        => 'flex',
 				'flex-direction' => 'column',
-				'gap'            => '1.25rem',
+				'gap'            => '1rem',
 				'flex'           => '1 1 calc((100% - 2rem) / 2)',
 				'min-width'      => '20rem',
 				'max-width'      => 'none',
-				'padding'        => '1.5rem',
+				'padding'        => '1rem',
 				'background'     => 'var(--gcid-dmf-card, #edeced)',
 				'border'         => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
 				'border-radius'  => 'var(--gvid-dmf-radius-lg)',
@@ -1056,6 +1058,20 @@ class DMF_Divi_Import_Runner {
 			'gap'             => 'home' === $context ? '1.5rem' : '2rem',
 			'width'           => '100%',
 		];
+		$row_attributes  = 'home' === $context
+			? []
+			: $this->build_custom_attributes(
+				[
+					'class' => 'dmf-portfolio-loop-row dmf-portfolio-loop-row--portfolio',
+					'style' => $this->build_inline_style(
+						[
+							'width'     => 'min(96rem, calc(100% - 2rem))',
+							'max-width' => '96rem',
+							'margin'    => '0 auto',
+						]
+					),
+				]
+			);
 
 		$loop_group_block = $this->render_divi_block(
 			'group',
@@ -1171,6 +1187,9 @@ class DMF_Divi_Import_Runner {
 							],
 						],
 					],
+					'decoration' => [
+						'attributes' => $row_attributes,
+					],
 				],
 			],
 			$column_block
@@ -1207,8 +1226,8 @@ class DMF_Divi_Import_Runner {
 			'dmf-portfolio-card-media',
 			[
 				'position'      => 'relative',
-				'margin'        => '-1.5rem -1.5rem 0',
-				'width'         => 'calc(100% + 3rem)',
+				'margin'        => '-1rem -1rem 0',
+				'width'         => 'calc(100% + 2rem)',
 				'overflow'      => 'hidden',
 				'border-radius' => 'calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0',
 			]
@@ -1248,7 +1267,7 @@ class DMF_Divi_Import_Runner {
 			[
 				'display'        => 'flex',
 				'flex-direction' => 'column',
-				'gap'            => '0.875rem',
+				'gap'            => '0.5rem',
 				'flex'           => '1 1 auto',
 			]
 		);
@@ -1661,6 +1680,52 @@ class DMF_Divi_Import_Runner {
 				],
 			],
 			$column_block
+		);
+	}
+
+	private function build_portfolio_archive_cta_row() {
+		$copy_block = $this->build_text_module(
+			'Portfolio Archive CTA Copy',
+			'<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(1.02rem, calc(1.02rem + 0.2vw), 1.16rem);line-height:1.7;color:var(--gcid-dmf-muted, #486262);margin:0;text-align:center">Ready to become our next success story?</p>',
+			'dmf-portfolio-archive-cta-copy'
+		);
+
+		$button_block = $this->build_text_module(
+			'Portfolio Archive CTA Button',
+			sprintf(
+				'<a class="dmf-portfolio-archive-cta-anchor" href="%1$s"><span>Start Your Project</span><span class="dmf-portfolio-archive-cta-arrow" aria-hidden="true">→</span></a>',
+				esc_url( home_url( '/#contact' ) )
+			),
+			'dmf-portfolio-archive-cta-button'
+		);
+
+		$column_block = $this->build_column_module(
+			'Portfolio Archive CTA Column',
+			[
+				$copy_block,
+				$button_block,
+			],
+			'4_4',
+			'dmf-portfolio-archive-cta-column',
+			[
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'align-items'    => 'center',
+				'gap'            => '1.375rem',
+			]
+		);
+
+		return $this->build_row_module(
+			'Portfolio Archive CTA Row',
+			[ $column_block ],
+			'4_4',
+			'dmf-portfolio-archive-cta-row',
+			[
+				'width'      => 'min(96rem, calc(100% - 2rem))',
+				'max-width'  => '96rem',
+				'margin'     => '0 auto',
+				'padding-top' => '1rem',
+			]
 		);
 	}
 
@@ -3259,12 +3324,13 @@ HTML;
 .dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-title h3{color:var(--gcid-dmf-accent,#941213)!important}
 .dmf-portfolio-loop-shell--home .dmf-portfolio-card-excerpt p{max-width:36rem!important}
 .dmf-portfolio-loop-shell--home .dmf-portfolio-button .et_pb_button,.dmf-portfolio-loop-shell--home .dmf-portfolio-button a.et_pb_button{padding:0!important;border:0!important;background:transparent!important;color:var(--gcid-dmf-accent,#941213)!important;box-shadow:none!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:2rem!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex:1 1 calc((100% - 2rem)/2)!important;min-width:0!important;max-width:none!important;padding:1.5rem!important;background:var(--gcid-dmf-card,#edeced)!important;border:0.0625rem solid var(--gcid-dmf-border,#a1a5a4)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 8%,transparent)!important;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:2rem!important;align-items:stretch!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{display:flex!important;flex-direction:column!important;align-self:stretch!important;flex:1 1 calc((100% - 2rem)/2)!important;min-width:0!important;max-width:none!important;padding:1rem!important;background:var(--gcid-dmf-card,#edeced)!important;border:0.0625rem solid var(--gcid-dmf-border,#a1a5a4)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 8%,transparent)!important;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover{transform:translateY(-.35rem)!important;box-shadow:0 1.4rem 2.8rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 12%,transparent)!important;border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 24%,var(--gcid-dmf-border,#a1a5a4))!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{position:relative!important;margin:-1.5rem -1.5rem 0!important;width:calc(100% + 3rem)!important;overflow:hidden!important;border-radius:calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{position:relative!important;display:block!important;aspect-ratio:16/10;overflow:hidden!important;border-radius:0!important;background:var(--gcid-dmf-primary,#131b26)!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image img{width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{position:relative!important;display:flex!important;flex:1 1 auto!important;margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important;overflow:hidden!important;border-radius:calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{position:relative!important;display:flex!important;flex:1 1 auto!important;height:auto!important;min-height:clamp(26rem,38vw,47.5rem)!important;overflow:hidden!important;border-radius:0!important;background:var(--gcid-dmf-primary,#131b26)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image .et_pb_image_wrap,.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image picture{display:block!important;width:100%!important;height:100%!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 8%,transparent) 0%,color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 44%,transparent) 100%);opacity:0;transition:opacity .28s ease;z-index:1}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image::after{content:"↗";position:absolute;top:50%;left:50%;width:3.25rem;height:3.25rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 18%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.35rem;transform:translate(-50%,-50%) scale(.9);opacity:0;transition:opacity .28s ease,transform .28s ease;z-index:2}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image img{transform:scale(1.07)!important}
@@ -3273,22 +3339,29 @@ HTML;
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge{position:absolute!important;top:1rem!important;left:1rem!important;z-index:3!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge-list a{display:inline-flex!important;align-items:center!important;padding:.42rem .82rem!important;border-radius:999px!important;background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.7rem,calc(.7rem + .08vw),.76rem)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important;pointer-events:auto!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-body{display:flex!important;flex-direction:column!important;gap:.875rem!important;height:100%!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-body{display:flex!important;flex-direction:column!important;gap:.5rem!important;flex:0 0 auto!important;height:auto!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-eyebrow{margin-top:.05rem!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-title h3{font-size:clamp(1.38rem,calc(1.28rem + .34vw),1.68rem)!important;transition:color .2s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-title h3{color:var(--gcid-dmf-accent,#941213)!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list a{display:inline-flex!important;align-items:center!important;padding:.34rem .72rem!important;border-radius:999px!important;background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 12%,transparent)!important;color:var(--gcid-dmf-muted,#486262)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.74rem,calc(.74rem + .08vw),.8rem)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important;transition:background-color .2s ease,color .2s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list{display:flex!important;flex-wrap:wrap!important;gap:.35rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list a{display:inline-flex!important;align-items:center!important;padding:.22rem .56rem!important;border-radius:999px!important;background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 12%,transparent)!important;color:var(--gcid-dmf-muted,#486262)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.68rem,calc(.68rem + .06vw),.74rem)!important;font-weight:700!important;line-height:1.05!important;letter-spacing:.01em!important;text-decoration:none!important;transition:background-color .2s ease,color .2s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-tags-list a{background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 18%,transparent)!important;color:var(--gcid-dmf-foreground,#131b26)!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta{display:grid!important;gap:.32rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta{display:grid!important;gap:.14rem!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta-label{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.7rem,calc(.7rem + .07vw),.76rem)!important;font-weight:700!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:var(--gcid-dmf-accent,#941213)!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta-value{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.89rem,calc(.89rem + .14vw),.97rem)!important;line-height:1.7!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta-value{display:block!important;overflow:hidden!important;max-height:calc(1.46em * 2)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.88rem,calc(.88rem + .12vw),.95rem)!important;line-height:1.46!important;color:var(--gcid-dmf-muted,#486262)!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-summary{flex:1 1 auto!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-summary p{max-width:none!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link{margin-top:auto!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link{margin-top:auto!important;padding-top:.2rem!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link-anchor{display:inline-flex!important;align-items:center!important;gap:.35rem!important;padding:0!important;border:0!important;background:transparent!important;color:var(--gcid-dmf-accent-deep,#893637)!important;box-shadow:none!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.9rem,calc(.9rem + .12vw),.98rem)!important;font-weight:700!important;line-height:1.2!important;text-decoration:none!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link-anchor:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
-@media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}}
-@media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1.25rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1.25rem -1.25rem 0!important;width:calc(100% + 2.5rem)!important}}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-row{padding-top:1rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-column{display:flex!important;flex-direction:column!important;align-items:center!important;gap:1.375rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-copy p{margin:0!important;text-align:center!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-anchor{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:.55rem!important;padding:.95rem 1.55rem!important;border-radius:var(--gvid-dmf-radius-md)!important;border:0.0625rem solid var(--gcid-dmf-accent,#941213)!important;background:linear-gradient(135deg,var(--gcid-dmf-accent,#941213),var(--gcid-dmf-accent-deep,#893637))!important;color:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-accent,#941213) 25%,transparent)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-base)!important;font-weight:700!important;line-height:1.1!important;text-decoration:none!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-arrow{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:1rem!important;line-height:1!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-anchor:hover{opacity:1!important;transform:translateY(-1px)!important}
+@media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{height:28rem!important;min-height:28rem!important}}
+@media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{height:20rem!important;min-height:20rem!important}}
 </style>
 HTML;
 	}
