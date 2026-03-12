@@ -1179,6 +1179,44 @@ HTML;
 		return empty( $styles ) ? '' : implode( '; ', $styles ) . ';';
 	}
 
+	private function build_spacing_settings( array $padding = [], array $margin = [] ) {
+		$spacing = [
+			'desktop' => [
+				'value' => [],
+			],
+		];
+
+		if ( ! empty( $padding ) ) {
+			$spacing['desktop']['value']['padding'] = wp_parse_args(
+				$padding,
+				[
+					'top'            => '',
+					'right'          => '',
+					'bottom'         => '',
+					'left'           => '',
+					'syncVertical'   => 'off',
+					'syncHorizontal' => 'off',
+				]
+			);
+		}
+
+		if ( ! empty( $margin ) ) {
+			$spacing['desktop']['value']['margin'] = wp_parse_args(
+				$margin,
+				[
+					'top'            => '',
+					'right'          => '',
+					'bottom'         => '',
+					'left'           => '',
+					'syncVertical'   => 'off',
+					'syncHorizontal' => 'off',
+				]
+			);
+		}
+
+		return $spacing;
+	}
+
 	private function build_custom_attributes( array $attributes, $target_element = '' ) {
 		$entries = [];
 
@@ -2155,11 +2193,19 @@ HTML;
 								'width'      => '100%',
 								'max-width'  => '80rem',
 								'margin'     => '0 auto',
-								'padding'    => '0.95rem 1.5rem 0.8rem',
+								'padding'    => '0.45rem 1.5rem 0.4rem',
 								'background' => 'transparent',
 								'box-sizing' => 'border-box',
 							]
 						),
+					]
+				);
+				$block['attrs']['module']['decoration']['spacing'] = $this->build_spacing_settings(
+					[
+						'top'    => '0.35rem',
+						'right'  => '0px',
+						'bottom' => '0.35rem',
+						'left'   => '0px',
 					]
 				);
 			} elseif ( 'divi/column' === $block_name && 'Header Menu Column' === $admin_label ) {
@@ -2207,8 +2253,22 @@ HTML;
 				),
 			]
 		);
-		$attrs['module']['decoration']['background']['desktop']['value']['color']  = 'rgba(19, 27, 38, 0.74)';
-		$attrs['module']['decoration']['background']['desktop']['sticky']['color'] = 'rgba(250, 250, 250, 0.97)';
+		$attrs['module']['decoration']['spacing'] = $this->build_spacing_settings(
+			[
+				'top'    => '0px',
+				'right'  => '0px',
+				'bottom' => '0px',
+				'left'   => '0px',
+			],
+			[
+				'top'    => '0px',
+				'right'  => '0px',
+				'bottom' => '0px',
+				'left'   => '0px',
+			]
+		);
+		$attrs['module']['decoration']['background']['desktop']['value']['color']  = 'transparent';
+		$attrs['module']['decoration']['background']['desktop']['sticky']['color'] = 'rgba(237, 236, 237, 0.96)';
 		$attrs['module']['decoration']['sticky']['desktop']['value'] = [
 			'position'   => 'top',
 			'offset'     => [
@@ -2250,9 +2310,9 @@ HTML;
 				),
 			]
 		);
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['width']       = 'clamp(7.5rem, calc(6.8rem + 2vw), 9rem)';
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxWidth']    = 'clamp(7.5rem, calc(6.8rem + 2vw), 9rem)';
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxHeight']   = '3.25rem';
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['width']       = 'clamp(7rem, calc(6.45rem + 1.5vw), 8.4rem)';
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxWidth']    = 'clamp(7rem, calc(6.45rem + 1.5vw), 8.4rem)';
+		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxHeight']   = '2.8rem';
 		$attrs['menu']['advanced']['activeLinkColor']['desktop']['value']         = $nav_active_color;
 		$attrs['menu']['advanced']['activeLinkColor']['desktop']['sticky']        = $scrolled_nav_active_color;
 		$attrs['menu']['decoration']['font']['font']['desktop']['value']['color'] = $nav_color;
@@ -2382,7 +2442,7 @@ HTML;
 						'style' => $this->build_inline_style(
 							[
 								'background' => 'var(--gcid-dmf-primary, #131b26)',
-								'margin'     => '0',
+								'margin'     => '-4.75rem 0 0',
 								'padding'    => '0',
 							]
 						),
