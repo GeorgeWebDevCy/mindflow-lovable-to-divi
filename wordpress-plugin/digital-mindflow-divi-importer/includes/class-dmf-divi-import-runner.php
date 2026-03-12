@@ -103,19 +103,35 @@ class DMF_Divi_Import_Runner {
 
 	public function run( array $args = [] ) {
 		$this->warnings = [];
+		$this->log(
+			'info',
+			'Import run started.',
+			[
+				'dry_run'              => ! empty( $args['dry_run'] ),
+				'include_pages'        => ! empty( $args['include_pages'] ),
+				'include_theme'        => ! empty( $args['include_theme'] ),
+				'include_menu'         => ! empty( $args['include_menu'] ),
+				'create_missing_pages' => ! empty( $args['create_missing_pages'] ),
+				'home_slug'            => sanitize_title( (string) ( $args['home_slug'] ?? '' ) ),
+				'exports_dir'          => $this->exports_dir,
+			]
+		);
 
 		if ( ! is_dir( $this->exports_dir ) ) {
+			$this->log( 'error', 'Bundled export directory not found.', [ 'exports_dir' => $this->exports_dir ] );
 			throw new RuntimeException( 'Bundled export directory not found.' );
 		}
 
 		$missing_files = $this->get_missing_export_files();
 		if ( ! empty( $missing_files ) ) {
+			$this->log( 'error', 'Bundled export files are missing.', [ 'missing_files' => $missing_files ] );
 			throw new RuntimeException(
 				'Bundled export files are missing: ' . implode( ', ', $missing_files )
 			);
 		}
 
 		if ( ! $this->is_divi_ready() ) {
+			$this->log( 'error', 'Divi 5 portability classes are not loaded.' );
 			throw new RuntimeException( 'Divi 5 portability classes are not loaded. Activate Divi before running the importer.' );
 		}
 
@@ -208,12 +224,21 @@ class DMF_Divi_Import_Runner {
 		}
 
 		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Import run completed.', $summary );
 
 		return $summary;
 	}
 
 	public function fix_portfolio_loops( array $args = [] ) {
 		$this->warnings = [];
+		$this->log(
+			'info',
+			'Portfolio loop fix started.',
+			[
+				'dry_run'   => ! empty( $args['dry_run'] ),
+				'home_slug' => sanitize_title( (string) ( $args['home_slug'] ?? '' ) ),
+			]
+		);
 
 		$summary = $this->apply_portfolio_loop_fix( $args );
 
@@ -222,12 +247,303 @@ class DMF_Divi_Import_Runner {
 		}
 
 		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Portfolio loop fix completed.', $summary );
 
 		return $summary;
 	}
 
+	public function capture_header_diagnostics( array $args = [] ) {
+		$home_slug    = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+		$diagnostics  = [
+			'site'               => [
+				'home_url'          => home_url( '/' ),
+				'show_on_front'     => get_option( 'show_on_front' ),
+				'page_on_front'     => (int) get_option( 'page_on_front' ),
+				'admin_bar_showing' => is_admin_bar_showing(),
+			],
+			'divi_theme_options' => $this->get_current_divi_header_theme_options(),
+			'theme_builder'      => $this->get_header_theme_builder_diagnostics(),
+			'home_page'          => $this->get_home_page_header_diagnostics( $home_slug ),
+		];
+
+		$this->log( 'info', 'Header diagnostics captured.', $diagnostics );
+
+		return $diagnostics;
+	}
+
 	private function warn( $message ) {
 		$this->warnings[] = (string) $message;
+		$this->log( 'warning', (string) $message );
+	}
+
+	private function log( $level, $message, array $context = [] ) {
+		if ( class_exists( 'DMF_Divi_Import_Logger' ) ) {
+			DMF_Divi_Import_Logger::log( $level, $message, $context );
+		}
+	}
+
+	private function get_current_divi_header_theme_options() {
+		$options = [];
+
+		foreach ( $this->get_desired_divi_header_theme_options() as $option_name => $desired_value ) {
+			$options[ $option_name ] = [
+				'current' => $this->get_divi_theme_option( $option_name, null ),
+				'desired' => $desired_value,
+			];
+		}
+
+		return $options;
+	}
+
+	private function get_header_theme_builder_diagnostics() {
+		$default_template = $this->get_existing_default_template();
+		$header_layout_id = $default_template ? (int) get_post_meta( $default_template->ID, '_et_header_layout_id', true ) : 0;
+		$header_enabled   = $default_template ? get_post_meta( $default_template->ID, '_et_header_layout_enabled', true ) : '';
+		$header_layout    = $header_layout_id > 0 ? get_post( $header_layout_id ) : null;
+		$blocks           = [];
+
+		if ( $header_layout instanceof WP_Post && function_exists( 'parse_blocks' ) ) {
+			$blocks = parse_blocks( (string) $header_layout->post_content );
+		}
+
+		return $this->filter_empty_diagnostic_values(
+			[
+				'default_template'      => $this->summarize_post( $default_template ),
+				'header_layout_id'      => $header_layout_id,
+				'header_layout_enabled' => $header_enabled,
+				'header_layout_post'    => $this->summarize_post( $header_layout ),
+				'parsed_block_count'    => is_array( $blocks ) ? count( $blocks ) : 0,
+				'admin_labels'          => $this->collect_divi_admin_labels( $blocks, 20 ),
+				'global_header_section' => $this->summarize_divi_block( $this->find_divi_block_by_admin_label( $blocks, 'Global Header Section' ) ),
+				'header_row'            => $this->summarize_divi_block( $this->find_divi_block_by_admin_label( $blocks, 'Header Row' ) ),
+				'primary_navigation'    => $this->summarize_divi_block( $this->find_divi_block_by_admin_label( $blocks, 'Primary Navigation' ) ),
+			]
+		);
+	}
+
+	private function get_home_page_header_diagnostics( $home_slug ) {
+		$page   = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+		$blocks = [];
+
+		if ( $page instanceof WP_Post && function_exists( 'parse_blocks' ) ) {
+			$blocks = parse_blocks( (string) $page->post_content );
+		}
+
+		return $this->filter_empty_diagnostic_values(
+			[
+				'page'              => $this->summarize_post( $page ),
+				'page_meta'         => $page instanceof WP_Post
+					? [
+						'_et_pb_use_builder'         => get_post_meta( $page->ID, '_et_pb_use_builder', true ),
+						'_et_pb_built_for_post_type' => get_post_meta( $page->ID, '_et_pb_built_for_post_type', true ),
+						'_et_pb_page_layout'         => get_post_meta( $page->ID, '_et_pb_page_layout', true ),
+						'_wp_page_template'          => get_post_meta( $page->ID, '_wp_page_template', true ),
+					]
+					: [],
+				'parsed_block_count' => is_array( $blocks ) ? count( $blocks ) : 0,
+				'admin_labels'       => $this->collect_divi_admin_labels( $blocks, 24 ),
+				'hero_section'       => $this->summarize_divi_block( $this->find_divi_block_by_admin_label( $blocks, 'Home Hero Section' ) ),
+				'hero_row'           => $this->summarize_divi_block( $this->find_divi_block_by_admin_label( $blocks, 'Hero Row' ) ),
+			]
+		);
+	}
+
+	private function summarize_post( $post ) {
+		if ( ! $post instanceof WP_Post ) {
+			return [];
+		}
+
+		return [
+			'id'        => (int) $post->ID,
+			'post_type' => (string) $post->post_type,
+			'status'    => (string) $post->post_status,
+			'slug'      => (string) $post->post_name,
+			'title'     => (string) $post->post_title,
+		];
+	}
+
+	private function summarize_divi_block( $block ) {
+		if ( ! is_array( $block ) ) {
+			return [];
+		}
+
+		$attrs   = (array) ( $block['attrs'] ?? [] );
+		$summary = [
+			'block_name'        => (string) ( $block['blockName'] ?? '' ),
+			'admin_label'       => $this->get_divi_block_admin_label( $block ),
+			'custom_attributes' => $this->extract_custom_attributes_map( $attrs ),
+			'spacing'           => $this->get_array_path( $attrs, [ 'module', 'decoration', 'spacing', 'desktop', 'value' ], [] ),
+			'background'        => $this->filter_empty_diagnostic_values(
+				[
+					'value'  => $this->get_array_path( $attrs, [ 'module', 'decoration', 'background', 'desktop', 'value', 'color' ], '' ),
+					'sticky' => $this->get_array_path( $attrs, [ 'module', 'decoration', 'background', 'desktop', 'sticky', 'color' ], '' ),
+				]
+			),
+			'sticky'            => $this->get_array_path( $attrs, [ 'module', 'decoration', 'sticky', 'desktop', 'value' ], [] ),
+			'transition'        => $this->get_array_path( $attrs, [ 'module', 'decoration', 'transition', 'desktop', 'value' ], [] ),
+		];
+
+		if ( 'divi/menu' === ( $block['blockName'] ?? '' ) ) {
+			$summary['logo_sizing'] = $this->get_array_path( $attrs, [ 'logo', 'decoration', 'sizing', 'desktop', 'value' ], [] );
+			$summary['menu_colors'] = $this->filter_empty_diagnostic_values(
+				[
+					'menu_text'          => [
+						'value'  => $this->get_array_path( $attrs, [ 'menu', 'decoration', 'font', 'font', 'desktop', 'value', 'color' ], '' ),
+						'sticky' => $this->get_array_path( $attrs, [ 'menu', 'decoration', 'font', 'font', 'desktop', 'sticky', 'color' ], '' ),
+					],
+					'active_link'        => [
+						'value'  => $this->get_array_path( $attrs, [ 'menu', 'advanced', 'activeLinkColor', 'desktop', 'value' ], '' ),
+						'sticky' => $this->get_array_path( $attrs, [ 'menu', 'advanced', 'activeLinkColor', 'desktop', 'sticky' ], '' ),
+					],
+					'mobile_menu_text'   => [
+						'value'  => $this->get_array_path( $attrs, [ 'menuMobile', 'decoration', 'font', 'font', 'desktop', 'value', 'color' ], '' ),
+						'sticky' => $this->get_array_path( $attrs, [ 'menuMobile', 'decoration', 'font', 'font', 'desktop', 'sticky', 'color' ], '' ),
+					],
+					'hamburger_icon'     => [
+						'value'  => $this->get_array_path( $attrs, [ 'hamburgerMenuIcon', 'decoration', 'font', 'font', 'desktop', 'value', 'color' ], '' ),
+						'sticky' => $this->get_array_path( $attrs, [ 'hamburgerMenuIcon', 'decoration', 'font', 'font', 'desktop', 'sticky', 'color' ], '' ),
+					],
+					'dropdown_link_text' => $this->get_array_path( $attrs, [ 'menuDropdown', 'decoration', 'font', 'font', 'desktop', 'value', 'color' ], '' ),
+				]
+			);
+		}
+
+		return $this->filter_empty_diagnostic_values( $summary );
+	}
+
+	private function extract_custom_attributes_map( array $attrs ) {
+		$entries = $this->get_array_path( $attrs, [ 'module', 'decoration', 'attributes', 'desktop', 'value', 'attributes' ], [] );
+		$mapped  = [];
+
+		if ( ! is_array( $entries ) ) {
+			return $mapped;
+		}
+
+		foreach ( $entries as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$name  = trim( (string) ( $entry['name'] ?? '' ) );
+			$value = (string) ( $entry['value'] ?? '' );
+
+			if ( '' === $name || '' === $value ) {
+				continue;
+			}
+
+			$mapped[ $name ] = 'style' === $name
+				? [
+					'raw'    => $value,
+					'parsed' => $this->parse_inline_style_string( $value ),
+				]
+				: $value;
+		}
+
+		return $mapped;
+	}
+
+	private function parse_inline_style_string( $style ) {
+		$styles = [];
+
+		foreach ( explode( ';', (string) $style ) as $declaration ) {
+			$declaration = trim( $declaration );
+
+			if ( '' === $declaration || false === strpos( $declaration, ':' ) ) {
+				continue;
+			}
+
+			list( $property, $value ) = array_map( 'trim', explode( ':', $declaration, 2 ) );
+
+			if ( '' === $property || '' === $value ) {
+				continue;
+			}
+
+			$styles[ $property ] = $value;
+		}
+
+		return $styles;
+	}
+
+	private function get_array_path( array $source, array $path, $default = null ) {
+		$value = $source;
+
+		foreach ( $path as $segment ) {
+			if ( ! is_array( $value ) || ! array_key_exists( $segment, $value ) ) {
+				return $default;
+			}
+
+			$value = $value[ $segment ];
+		}
+
+		return $value;
+	}
+
+	private function filter_empty_diagnostic_values( array $values ) {
+		foreach ( $values as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$value = $this->filter_empty_diagnostic_values( $value );
+			}
+
+			if ( [] === $value || null === $value || '' === $value ) {
+				unset( $values[ $key ] );
+				continue;
+			}
+
+			$values[ $key ] = $value;
+		}
+
+		return $values;
+	}
+
+	private function collect_divi_admin_labels( array $blocks, $limit = 20 ) {
+		$labels = [];
+		$this->append_divi_admin_labels( $blocks, $labels, (int) $limit );
+
+		return $labels;
+	}
+
+	private function append_divi_admin_labels( array $blocks, array &$labels, $limit ) {
+		foreach ( $blocks as $block ) {
+			if ( count( $labels ) >= $limit ) {
+				return;
+			}
+
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$admin_label = $this->get_divi_block_admin_label( $block );
+
+			if ( '' !== $admin_label ) {
+				$labels[] = $admin_label;
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$this->append_divi_admin_labels( $block['innerBlocks'], $labels, $limit );
+			}
+		}
+	}
+
+	private function find_divi_block_by_admin_label( array $blocks, $label ) {
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			if ( $label === $this->get_divi_block_admin_label( $block ) ) {
+				return $block;
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$found = $this->find_divi_block_by_admin_label( $block['innerBlocks'], $label );
+
+				if ( ! empty( $found ) ) {
+					return $found;
+				}
+			}
+		}
+
+		return [];
 	}
 
 	private function find_target_page( $slug, $home_slug = '', $title = '' ) {
@@ -330,6 +646,16 @@ class DMF_Divi_Import_Runner {
 			throw new RuntimeException( 'Created page could not be loaded: ' . $title );
 		}
 
+		$this->log(
+			'info',
+			'Target page created.',
+			[
+				'label'   => $title,
+				'page_id' => (int) $page->ID,
+				'slug'    => $slug,
+			]
+		);
+
 		if ( '__front_page__' === ( $item['slug'] ?? '' ) ) {
 			update_option( 'show_on_front', 'page' );
 			update_option( 'page_on_front', (int) $page->ID );
@@ -415,6 +741,15 @@ class DMF_Divi_Import_Runner {
 		}
 
 		$this->configure_divi_page_meta( (int) $page->ID );
+		$this->log(
+			'info',
+			'Page layout imported.',
+			[
+				'page_id'    => (int) $page->ID,
+				'page_title' => (string) $page->post_title,
+				'page_slug'  => (string) $page->post_name,
+			]
+		);
 	}
 
 	private function apply_portfolio_loop_fix( array $args = [] ) {
@@ -442,6 +777,14 @@ class DMF_Divi_Import_Runner {
 
 			if ( ! $page instanceof WP_Post ) {
 				$summary['missing'][] = $target['label'];
+				$this->log(
+					'warning',
+					'Portfolio loop target page missing.',
+					[
+						'label'   => (string) $target['label'],
+						'context' => (string) $target['context'],
+					]
+				);
 				continue;
 			}
 
@@ -464,6 +807,15 @@ class DMF_Divi_Import_Runner {
 
 			if ( 'unchanged' === $fix_state ) {
 				$summary['updated'][] = sprintf( '%s (#%d) already uses the native Divi portfolio loop', $target['label'], $page->ID );
+				$this->log(
+					'info',
+					'Portfolio loop already up to date.',
+					[
+						'label'   => (string) $target['label'],
+						'page_id' => (int) $page->ID,
+						'context' => (string) $target['context'],
+					]
+				);
 				continue;
 			}
 
@@ -472,6 +824,16 @@ class DMF_Divi_Import_Runner {
 				$target['label'],
 				$page->ID,
 				$dry_run ? ' [dry run]' : ''
+			);
+			$this->log(
+				'info',
+				'Portfolio loop applied to page.',
+				[
+					'label'   => (string) $target['label'],
+					'page_id' => (int) $page->ID,
+					'context' => (string) $target['context'],
+					'dry_run' => $dry_run,
+				]
 			);
 		}
 
@@ -1373,7 +1735,16 @@ HTML;
 				$updated[] = sprintf( 'Clear stale body override on template #%d', $template->ID );
 			}
 
-			return array_values( array_unique( $updated ) );
+			$updated = array_values( array_unique( $updated ) );
+			$this->log(
+				'info',
+				'Theme Builder import dry run prepared.',
+				[
+					'updated' => $updated,
+				]
+			);
+
+			return $updated;
 		}
 
 		$theme_builder_id = function_exists( 'et_theme_builder_get_theme_builder_post_id' )
@@ -1431,8 +1802,16 @@ HTML;
 			)
 		);
 		$updated = array_merge( $updated, $this->normalize_divi_header_theme_options( false ) );
+		$updated = array_values( array_unique( $updated ) );
+		$this->log(
+			'info',
+			'Theme Builder import completed.',
+			[
+				'updated' => $updated,
+			]
+		);
 
-		return array_values( array_unique( $updated ) );
+		return $updated;
 	}
 
 	private function upsert_portfolio_single_theme_template( $dry_run ) {
@@ -2342,21 +2721,7 @@ HTML;
 	}
 
 	private function normalize_divi_header_theme_options( $dry_run ) {
-		$desired_options = [
-			'divi_fixed_nav'                => 'on',
-			'boxed_layout'                  => false,
-			'primary_nav_bg'                => 'rgba(19, 27, 38, 0.82)',
-			'fixed_primary_nav_bg'          => '#edeced',
-			'menu_link'                     => 'rgba(250, 250, 250, 0.76)',
-			'menu_link_active'              => '#fafafa',
-			'fixed_menu_link'               => '#486262',
-			'fixed_menu_link_active'        => '#131b26',
-			'primary_nav_dropdown_bg'       => '#fafafa',
-			'primary_nav_dropdown_link_color' => '#131b26',
-			'primary_nav_dropdown_line_color' => '#a1a5a4',
-			'mobile_primary_nav_bg'         => '#fafafa',
-			'mobile_menu_link'              => '#131b26',
-		];
+		$desired_options = $this->get_desired_divi_header_theme_options();
 		$updated_messages = [];
 
 		foreach ( $desired_options as $option_name => $desired_value ) {
@@ -2380,6 +2745,24 @@ HTML;
 		}
 
 		return array_values( array_unique( $updated_messages ) );
+	}
+
+	private function get_desired_divi_header_theme_options() {
+		return [
+			'divi_fixed_nav'                  => 'on',
+			'boxed_layout'                    => false,
+			'primary_nav_bg'                  => 'rgba(19, 27, 38, 0.82)',
+			'fixed_primary_nav_bg'            => '#edeced',
+			'menu_link'                       => 'rgba(250, 250, 250, 0.76)',
+			'menu_link_active'                => '#fafafa',
+			'fixed_menu_link'                 => '#486262',
+			'fixed_menu_link_active'          => '#131b26',
+			'primary_nav_dropdown_bg'         => '#fafafa',
+			'primary_nav_dropdown_link_color' => '#131b26',
+			'primary_nav_dropdown_line_color' => '#a1a5a4',
+			'mobile_primary_nav_bg'           => '#fafafa',
+			'mobile_menu_link'                => '#131b26',
+		];
 	}
 
 	private function get_divi_theme_option( $option_name, $default_value = '' ) {
@@ -2643,11 +3026,22 @@ HTML;
 		}
 
 		if ( $dry_run ) {
-			return [
+			$summary = [
 				"Would sync {$menu_name}",
 				"Location {$location}",
 				'Items ' . count( $items ),
 			];
+			$this->log(
+				'info',
+				'Primary menu dry run prepared.',
+				[
+					'menu_name' => $menu_name,
+					'location'  => $location,
+					'items'     => count( $items ),
+				]
+			);
+
+			return $summary;
 		}
 
 		if ( $menu_id <= 0 ) {
@@ -2712,6 +3106,16 @@ HTML;
 		$locations              = get_theme_mod( 'nav_menu_locations', [] );
 		$locations[ $location ] = $menu_id;
 		set_theme_mod( 'nav_menu_locations', $locations );
+		$this->log(
+			'info',
+			'Primary menu synced.',
+			[
+				'menu_id'   => (int) $menu_id,
+				'menu_name' => $menu_name,
+				'location'  => $location,
+				'items'     => $created_count,
+			]
+		);
 
 		return [
 			"Menu {$menu_name} #{$menu_id}",

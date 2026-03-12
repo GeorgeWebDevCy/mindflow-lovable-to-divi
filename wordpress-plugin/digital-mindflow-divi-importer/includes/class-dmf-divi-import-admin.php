@@ -12,6 +12,10 @@ class DMF_Divi_Import_Admin {
 
 	const FIX_ACTION = 'dmf_divi_importer_fix_portfolio_loops';
 
+	const HEADER_DIAGNOSTIC_ACTION = 'dmf_divi_importer_capture_header_diagnostics';
+
+	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
+
 	public static function boot() {
 		if ( ! is_admin() ) {
 			return;
@@ -20,15 +24,19 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_menu', [ __CLASS__, 'register_page' ] );
 		add_action( 'admin_post_' . self::ACTION, [ __CLASS__, 'handle_run' ] );
 		add_action( 'admin_post_' . self::FIX_ACTION, [ __CLASS__, 'handle_fix_portfolio_loops' ] );
+		add_action( 'admin_post_' . self::HEADER_DIAGNOSTIC_ACTION, [ __CLASS__, 'handle_capture_header_diagnostics' ] );
+		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 	}
 
 	public static function register_page() {
-		add_management_page(
+		add_menu_page(
 			'Digital MindFlow Divi Importer',
-			'DMF Divi Importer',
+			'MindFlow Divi',
 			'manage_options',
 			self::PAGE_SLUG,
-			[ __CLASS__, 'render_page' ]
+			[ __CLASS__, 'render_page' ],
+			'dashicons-layout',
+			58
 		);
 	}
 
@@ -38,6 +46,15 @@ class DMF_Divi_Import_Admin {
 		}
 
 		check_admin_referer( self::ACTION );
+		$args = [
+			'dry_run'              => ! empty( $_POST['dry_run'] ),
+			'include_pages'        => ! empty( $_POST['include_pages'] ),
+			'include_theme'        => ! empty( $_POST['include_theme'] ),
+			'include_menu'         => ! empty( $_POST['include_menu'] ),
+			'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
+			'home_slug'            => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+		DMF_Divi_Import_Logger::log( 'info', 'Admin import action submitted.', $args );
 
 		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
 		$report = [
@@ -47,16 +64,7 @@ class DMF_Divi_Import_Admin {
 		];
 
 		try {
-			$summary = $runner->run(
-				[
-					'dry_run'       => ! empty( $_POST['dry_run'] ),
-					'include_pages' => ! empty( $_POST['include_pages'] ),
-					'include_theme' => ! empty( $_POST['include_theme'] ),
-					'include_menu'  => ! empty( $_POST['include_menu'] ),
-					'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
-					'home_slug'     => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
-				]
-			);
+			$summary = $runner->run( $args );
 
 			$report['title']   = ! empty( $summary['dry_run'] ) ? 'Dry run complete.' : 'Import complete.';
 			$report['summary'] = $summary;
@@ -64,18 +72,21 @@ class DMF_Divi_Import_Admin {
 			$report['status'] = 'error';
 			$report['title']  = 'Import failed.';
 			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Import action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
 		}
 
 		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
 
-		wp_safe_redirect(
-			add_query_arg(
-				[
-					'page' => self::PAGE_SLUG,
-				],
-				admin_url( 'tools.php' )
-			)
-		);
+		wp_safe_redirect( self::page_url() );
 		exit;
 	}
 
@@ -85,6 +96,10 @@ class DMF_Divi_Import_Admin {
 		}
 
 		check_admin_referer( self::FIX_ACTION );
+		$args = [
+			'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+		DMF_Divi_Import_Logger::log( 'info', 'Admin portfolio loop fix submitted.', $args );
 
 		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
 		$report = [
@@ -94,11 +109,7 @@ class DMF_Divi_Import_Admin {
 		];
 
 		try {
-			$summary = $runner->fix_portfolio_loops(
-				[
-					'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
-				]
-			);
+			$summary = $runner->fix_portfolio_loops( $args );
 
 			$report['summary'] = [
 				'portfolio_loops_updated' => $summary['updated'] ?? [],
@@ -109,18 +120,119 @@ class DMF_Divi_Import_Admin {
 			$report['status'] = 'error';
 			$report['title']  = 'Portfolio loop fix failed.';
 			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Portfolio loop fix action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
 		}
 
 		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
 
-		wp_safe_redirect(
-			add_query_arg(
-				[
-					'page' => self::PAGE_SLUG,
-				],
-				admin_url( 'tools.php' )
-			)
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_clear_log() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::CLEAR_LOG_ACTION );
+
+		DMF_Divi_Import_Logger::clear();
+
+		set_transient(
+			self::notice_key(),
+			[
+				'status' => 'success',
+				'title'  => 'Logger cleared.',
+			],
+			MINUTE_IN_SECONDS * 10
 		);
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_capture_header_diagnostics() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::HEADER_DIAGNOSTIC_ACTION );
+
+		$args = [
+			'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin header diagnostics submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+
+		try {
+			$diagnostics = $runner->capture_header_diagnostics( $args );
+
+			set_transient(
+				self::notice_key(),
+				[
+					'status'  => 'success',
+					'title'   => 'Header diagnostics captured.',
+					'summary' => [
+						'diagnostics' => [
+							'Latest header diagnostics were added to the logger below.',
+							sprintf(
+								'Default template: %s',
+								! empty( $diagnostics['theme_builder']['default_template']['id'] )
+									? '#' . (int) $diagnostics['theme_builder']['default_template']['id']
+									: 'not found'
+							),
+							sprintf(
+								'Header layout: %s',
+								! empty( $diagnostics['theme_builder']['header_layout_id'] )
+									? '#' . (int) $diagnostics['theme_builder']['header_layout_id']
+									: 'not found'
+							),
+							sprintf(
+								'Home page: %s',
+								! empty( $diagnostics['home_page']['page']['id'] )
+									? '#' . (int) $diagnostics['home_page']['page']['id']
+									: 'not found'
+							),
+						],
+					],
+				],
+				MINUTE_IN_SECONDS * 10
+			);
+		} catch ( Throwable $error ) {
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Header diagnostics action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+
+			set_transient(
+				self::notice_key(),
+				[
+					'status' => 'error',
+					'title'  => 'Header diagnostics failed.',
+					'error'  => $error->getMessage(),
+				],
+				MINUTE_IN_SECONDS * 10
+			);
+		}
+
+		wp_safe_redirect( self::page_url() );
 		exit;
 	}
 
@@ -133,12 +245,14 @@ class DMF_Divi_Import_Admin {
 		$notice        = get_transient( self::notice_key() );
 		$missing_files = $runner->get_missing_export_files();
 		$divi_ready    = $runner->is_divi_ready();
+		$log_entries   = DMF_Divi_Import_Logger::get_entries( 100 );
+		$log_count     = DMF_Divi_Import_Logger::count();
 
 		delete_transient( self::notice_key() );
 		?>
 		<div class="wrap">
 			<h1>Digital MindFlow Divi Importer</h1>
-			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, and can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops.</p>
+			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops, and keeps a persistent log for troubleshooting.</p>
 
 			<?php self::render_notice( $notice ); ?>
 
@@ -259,6 +373,34 @@ class DMF_Divi_Import_Admin {
 				</p>
 			</form>
 
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::HEADER_DIAGNOSTIC_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::HEADER_DIAGNOSTIC_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Capture Header Diagnostics</h2>
+				<p>Use this when the header overlay, sticky state, or white spacing looks wrong. It logs the current Theme Builder header template, header module attrs, homepage hero attrs, and relevant Divi theme options.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-diagnostics">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-diagnostics" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary">
+						Capture Header Diagnostics
+					</button>
+				</p>
+			</form>
+
 			<div style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
 				<h2 style="margin-top: 0;">What This Does</h2>
 				<ul style="list-style: disc; padding-left: 20px;">
@@ -273,6 +415,8 @@ class DMF_Divi_Import_Admin {
 				</ul>
 				<p>The Portfolio loop fix writes native Divi content into the pages, so the site does not need this plugin active just to render those loops.</p>
 			</div>
+
+			<?php self::render_log_panel( $log_entries, $log_count ); ?>
 		</div>
 		<?php
 	}
@@ -306,6 +450,7 @@ class DMF_Divi_Import_Admin {
 			'portfolio_loops_missing' => 'Portfolio loop pages missing',
 			'theme_updated'           => 'Theme Builder',
 			'menu_updated'            => 'Primary menu',
+			'diagnostics'             => 'Diagnostics',
 			'warnings'                => 'Warnings',
 		];
 
@@ -322,6 +467,73 @@ class DMF_Divi_Import_Admin {
 			</ul>
 			<?php
 		}
+	}
+
+	private static function render_log_panel( array $entries, $log_count ) {
+		?>
+		<div style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+			<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+				<div>
+					<h2 style="margin: 0;">Logger</h2>
+					<p style="margin: 8px 0 0 0;">Recent plugin activity and errors. Keep this when something breaks, then send me the relevant entries.</p>
+					<p style="margin: 8px 0 0 0;"><strong>Stored entries:</strong> <?php echo esc_html( (string) $log_count ); ?> / <?php echo esc_html( (string) DMF_Divi_Import_Logger::MAX_ENTRIES ); ?></p>
+				</div>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0;">
+					<?php wp_nonce_field( self::CLEAR_LOG_ACTION ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( self::CLEAR_LOG_ACTION ); ?>">
+					<button type="submit" class="button button-secondary" <?php disabled( empty( $entries ) ); ?>>Clear Log</button>
+				</form>
+			</div>
+
+			<?php if ( empty( $entries ) ) : ?>
+				<p style="margin-bottom: 0;">No log entries yet.</p>
+			<?php else : ?>
+				<div style="margin-top: 16px; display: grid; gap: 12px;">
+					<?php foreach ( $entries as $entry ) : ?>
+						<?php
+						$level        = (string) ( $entry['level'] ?? 'info' );
+						$message      = (string) ( $entry['message'] ?? '' );
+						$timestamp    = (string) ( $entry['timestamp'] ?? '' );
+						$request_id   = (string) ( $entry['request_id'] ?? '' );
+						$user_id      = (int) ( $entry['user_id'] ?? 0 );
+						$context_json = ! empty( $entry['context'] )
+							? wp_json_encode( $entry['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES )
+							: '';
+						$accent       = 'info' === $level ? '#2271b1' : ( 'warning' === $level ? '#996800' : '#b32d2e' );
+						?>
+						<div style="border: 1px solid #dcdcde; border-left: 4px solid <?php echo esc_attr( $accent ); ?>; border-radius: 6px; padding: 12px 14px; background: #fcfcfd;">
+							<div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+								<div>
+									<div style="font-weight:600;"><?php echo esc_html( strtoupper( $level ) ); ?></div>
+									<div style="margin-top:4px;"><?php echo esc_html( $message ); ?></div>
+								</div>
+								<div style="text-align:right; color:#50575e;">
+									<div><?php echo esc_html( $timestamp ); ?></div>
+									<div>Request: <code><?php echo esc_html( $request_id ); ?></code></div>
+									<div>User: <code><?php echo esc_html( (string) $user_id ); ?></code></div>
+								</div>
+							</div>
+							<?php if ( '' !== $context_json ) : ?>
+								<pre style="margin:12px 0 0 0; padding:12px; background:#f6f7f7; border:1px solid #dcdcde; border-radius:4px; overflow:auto; white-space:pre-wrap;"><?php echo esc_html( $context_json ); ?></pre>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	private static function page_url( array $args = [] ) {
+		return add_query_arg(
+			array_merge(
+				[
+					'page' => self::PAGE_SLUG,
+				],
+				$args
+			),
+			admin_url( 'admin.php' )
+		);
 	}
 
 	private static function notice_key() {
