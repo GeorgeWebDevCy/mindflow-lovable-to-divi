@@ -508,15 +508,16 @@ class DMF_Divi_Import_Runner {
 
 	private function apply_portfolio_loop_template_to_page( WP_Post $page, $context, $dry_run ) {
 		$current_content = (string) $page->post_content;
+		$replacement     = $this->build_portfolio_loop_section( (string) $context );
 
-		if ( $this->page_has_native_portfolio_loop( $current_content ) ) {
+		if ( false !== strpos( $current_content, $replacement ) ) {
 			return 'unchanged';
 		}
 
 		$content = $this->replace_existing_portfolio_loop_markup(
 			$current_content,
 			(string) $context,
-			$this->build_portfolio_loop_section( (string) $context )
+			$replacement
 		);
 
 		if ( null === $content ) {
@@ -544,13 +545,6 @@ class DMF_Divi_Import_Runner {
 		$this->configure_divi_page_meta( (int) $page->ID );
 
 		return 'updated';
-	}
-
-	private function page_has_native_portfolio_loop( $content ) {
-		return false !== strpos(
-			(string) $content,
-			'"adminLabel":{"desktop":{"value":"DMF Portfolio Loop Card"}}'
-		);
 	}
 
 	private function replace_existing_portfolio_loop_markup( $content, $context, $replacement ) {
@@ -712,6 +706,28 @@ class DMF_Divi_Import_Runner {
 							],
 						],
 					],
+					'decoration' => [
+						'sizing' => [
+							'desktop' => [
+								'value' => [
+									'width'    => 'calc((100% - 3rem) / 3)',
+									'maxWidth' => 'calc((100% - 3rem) / 3)',
+								],
+							],
+							'tablet'  => [
+								'value' => [
+									'width'    => 'calc((100% - 1.5rem) / 2)',
+									'maxWidth' => 'calc((100% - 1.5rem) / 2)',
+								],
+							],
+							'phone'   => [
+								'value' => [
+									'width'    => '100%',
+									'maxWidth' => '100%',
+								],
+							],
+						],
+					],
 				],
 				'content'        => [
 					'innerContent' => [
@@ -746,21 +762,14 @@ class DMF_Divi_Import_Runner {
 						'layout' => [
 							'desktop' => [
 								'value' => [
-									'display'            => 'grid',
-									'gridColumnWidths'   => 'equalMinimum',
-									'gridColumnMinWidth' => '20rem',
-									'columnGap'          => '1.5rem',
-									'rowGap'             => '1.5rem',
-								],
-							],
-							'tablet'  => [
-								'value' => [
-									'gridColumnMinWidth' => '17rem',
-								],
-							],
-							'phone'   => [
-								'value' => [
-									'gridColumnMinWidth' => '100%',
+									'display'       => 'flex',
+									'flexDirection' => 'row',
+									'flexWrap'      => 'wrap',
+									'alignItems'    => 'stretch',
+									'alignContent'  => 'stretch',
+									'justifyContent' => 'flex-start',
+									'columnGap'     => '1.5rem',
+									'rowGap'        => '1.5rem',
 								],
 							],
 						],
