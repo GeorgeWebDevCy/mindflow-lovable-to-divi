@@ -696,7 +696,7 @@ class DMF_Divi_Import_Runner {
 			]
 		);
 
-		$group_block = $this->render_divi_block(
+		$loop_group_block = $this->render_divi_block(
 			'group',
 			[
 				'builderVersion' => 0.7,
@@ -756,22 +756,15 @@ class DMF_Divi_Import_Runner {
 			$text_block
 		);
 
-		$column_block = $this->render_divi_block(
-			'column',
+		$container_group_block = $this->render_divi_block(
+			'group',
 			[
 				'builderVersion' => 0.7,
 				'module'         => [
 					'meta'       => [
 						'adminLabel' => [
 							'desktop' => [
-								'value' => 'DMF Portfolio Loop Column',
-							],
-						],
-					],
-					'advanced'   => [
-						'type' => [
-							'desktop' => [
-								'value' => '4_4',
+								'value' => 'DMF Portfolio Loop Container',
 							],
 						],
 					],
@@ -793,7 +786,31 @@ class DMF_Divi_Import_Runner {
 					],
 				],
 			],
-			$group_block
+			$loop_group_block
+		);
+
+		$column_block = $this->render_divi_block(
+			'column',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Loop Column',
+							],
+						],
+					],
+					'advanced' => [
+						'type' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$container_group_block
 		);
 
 		return $this->render_divi_block(
