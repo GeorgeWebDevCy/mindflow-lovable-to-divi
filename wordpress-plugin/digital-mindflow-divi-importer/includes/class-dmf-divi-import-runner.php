@@ -1531,12 +1531,7 @@ HTML;
 						'class' => 'dmf-global-header-shell',
 						'style' => $this->build_inline_style(
 							[
-								'position'   => 'absolute',
-								'top'        => '0',
-								'left'       => '0',
-								'right'      => '0',
 								'width'      => '100%',
-								'z-index'    => '999',
 								'background' => 'transparent',
 								'margin'     => '0',
 								'padding'    => '0',
@@ -1553,7 +1548,8 @@ HTML;
 								'width'      => '100%',
 								'max-width'  => '80rem',
 								'margin'     => '0 auto',
-								'padding'    => '1rem 1.5rem 0.75rem',
+								'padding'    => '0.95rem 1.5rem 0.8rem',
+								'background' => 'transparent',
 								'box-sizing' => 'border-box',
 							]
 						),
@@ -1565,6 +1561,7 @@ HTML;
 						'class' => 'dmf-global-header-column',
 						'style' => $this->build_inline_style(
 							[
+								'background' => 'transparent',
 								'margin'  => '0',
 								'padding' => '0',
 							]
@@ -1598,7 +1595,10 @@ HTML;
 				'class' => 'dmf-global-header-menu',
 				'style' => $this->build_inline_style(
 					[
-						'width' => '100%',
+						'width'      => '100%',
+						'background' => 'transparent',
+						'border'     => '0',
+						'box-shadow' => 'none',
 					]
 				),
 			]
@@ -1609,7 +1609,7 @@ HTML;
 		$attrs['menu']['advanced']['activeLinkColor']['desktop']['value']         = $nav_active_color;
 		$attrs['menu']['decoration']['font']['font']['desktop']['value']['color'] = $nav_color;
 		$attrs['menuDropdown']['advanced']['activeLinkColor']['desktop']['value'] = 'var(--gcid-dmf-accent, #941213)';
-		$attrs['menuDropdown']['advanced']['lineColor']['desktop']['value']       = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 14%, transparent)';
+		$attrs['menuDropdown']['advanced']['lineColor']['desktop']['value']       = 'var(--gcid-dmf-border, #a1a5a4)';
 		$attrs['menuDropdown']['decoration']['font']['font']['desktop']['value']['color'] = 'var(--gcid-dmf-foreground, #131b26)';
 		$attrs['menuMobile']['decoration']['font']['font']['desktop']['value']['color']   = $nav_active_color;
 		$attrs['cartIcon']['decoration']['font']['font']['desktop']['value']['color']      = $nav_active_color;
@@ -1620,17 +1620,44 @@ HTML;
 	}
 
 	private function normalize_divi_header_theme_options( $dry_run ) {
-		$current_value = (string) $this->get_divi_theme_option( 'divi_fixed_nav', 'on' );
+		$desired_options = [
+			'divi_fixed_nav'                => 'on',
+			'boxed_layout'                  => false,
+			'primary_nav_bg'                => 'rgba(19, 27, 38, 0.82)',
+			'fixed_primary_nav_bg'          => '#edeced',
+			'menu_link'                     => 'rgba(250, 250, 250, 0.76)',
+			'menu_link_active'              => '#fafafa',
+			'fixed_menu_link'               => '#486262',
+			'fixed_menu_link_active'        => '#131b26',
+			'primary_nav_dropdown_bg'       => '#fafafa',
+			'primary_nav_dropdown_link_color' => '#131b26',
+			'primary_nav_dropdown_line_color' => '#a1a5a4',
+			'mobile_primary_nav_bg'         => '#fafafa',
+			'mobile_menu_link'              => '#131b26',
+		];
+		$updated_messages = [];
 
-		if ( 'off' === $current_value ) {
-			return [];
+		foreach ( $desired_options as $option_name => $desired_value ) {
+			$current_value = $this->get_divi_theme_option( $option_name, null );
+
+			if ( $current_value === $desired_value ) {
+				continue;
+			}
+
+			if ( ! $dry_run ) {
+				$this->set_divi_theme_option( $option_name, $desired_value );
+			}
+
+			if ( 'boxed_layout' === $option_name ) {
+				$updated_messages[] = 'Disable Divi boxed layout for a full-width header';
+			} elseif ( 'divi_fixed_nav' === $option_name ) {
+				$updated_messages[] = 'Enable Divi fixed navigation scroll behavior';
+			} elseif ( in_array( $option_name, [ 'primary_nav_bg', 'fixed_primary_nav_bg', 'menu_link', 'menu_link_active', 'fixed_menu_link', 'fixed_menu_link_active' ], true ) ) {
+				$updated_messages[] = 'Apply palette-aware initial and scrolled header colors';
+			}
 		}
 
-		if ( ! $dry_run ) {
-			$this->set_divi_theme_option( 'divi_fixed_nav', 'off' );
-		}
-
-		return [ 'Disable Divi fixed navigation scroll effect' ];
+		return array_values( array_unique( $updated_messages ) );
 	}
 
 	private function get_divi_theme_option( $option_name, $default_value = '' ) {
