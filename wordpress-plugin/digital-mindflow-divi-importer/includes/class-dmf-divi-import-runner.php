@@ -908,9 +908,12 @@ class DMF_Divi_Import_Runner {
 		$context = 'home' === sanitize_key( (string) $context ) ? 'home' : 'portfolio';
 		$blocks  = [
 			$this->build_code_module( 'Portfolio Loop Runtime', $this->build_portfolio_loop_runtime_markup(), 'dmf-portfolio-loop-runtime' ),
-			$this->build_portfolio_intro_row( $context ),
 			$this->build_portfolio_loop_row( $context ),
 		];
+
+		if ( 'home' === $context ) {
+			array_splice( $blocks, 1, 0, [ $this->build_portfolio_intro_row( $context ) ] );
+		}
 
 		if ( 'home' === $context ) {
 			$blocks[] = $this->build_portfolio_archive_button_row();
@@ -1015,6 +1018,45 @@ class DMF_Divi_Import_Runner {
 	}
 
 	private function build_portfolio_loop_row( $context ) {
+		$context         = 'home' === sanitize_key( (string) $context ) ? 'home' : 'portfolio';
+		$item_style      = 'home' === $context
+			? [
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'gap'            => '1rem',
+				'flex'           => '1 1 20rem',
+				'min-width'      => '18rem',
+				'max-width'      => 'calc((100% - 3rem) / 3)',
+				'padding'        => '1.5rem',
+				'background'     => 'var(--gcid-dmf-card, #edeced)',
+				'border'         => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius'  => 'var(--gvid-dmf-radius-lg)',
+				'box-shadow'     => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)',
+				'box-sizing'     => 'border-box',
+			]
+			: [
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'gap'            => '1.25rem',
+				'flex'           => '1 1 calc((100% - 2rem) / 2)',
+				'min-width'      => '20rem',
+				'max-width'      => 'none',
+				'padding'        => '1.5rem',
+				'background'     => 'var(--gcid-dmf-card, #edeced)',
+				'border'         => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius'  => 'var(--gvid-dmf-radius-lg)',
+				'box-shadow'     => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)',
+				'box-sizing'     => 'border-box',
+			];
+		$container_style = [
+			'display'         => 'flex',
+			'flex-wrap'       => 'wrap',
+			'align-items'     => 'stretch',
+			'justify-content' => 'flex-start',
+			'gap'             => 'home' === $context ? '1.5rem' : '2rem',
+			'width'           => '100%',
+		];
+
 		$loop_group_block = $this->render_divi_block(
 			'group',
 			[
@@ -1051,37 +1093,14 @@ class DMF_Divi_Import_Runner {
 					'decoration' => [
 						'attributes' => $this->build_custom_attributes(
 							[
-								'class' => 'dmf-portfolio-loop-item',
-								'style' => $this->build_inline_style(
-									[
-										'display'       => 'flex',
-										'flex-direction' => 'column',
-										'gap'           => '1rem',
-										'flex'          => '1 1 20rem',
-										'min-width'     => '18rem',
-										'max-width'     => 'calc((100% - 3rem) / 3)',
-										'padding'       => '1.5rem',
-										'background'    => 'var(--gcid-dmf-card, #edeced)',
-										'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
-										'border-radius' => 'var(--gvid-dmf-radius-lg)',
-										'box-shadow'    => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)',
-										'box-sizing'    => 'border-box',
-									]
-								),
+								'class' => 'dmf-portfolio-loop-item dmf-portfolio-loop-item--' . $context,
+								'style' => $this->build_inline_style( $item_style ),
 							]
 						),
 					],
 				],
 			],
-			implode(
-				"\n",
-				[
-					$this->build_portfolio_card_image_block(),
-					$this->build_portfolio_card_title_block(),
-					$this->build_portfolio_card_excerpt_block(),
-					$this->build_portfolio_card_button_block(),
-				]
-			)
+			implode( "\n", $this->get_portfolio_loop_item_blocks( $context ) )
 		);
 
 		$container_group_block = $this->render_divi_block(
@@ -1099,17 +1118,8 @@ class DMF_Divi_Import_Runner {
 					'decoration' => [
 						'attributes' => $this->build_custom_attributes(
 							[
-								'class' => 'dmf-portfolio-loop-container',
-								'style' => $this->build_inline_style(
-									[
-										'display'         => 'flex',
-										'flex-wrap'       => 'wrap',
-										'align-items'     => 'stretch',
-										'justify-content' => 'flex-start',
-										'gap'             => '1.5rem',
-										'width'           => '100%',
-									]
-								),
+								'class' => 'dmf-portfolio-loop-container dmf-portfolio-loop-container--' . $context,
+								'style' => $this->build_inline_style( $container_style ),
 							]
 						),
 					],
@@ -1164,6 +1174,438 @@ class DMF_Divi_Import_Runner {
 				],
 			],
 			$column_block
+		);
+	}
+
+	private function get_portfolio_loop_item_blocks( $context ) {
+		if ( 'home' === $context ) {
+			return [
+				$this->build_portfolio_card_image_block(),
+				$this->build_portfolio_card_title_block(),
+				$this->build_portfolio_card_excerpt_block(),
+				$this->build_portfolio_card_button_block(),
+			];
+		}
+
+		return [
+			$this->build_portfolio_archive_media_group(),
+			$this->build_portfolio_archive_body_group(),
+		];
+	}
+
+	private function build_portfolio_archive_media_group() {
+		$children    = [ $this->build_portfolio_archive_image_block() ];
+		$badge_block = $this->build_portfolio_archive_badge_block();
+
+		if ( '' !== $badge_block ) {
+			$children[] = $badge_block;
+		}
+
+		return $this->build_group_module(
+			'DMF Portfolio Archive Media',
+			$children,
+			'dmf-portfolio-card-media',
+			[
+				'position'      => 'relative',
+				'margin'        => '-1.5rem -1.5rem 0',
+				'width'         => 'calc(100% + 3rem)',
+				'overflow'      => 'hidden',
+				'border-radius' => 'calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0',
+			]
+		);
+	}
+
+	private function build_portfolio_archive_body_group() {
+		$children   = [
+			$this->build_portfolio_archive_eyebrow_block(),
+			$this->build_portfolio_archive_title_block(),
+		];
+		$tags_block = $this->build_portfolio_archive_tags_block();
+
+		if ( '' !== $tags_block ) {
+			$children[] = $tags_block;
+		}
+
+		$meta_children = array_filter(
+			[
+				$this->build_portfolio_archive_meta_block( 'Goal', 'goal' ),
+				$this->build_portfolio_archive_meta_block( 'Outcome', 'outcome' ),
+			]
+		);
+
+		if ( empty( $meta_children ) ) {
+			$children[] = $this->build_portfolio_archive_summary_block();
+		} else {
+			$children = array_merge( $children, $meta_children );
+		}
+
+		$children[] = $this->build_portfolio_archive_link_block();
+
+		return $this->build_group_module(
+			'DMF Portfolio Archive Body',
+			$children,
+			'dmf-portfolio-card-body',
+			[
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'gap'            => '0.875rem',
+				'flex'           => '1 1 auto',
+			]
+		);
+	}
+
+	private function build_portfolio_archive_eyebrow_block() {
+		return $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Archive Eyebrow',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-eyebrow',
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => sprintf(
+								'<div style="%1$s">%2$s</div>',
+								esc_attr(
+									$this->build_inline_style(
+										[
+											'font-family'    => 'var(--gvid-dmf-body-font)',
+											'font-size'      => 'clamp(0.705rem, calc(0.705rem + 0.12vw), 0.765rem)',
+											'font-weight'    => '700',
+											'letter-spacing' => '0.14em',
+											'text-transform' => 'uppercase',
+											'color'          => 'var(--gcid-dmf-muted, #486262)',
+											'margin'         => '0',
+										]
+									)
+								),
+								$this->build_portfolio_loop_meta_token( $this->get_portfolio_loop_meta_key( 'small_top_title' ) )
+							),
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_archive_image_block() {
+		return $this->render_divi_block(
+			'image',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Archive Image',
+							],
+						],
+					],
+					'advanced'   => [
+						'spacing' => [
+							'desktop' => [
+								'value' => [
+									'showBottomSpace' => 'off',
+								],
+							],
+						],
+						'sizing'  => [
+							'desktop' => [
+								'value' => [
+									'forceFullwidth' => 'on',
+								],
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-image dmf-portfolio-card-image--archive',
+								'style' => $this->build_inline_style(
+									[
+										'width'         => '100%',
+										'overflow'      => 'hidden',
+										'border-radius' => '0',
+									]
+								),
+							]
+						),
+					],
+				],
+				'image'          => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => [
+								'src'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image',
+									[
+										'before'         => '',
+										'after'          => '',
+										'thumbnail_size' => 'large',
+									]
+								),
+								'alt'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image_alt_text',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkUrl'    => $this->build_dynamic_content_token(
+									'loop_post_link',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkTarget' => 'off',
+							],
+						],
+					],
+					'advanced'     => [
+						'lightbox' => [
+							'desktop' => [
+								'value' => 'off',
+							],
+						],
+						'overlay'  => [
+							'desktop' => [
+								'value' => [
+									'use' => 'off',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_archive_badge_block() {
+		$taxonomy = $this->get_portfolio_loop_taxonomy_slug( 'badge' );
+
+		if ( '' === $taxonomy ) {
+			return '';
+		}
+
+		return $this->build_text_module(
+			'DMF Portfolio Archive Badge',
+			'<div class="dmf-portfolio-card-badge-list">' . $this->build_portfolio_loop_terms_token( $taxonomy ) . '</div>',
+			'dmf-portfolio-card-badge'
+		);
+	}
+
+	private function build_portfolio_archive_title_block() {
+		$title_token = $this->build_portfolio_loop_meta_token( $this->get_portfolio_loop_meta_key( 'portfolio_title' ) );
+
+		if ( '' === $title_token ) {
+			$title_token = $this->build_dynamic_content_token(
+				'loop_post_title',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			);
+		}
+
+		return $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Archive Title',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-title dmf-portfolio-card-title--archive',
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => sprintf(
+								'<h3 style="%1$s">%2$s</h3>',
+								esc_attr(
+									$this->build_inline_style(
+										[
+											'font-family' => 'var(--gvid-dmf-heading-font)',
+											'font-size'   => 'clamp(1.38rem, calc(1.28rem + 0.34vw), 1.68rem)',
+											'font-weight' => '700',
+											'line-height' => '1.2',
+											'color'       => 'var(--gcid-dmf-foreground, #131b26)',
+											'margin'      => '0',
+										]
+									)
+								),
+								$title_token
+							),
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_archive_tags_block() {
+		$taxonomy = $this->get_portfolio_loop_taxonomy_slug( 'tags' );
+
+		if ( '' === $taxonomy ) {
+			return '';
+		}
+
+		return $this->build_text_module(
+			'DMF Portfolio Archive Tags',
+			'<div class="dmf-portfolio-card-tags-list">' . $this->build_portfolio_loop_terms_token( $taxonomy ) . '</div>',
+			'dmf-portfolio-card-tags'
+		);
+	}
+
+	private function build_portfolio_archive_summary_block() {
+		return $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Archive Summary',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-portfolio-card-summary',
+							]
+						),
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => sprintf(
+								'<p style="%1$s">%2$s</p>',
+								esc_attr(
+									$this->build_inline_style(
+										[
+											'font-family' => 'var(--gvid-dmf-body-font)',
+											'font-size'   => 'clamp(0.8906rem, calc(0.8906rem + 0.16vw), 0.965rem)',
+											'line-height' => '1.75',
+											'color'       => 'var(--gcid-dmf-muted, #486262)',
+											'margin'      => '0',
+										]
+									)
+								),
+								$this->build_dynamic_content_token(
+									'loop_post_excerpt',
+									[
+										'before' => '',
+										'after'  => '',
+										'words'  => 28,
+									]
+								)
+							),
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_portfolio_archive_meta_block( $label, $slot ) {
+		$meta_key = $this->get_portfolio_loop_meta_key( $slot );
+
+		if ( '' === $meta_key ) {
+			return '';
+		}
+
+		return $this->build_text_module(
+			sprintf( 'DMF Portfolio Archive %s', (string) $label ),
+			sprintf(
+				'<div class="dmf-portfolio-card-meta-label">%1$s</div><div class="dmf-portfolio-card-meta-value">%2$s</div>',
+				esc_html( strtoupper( (string) $label ) ),
+				$this->build_portfolio_loop_meta_token( $meta_key )
+			),
+			'dmf-portfolio-card-meta dmf-portfolio-card-meta--' . sanitize_key( (string) $slot )
+		);
+	}
+
+	private function build_portfolio_archive_link_block() {
+		return $this->build_text_module(
+			'DMF Portfolio Archive Link',
+			sprintf(
+				'<a class="dmf-portfolio-card-link-anchor" href="%1$s">View Case Study <span aria-hidden="true">↗</span></a>',
+				$this->build_dynamic_content_token(
+					'loop_post_link',
+					[
+						'before' => '',
+						'after'  => '',
+					]
+				)
+			),
+			'dmf-portfolio-card-link'
+		);
+	}
+
+	private function build_portfolio_loop_terms_token( $taxonomy ) {
+		$taxonomy = sanitize_key( (string) $taxonomy );
+
+		if ( '' === $taxonomy ) {
+			return '';
+		}
+
+		return $this->build_dynamic_content_token(
+			'loop_post_terms',
+			[
+				'before'        => '',
+				'after'         => '',
+				'taxonomy_type' => $taxonomy,
+				'separator'     => '',
+				'links'         => 'on',
+			]
+		);
+	}
+
+	private function build_portfolio_loop_meta_token( $meta_key ) {
+		$meta_key = trim( (string) $meta_key );
+
+		if ( '' === $meta_key ) {
+			return '';
+		}
+
+		return $this->build_dynamic_content_token(
+			'loop_post_meta_key_manual_custom_field_value',
+			[
+				'before'               => '',
+				'after'                => '',
+				'select_loop_meta_key' => 'loop_post_meta_key_manual_custom_field_value',
+				'loop_meta_key'        => $meta_key,
+				'date_format'          => 'default',
+				'enable_html'          => 'off',
+			]
 		);
 	}
 
@@ -2803,23 +3245,225 @@ HTML;
 		return <<<'HTML'
 <style id="dmf-portfolio-loop-runtime-styles">
 .dmf-portfolio-loop-runtime{display:none!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-container{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;gap:1.5rem!important;width:100%!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-item{flex:1 1 calc((100% - 3rem)/3)!important;min-width:18rem!important;max-width:none!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-image{position:relative!important;display:block!important;aspect-ratio:4/3;overflow:hidden!important;border-radius:1.35rem!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-image img{width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-image::before{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 34%,transparent);opacity:0;transition:opacity .28s ease;z-index:1}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-image::after{content:"↗";position:absolute;top:50%;left:50%;width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 16%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.25rem;transform:translate(-50%,-50%);opacity:0;transition:opacity .28s ease,transform .28s ease;z-index:2}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image img{transform:scale(1.05)}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::before,.dmf-portfolio-loop-shell .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{opacity:1}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{transform:translate(-50%,-50%) scale(1)}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-title h3{font-size:clamp(1.18rem,calc(1.1rem + .35vw),1.42rem)!important;transition:color .2s ease}
-.dmf-portfolio-loop-shell .dmf-portfolio-loop-item:hover .dmf-portfolio-card-title h3{color:var(--gcid-dmf-accent,#941213)!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-card-excerpt p{max-width:36rem!important}
-.dmf-portfolio-loop-shell .dmf-portfolio-button .et_pb_button,.dmf-portfolio-loop-shell .dmf-portfolio-button a.et_pb_button{padding:0!important;border:0!important;background:transparent!important;color:var(--gcid-dmf-accent,#941213)!important;box-shadow:none!important}
-@media (max-width: 980px){.dmf-portfolio-loop-shell .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}}
-@media (max-width: 767px){.dmf-portfolio-loop-shell .dmf-portfolio-loop-item{flex-basis:100%!important}}
+.dmf-portfolio-loop-shell .dmf-portfolio-loop-container{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;width:100%!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-container{gap:1.5rem!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex:1 1 calc((100% - 3rem)/3)!important;min-width:18rem!important;max-width:none!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-image{position:relative!important;display:block!important;aspect-ratio:4/3;overflow:hidden!important;border-radius:1.35rem!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-image img{width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-image::before{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 34%,transparent);opacity:0;transition:opacity .28s ease;z-index:1}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-image::after{content:"↗";position:absolute;top:50%;left:50%;width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 16%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.25rem;transform:translate(-50%,-50%);opacity:0;transition:opacity .28s ease,transform .28s ease;z-index:2}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image img{transform:scale(1.05)}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::before,.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{opacity:1}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{transform:translate(-50%,-50%) scale(1)}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-title h3{font-size:clamp(1.18rem,calc(1.1rem + .35vw),1.42rem)!important;transition:color .2s ease}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item:hover .dmf-portfolio-card-title h3{color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-card-excerpt p{max-width:36rem!important}
+.dmf-portfolio-loop-shell--home .dmf-portfolio-button .et_pb_button,.dmf-portfolio-loop-shell--home .dmf-portfolio-button a.et_pb_button{padding:0!important;border:0!important;background:transparent!important;color:var(--gcid-dmf-accent,#941213)!important;box-shadow:none!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:2rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex:1 1 calc((100% - 2rem)/2)!important;min-width:0!important;max-width:none!important;padding:1.5rem!important;background:var(--gcid-dmf-card,#edeced)!important;border:0.0625rem solid var(--gcid-dmf-border,#a1a5a4)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 8%,transparent)!important;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover{transform:translateY(-.35rem)!important;box-shadow:0 1.4rem 2.8rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 12%,transparent)!important;border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 24%,var(--gcid-dmf-border,#a1a5a4))!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{position:relative!important;margin:-1.5rem -1.5rem 0!important;width:calc(100% + 3rem)!important;overflow:hidden!important;border-radius:calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{position:relative!important;display:block!important;aspect-ratio:16/10;overflow:hidden!important;border-radius:0!important;background:var(--gcid-dmf-primary,#131b26)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image img{width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 8%,transparent) 0%,color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 44%,transparent) 100%);opacity:0;transition:opacity .28s ease;z-index:1}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image::after{content:"↗";position:absolute;top:50%;left:50%;width:3.25rem;height:3.25rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 18%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.35rem;transform:translate(-50%,-50%) scale(.9);opacity:0;transition:opacity .28s ease,transform .28s ease;z-index:2}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image img{transform:scale(1.07)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::before,.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{opacity:1}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-image::after{transform:translate(-50%,-50%) scale(1)}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge{position:absolute!important;top:1rem!important;left:1rem!important;z-index:3!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-badge-list a{display:inline-flex!important;align-items:center!important;padding:.42rem .82rem!important;border-radius:999px!important;background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.7rem,calc(.7rem + .08vw),.76rem)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important;pointer-events:auto!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-body{display:flex!important;flex-direction:column!important;gap:.875rem!important;height:100%!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-title h3{font-size:clamp(1.38rem,calc(1.28rem + .34vw),1.68rem)!important;transition:color .2s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-title h3{color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-tags-list a{display:inline-flex!important;align-items:center!important;padding:.34rem .72rem!important;border-radius:999px!important;background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 12%,transparent)!important;color:var(--gcid-dmf-muted,#486262)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.74rem,calc(.74rem + .08vw),.8rem)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important;transition:background-color .2s ease,color .2s ease!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover .dmf-portfolio-card-tags-list a{background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 18%,transparent)!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta{display:grid!important;gap:.32rem!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta-label{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.7rem,calc(.7rem + .07vw),.76rem)!important;font-weight:700!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-meta-value{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.89rem,calc(.89rem + .14vw),.97rem)!important;line-height:1.7!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-summary{flex:1 1 auto!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-summary p{max-width:none!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link{margin-top:auto!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link-anchor{display:inline-flex!important;align-items:center!important;gap:.35rem!important;padding:0!important;border:0!important;background:transparent!important;color:var(--gcid-dmf-accent-deep,#893637)!important;box-shadow:none!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.9rem,calc(.9rem + .12vw),.98rem)!important;font-weight:700!important;line-height:1.2!important;text-decoration:none!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-link-anchor:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
+@media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}}
+@media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1.25rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1.25rem -1.25rem 0!important;width:calc(100% + 2.5rem)!important}}
 </style>
 HTML;
+	}
+
+	private function get_portfolio_loop_taxonomy_slug( $slot ) {
+		$config = $this->get_portfolio_loop_taxonomy_config();
+
+		return isset( $config[ $slot ] ) ? (string) $config[ $slot ] : '';
+	}
+
+	private function get_portfolio_loop_meta_key( $slot ) {
+		$config = $this->get_portfolio_loop_meta_config();
+
+		return isset( $config[ $slot ] ) ? (string) $config[ $slot ] : '';
+	}
+
+	private function get_portfolio_loop_taxonomy_config() {
+		static $config = null;
+
+		if ( null !== $config ) {
+			return $config;
+		}
+
+		$config     = [
+			'badge' => '',
+			'tags'  => '',
+		];
+		$taxonomies = get_object_taxonomies( 'portfolio', 'objects' );
+
+		if ( ! is_array( $taxonomies ) || empty( $taxonomies ) ) {
+			return $config;
+		}
+
+		$public_taxonomies = [];
+
+		foreach ( $taxonomies as $taxonomy ) {
+			if ( ! is_object( $taxonomy ) || empty( $taxonomy->name ) || empty( $taxonomy->public ) ) {
+				continue;
+			}
+
+			if ( 'post_format' === $taxonomy->name ) {
+				continue;
+			}
+
+			$public_taxonomies[ $taxonomy->name ] = $taxonomy;
+		}
+
+		if ( empty( $public_taxonomies ) ) {
+			return $config;
+		}
+
+		$config['badge'] = $this->pick_portfolio_loop_taxonomy_slug(
+			$public_taxonomies,
+			[
+				'portfolio_category',
+				'portfolio_categories',
+				'portfolio_type',
+				'case_study_category',
+				'case_study_type',
+				'project_type',
+				'service_category',
+				'category',
+			],
+			true
+		);
+
+		if ( '' === $config['badge'] ) {
+			$config['badge'] = $this->pick_portfolio_loop_taxonomy_slug( $public_taxonomies, [], true );
+		}
+
+		$config['tags'] = $this->pick_portfolio_loop_taxonomy_slug(
+			$public_taxonomies,
+			[
+				'portfolio_tag',
+				'portfolio_tags',
+				'project_tag',
+				'project_tags',
+				'case_study_tag',
+				'case_study_tags',
+				'service_tag',
+				'service_tags',
+				'post_tag',
+			],
+			false,
+			[ $config['badge'] ]
+		);
+
+		if ( '' === $config['tags'] ) {
+			$config['tags'] = $this->pick_portfolio_loop_taxonomy_slug(
+				$public_taxonomies,
+				[],
+				false,
+				[ $config['badge'] ]
+			);
+		}
+
+		if ( '' === $config['tags'] ) {
+			$config['tags'] = $this->pick_portfolio_loop_taxonomy_slug(
+				$public_taxonomies,
+				[],
+				null,
+				[ $config['badge'] ]
+			);
+		}
+
+		if ( '' === $config['badge'] ) {
+			$config['badge'] = $this->pick_portfolio_loop_taxonomy_slug(
+				$public_taxonomies,
+				[],
+				null,
+				[ $config['tags'] ]
+			);
+		}
+
+		if ( '' === $config['tags'] && '' !== $config['badge'] ) {
+			$config['tags'] = $config['badge'];
+		}
+
+		return $config;
+	}
+
+	private function get_portfolio_loop_meta_config() {
+		static $config = null;
+
+		if ( null !== $config ) {
+			return $config;
+		}
+
+		$config = [
+			'small_top_title' => 'small_top_title',
+			'portfolio_title' => 'portfolio_title',
+			'goal'            => 'goal',
+			'outcome'         => 'outcome',
+		];
+
+		return $config;
+	}
+
+	private function pick_portfolio_loop_taxonomy_slug( array $taxonomies, array $preferred_slugs = [], $hierarchical = null, array $exclude = [] ) {
+		$exclude = array_filter(
+			array_map( 'sanitize_key', $exclude ),
+			static function ( $slug ) {
+				return '' !== $slug;
+			}
+		);
+
+		foreach ( $preferred_slugs as $slug ) {
+			$slug = sanitize_key( (string) $slug );
+
+			if ( '' === $slug || in_array( $slug, $exclude, true ) || ! isset( $taxonomies[ $slug ] ) ) {
+				continue;
+			}
+
+			if ( null !== $hierarchical && (bool) $taxonomies[ $slug ]->hierarchical !== (bool) $hierarchical ) {
+				continue;
+			}
+
+			return $slug;
+		}
+
+		foreach ( $taxonomies as $slug => $taxonomy ) {
+			$slug = sanitize_key( (string) $slug );
+
+			if ( '' === $slug || in_array( $slug, $exclude, true ) ) {
+				continue;
+			}
+
+			if ( null !== $hierarchical && (bool) $taxonomy->hierarchical !== (bool) $hierarchical ) {
+				continue;
+			}
+
+			return $slug;
+		}
+
+		return '';
 	}
 
 	private function get_portfolio_page_url() {
