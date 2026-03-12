@@ -2145,19 +2145,7 @@ HTML;
 			$admin_label = $this->get_divi_block_admin_label( $block );
 
 			if ( 'divi/section' === $block_name && 'Global Header Section' === $admin_label ) {
-				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
-					[
-						'class' => 'dmf-global-header-shell',
-						'style' => $this->build_inline_style(
-							[
-								'width'      => '100%',
-								'background' => 'transparent',
-								'margin'     => '0',
-								'padding'    => '0',
-							]
-						),
-					]
-				);
+				$block['attrs'] = $this->mutate_global_header_section_attrs( $block['attrs'] ?? [] );
 			} elseif ( 'divi/row' === $block_name && 'Header Row' === $admin_label ) {
 				$block['attrs']['module']['decoration']['attributes'] = $this->build_custom_attributes(
 					[
@@ -2205,9 +2193,49 @@ HTML;
 		return (string) ( $block['attrs']['module']['meta']['adminLabel']['desktop']['value'] ?? '' );
 	}
 
+	private function mutate_global_header_section_attrs( array $attrs ) {
+		$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes(
+			[
+				'class' => 'dmf-global-header-shell',
+				'style' => $this->build_inline_style(
+					[
+						'width'      => '100%',
+						'margin'     => '0',
+						'padding'    => '0',
+						'z-index'    => '999',
+					]
+				),
+			]
+		);
+		$attrs['module']['decoration']['background']['desktop']['value']['color']  = 'rgba(19, 27, 38, 0.74)';
+		$attrs['module']['decoration']['background']['desktop']['sticky']['color'] = 'rgba(250, 250, 250, 0.97)';
+		$attrs['module']['decoration']['sticky']['desktop']['value'] = [
+			'position'   => 'top',
+			'offset'     => [
+				'top'         => '0px',
+				'bottom'      => '0px',
+				'surrounding' => 'on',
+			],
+			'limit'      => [
+				'top'    => '',
+				'bottom' => '',
+			],
+			'transition' => 'on',
+		];
+		$attrs['module']['decoration']['transition']['desktop']['value'] = [
+			'duration'   => '220ms',
+			'delay'      => '0ms',
+			'speedCurve' => 'ease',
+		];
+
+		return $attrs;
+	}
+
 	private function mutate_global_header_menu_attrs( array $attrs ) {
-		$nav_color        = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 76%, transparent)';
-		$nav_active_color = 'var(--gcid-dmf-white, #fafafa)';
+		$nav_color                = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 76%, transparent)';
+		$nav_active_color         = 'var(--gcid-dmf-white, #fafafa)';
+		$scrolled_nav_color       = 'var(--gcid-dmf-muted, #486262)';
+		$scrolled_nav_active_color = 'var(--gcid-dmf-foreground, #131b26)';
 
 		$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes(
 			[
@@ -2226,14 +2254,25 @@ HTML;
 		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxWidth']    = 'clamp(7.5rem, calc(6.8rem + 2vw), 9rem)';
 		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxHeight']   = '3.25rem';
 		$attrs['menu']['advanced']['activeLinkColor']['desktop']['value']         = $nav_active_color;
+		$attrs['menu']['advanced']['activeLinkColor']['desktop']['sticky']        = $scrolled_nav_active_color;
 		$attrs['menu']['decoration']['font']['font']['desktop']['value']['color'] = $nav_color;
+		$attrs['menu']['decoration']['font']['font']['desktop']['sticky']['color'] = $scrolled_nav_color;
 		$attrs['menuDropdown']['advanced']['activeLinkColor']['desktop']['value'] = 'var(--gcid-dmf-accent, #941213)';
 		$attrs['menuDropdown']['advanced']['lineColor']['desktop']['value']       = 'var(--gcid-dmf-border, #a1a5a4)';
 		$attrs['menuDropdown']['decoration']['font']['font']['desktop']['value']['color'] = 'var(--gcid-dmf-foreground, #131b26)';
 		$attrs['menuMobile']['decoration']['font']['font']['desktop']['value']['color']   = $nav_active_color;
+		$attrs['menuMobile']['decoration']['font']['font']['desktop']['sticky']['color']  = $scrolled_nav_active_color;
 		$attrs['cartIcon']['decoration']['font']['font']['desktop']['value']['color']      = $nav_active_color;
+		$attrs['cartIcon']['decoration']['font']['font']['desktop']['sticky']['color']     = $scrolled_nav_active_color;
 		$attrs['searchIcon']['decoration']['font']['font']['desktop']['value']['color']    = $nav_active_color;
+		$attrs['searchIcon']['decoration']['font']['font']['desktop']['sticky']['color']   = $scrolled_nav_active_color;
 		$attrs['hamburgerMenuIcon']['decoration']['font']['font']['desktop']['value']['color'] = $nav_active_color;
+		$attrs['hamburgerMenuIcon']['decoration']['font']['font']['desktop']['sticky']['color'] = $scrolled_nav_active_color;
+		$attrs['module']['decoration']['transition']['desktop']['value'] = [
+			'duration'   => '220ms',
+			'delay'      => '0ms',
+			'speedCurve' => 'ease',
+		];
 
 		return $attrs;
 	}
