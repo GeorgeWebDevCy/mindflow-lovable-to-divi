@@ -2193,7 +2193,7 @@ HTML;
 								'width'      => '100%',
 								'max-width'  => '80rem',
 								'margin'     => '0 auto',
-								'padding'    => '0.45rem 1.5rem 0.4rem',
+								'padding'    => '0.3rem 1.5rem 0.25rem',
 								'background' => 'transparent',
 								'box-sizing' => 'border-box',
 							]
@@ -2202,9 +2202,9 @@ HTML;
 				);
 				$block['attrs']['module']['decoration']['spacing'] = $this->build_spacing_settings(
 					[
-						'top'    => '0.35rem',
+						'top'    => '0px',
 						'right'  => '0px',
-						'bottom' => '0.35rem',
+						'bottom' => '0px',
 						'left'   => '0px',
 					]
 				);
@@ -2442,7 +2442,7 @@ HTML;
 						'style' => $this->build_inline_style(
 							[
 								'background' => 'var(--gcid-dmf-primary, #131b26)',
-								'margin'     => '-4.75rem 0 0',
+								'margin'     => '-5.5rem 0 0',
 								'padding'    => '0',
 							]
 						),
