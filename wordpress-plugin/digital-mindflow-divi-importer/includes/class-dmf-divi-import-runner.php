@@ -2245,6 +2245,10 @@ HTML;
 				'class' => 'dmf-global-header-shell',
 				'style' => $this->build_inline_style(
 					[
+						'position'   => 'absolute',
+						'top'        => '0',
+						'right'      => '0',
+						'left'       => '0',
 						'width'      => '100%',
 						'margin'     => '0',
 						'padding'    => '0',
@@ -2442,7 +2446,7 @@ HTML;
 						'style' => $this->build_inline_style(
 							[
 								'background' => 'var(--gcid-dmf-primary, #131b26)',
-								'margin'     => '-5.5rem 0 0',
+								'margin'     => '0',
 								'padding'    => '0',
 							]
 						),
