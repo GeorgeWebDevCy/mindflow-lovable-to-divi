@@ -57,12 +57,6 @@ class DMF_Divi_Import_Runner {
 			'label' => 'Contact',
 			'url'   => '/#contact',
 		],
-		[
-			'type'    => 'custom',
-			'label'   => 'Free Consultation',
-			'url'     => '/#contact',
-			'classes' => [ 'dmf-menu-cta' ],
-		],
 	];
 
 	public function __construct( $exports_dir ) {
@@ -2758,6 +2752,27 @@ HTML;
 		return null !== $injected ? $injected : (string) $content;
 	}
 
+	private function upsert_runtime_snippet( $content, $key, $markup ) {
+		$content = (string) $content;
+		$key     = sanitize_key( (string) $key );
+		$markup  = trim( (string) $markup );
+
+		if ( '' === $key || '' === $markup ) {
+			return $content;
+		}
+
+		$start_marker = '<!-- dmf-runtime:' . $key . ':start -->';
+		$end_marker   = '<!-- dmf-runtime:' . $key . ':end -->';
+		$pattern      = '#' . preg_quote( $start_marker, '#' ) . '.*?' . preg_quote( $end_marker, '#' ) . '#s';
+		$snippet      = $start_marker . "\n" . $markup . "\n" . $end_marker;
+
+		if ( preg_match( $pattern, $content ) ) {
+			return (string) preg_replace( $pattern, $snippet, $content, 1 );
+		}
+
+		return rtrim( $content ) . "\n" . $snippet . "\n";
+	}
+
 	private function is_home_target_page( WP_Post $page ) {
 		$front_page_id = (int) get_option( 'page_on_front' );
 
@@ -3677,42 +3692,40 @@ HTML;
 	}
 
 	private function apply_global_header_layout_fix( $content ) {
-		if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
-			return $this->upsert_divi_block_in_container_by_label(
-				(string) $content,
-				'Header Menu Column',
-				'column',
-				'Header Runtime',
-				$this->build_header_runtime_block_markup()
-			);
+		$content = (string) $content;
+
+		if ( function_exists( 'parse_blocks' ) && function_exists( 'serialize_blocks' ) ) {
+			$blocks = parse_blocks( $content );
+
+			if ( ! empty( $blocks ) && is_array( $blocks ) ) {
+				$blocks     = $this->mutate_global_header_blocks( $blocks );
+				$serialized = serialize_blocks( $blocks );
+
+				if ( is_string( $serialized ) && '' !== $serialized ) {
+					$content = $serialized;
+				}
+			}
 		}
 
-		$blocks = parse_blocks( (string) $content );
-
-		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
-			return $this->upsert_divi_block_in_container_by_label(
-				(string) $content,
-				'Header Menu Column',
-				'column',
-				'Header Runtime',
-				$this->build_header_runtime_block_markup()
-			);
-		}
-
-		$blocks     = $this->mutate_global_header_blocks( $blocks );
-		$serialized = serialize_blocks( $blocks );
-
-		if ( ! is_string( $serialized ) || '' === $serialized ) {
-			$serialized = (string) $content;
-		}
-
-		return $this->upsert_divi_block_in_container_by_label(
-			$serialized,
+		$updated_content = $this->upsert_divi_block_in_container_by_label(
+			$content,
 			'Header Menu Column',
 			'column',
-			'Header Runtime',
-			$this->build_header_runtime_block_markup()
+			'Header CTA Button',
+			$this->build_header_cta_button_block_markup()
 		);
+
+		if ( is_string( $updated_content ) && '' !== $updated_content ) {
+			$content = $updated_content;
+		}
+
+		$removed_runtime_block = $this->replace_divi_block_by_label( $content, 'Header Runtime', '' );
+
+		if ( is_string( $removed_runtime_block ) ) {
+			$content = $removed_runtime_block;
+		}
+
+		return $this->upsert_runtime_snippet( $content, 'header', $this->build_header_runtime_markup() );
 	}
 
 	private function mutate_global_header_blocks( array $blocks ) {
@@ -3756,9 +3769,12 @@ HTML;
 						'class' => 'dmf-global-header-column',
 						'style' => $this->build_inline_style(
 							[
+								'display'    => 'flex',
+								'align-items' => 'center',
+								'gap'        => '0.9rem',
 								'background' => 'transparent',
-								'margin'  => '0',
-								'padding' => '0',
+								'margin'     => '0',
+								'padding'    => '0',
 							]
 						),
 					]
@@ -3838,6 +3854,8 @@ HTML;
 				'style' => $this->build_inline_style(
 					[
 						'width'      => '100%',
+						'flex'       => '1 1 auto',
+						'min-width'  => '0',
 						'background' => 'transparent',
 						'border'     => '0',
 						'box-shadow' => 'none',
@@ -3881,17 +3899,19 @@ HTML;
 		);
 	}
 
+	private function build_header_cta_button_block_markup() {
+		return $this->build_button_module(
+			'Header CTA Button',
+			'Free Consultation',
+			home_url( '/#contact' ),
+			'left',
+			'dmf-header-cta-button'
+		);
+	}
+
 	private function build_header_runtime_markup() {
 		return <<<'HTML'
 <style id="dmf-header-runtime-styles">
-.dmf-header-runtime{
-	height:0 !important;
-	margin:0 !important;
-	overflow:hidden !important;
-	padding:0 !important;
-	line-height:0 !important;
-	font-size:0 !important;
-}
 .dmf-global-header-shell{
 	background:transparent !important;
 	transition:background-color 220ms ease, color 220ms ease;
@@ -3903,10 +3923,22 @@ HTML;
 	right:0 !important;
 	left:0 !important;
 }
-.dmf-global-header-shell .dmf-global-header-menu .et-menu>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav>ul>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell .dmf-global-header-menu .et_mobile_menu li:not(.dmf-menu-cta) a,
+.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta{
+	display:none !important;
+}
+.dmf-global-header-shell .dmf-global-header-column{
+	display:flex !important;
+	align-items:center !important;
+	gap:.9rem !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu{
+	flex:1 1 auto !important;
+	min-width:0 !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .et-menu>li>a,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav>ul>li>a,
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,
+.dmf-global-header-shell .dmf-global-header-menu .et_mobile_menu a,
 .dmf-global-header-shell .dmf-global-header-menu .mobile_menu_bar:before,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__icon,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__search-button,
@@ -3920,10 +3952,10 @@ HTML;
 .dmf-global-header-shell .dmf-global-header-menu .current-page-ancestor>a{
 	color:var(--gcid-dmf-white,#fafafa) !important;
 }
-.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et-menu>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et-menu-nav>ul>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li:not(.dmf-menu-cta)>a,
-.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_mobile_menu li:not(.dmf-menu-cta) a,
+.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et-menu>li>a,
+.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et-menu-nav>ul>li>a,
+.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,
+.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_mobile_menu a,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .mobile_menu_bar:before,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__icon,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__search-button,
@@ -3936,12 +3968,12 @@ HTML;
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .current-page-ancestor>a{
 	color:var(--gcid-dmf-foreground,#131b26) !important;
 }
-.dmf-global-header-shell .dmf-global-header-menu .dmf-menu-cta>a,
-.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta>a,
-.dmf-global-header-shell .dmf-global-header-menu .et-menu li.dmf-menu-cta>a,
-.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav li.dmf-menu-cta>a,
-.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu li.dmf-menu-cta>a,
-.dmf-global-header-shell .dmf-global-header-menu a.dmf-menu-cta{
+.dmf-global-header-shell .dmf-header-cta-button{
+	flex:0 0 auto !important;
+	margin:0 !important;
+}
+.dmf-global-header-shell .dmf-header-cta-button .et_pb_button,
+.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button{
 	background:var(--gcid-dmf-white,#fafafa) !important;
 	border:1px solid color-mix(in srgb, var(--gcid-dmf-border,#a1a5a4) 84%, transparent) !important;
 	border-radius:0.65rem !important;
@@ -3955,13 +3987,10 @@ HTML;
 	min-height:auto !important;
 	padding:0.38rem 0.72rem !important;
 	white-space:nowrap !important;
+	text-decoration:none !important;
 }
-.dmf-global-header-shell .dmf-global-header-menu .dmf-menu-cta>a:hover,
-.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta>a:hover,
-.dmf-global-header-shell .dmf-global-header-menu .et-menu li.dmf-menu-cta>a:hover,
-.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav li.dmf-menu-cta>a:hover,
-.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu li.dmf-menu-cta>a:hover,
-.dmf-global-header-shell .dmf-global-header-menu a.dmf-menu-cta:hover{
+.dmf-global-header-shell .dmf-header-cta-button .et_pb_button:hover,
+.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button:hover{
 	background:var(--gcid-dmf-card,#edeced) !important;
 	opacity:1 !important;
 }
@@ -3980,34 +4009,13 @@ HTML;
 		linkTop:'rgba(250,250,250,0.76)',
 		linkActiveTop:'var(--gcid-dmf-white,#fafafa)',
 		linkScrolled:'var(--gcid-dmf-muted,#486262)',
-		linkActiveScrolled:'var(--gcid-dmf-foreground,#131b26)',
-		ctaBackground:'var(--gcid-dmf-white,#fafafa)',
-		ctaBackgroundHover:'var(--gcid-dmf-card,#edeced)',
-		ctaText:'var(--gcid-dmf-foreground,#131b26)',
-		ctaBorder:'1px solid color-mix(in srgb, var(--gcid-dmf-border,#a1a5a4) 84%, transparent)'
+		linkActiveScrolled:'var(--gcid-dmf-foreground,#131b26)'
 	};
 	var menuLinkSelector='.dmf-global-header-menu .et-menu>li>a,.dmf-global-header-menu .et-menu-nav>ul>li>a,.dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,.dmf-global-header-menu .et_mobile_menu a';
 	var activeLinkSelector='.dmf-global-header-menu .current-menu-item>a,.dmf-global-header-menu .current-menu-ancestor>a,.dmf-global-header-menu .current_page_item>a,.dmf-global-header-menu .current-page-ancestor>a';
-	var ctaLinkSelector='.dmf-global-header-menu .dmf-menu-cta>a,.dmf-global-header-menu li.dmf-menu-cta>a,.dmf-global-header-menu a.dmf-menu-cta';
 	function setImportant(node,property,value){
 		if(!node){return;}
 		node.style.setProperty(property,value,'important');
-	}
-	function isCtaLink(link){
-		if(!link){return false;}
-		if(link.classList && link.classList.contains('dmf-menu-cta')){return true;}
-		var item=link.closest ? link.closest('li') : null;
-		return !!(item && item.classList && item.classList.contains('dmf-menu-cta'));
-	}
-	function applyCtaState(header){
-		Array.prototype.slice.call(header.querySelectorAll(ctaLinkSelector)).forEach(function(link){
-			setImportant(link,'background',headerStyles.ctaBackground);
-			setImportant(link,'border',headerStyles.ctaBorder);
-			setImportant(link,'color',headerStyles.ctaText);
-			setImportant(link,'border-radius','0.65rem');
-			setImportant(link,'box-shadow','none');
-			setImportant(link,'padding','0.38rem 0.72rem');
-		});
 	}
 	function getHeaders(){
 		return Array.prototype.slice.call(document.querySelectorAll('.dmf-global-header-shell'));
@@ -4026,14 +4034,11 @@ HTML;
 		setImportant(header,'left','0');
 		setImportant(header,'width','100%');
 		Array.prototype.slice.call(header.querySelectorAll(menuLinkSelector)).forEach(function(link){
-			if(isCtaLink(link)){return;}
 			setImportant(link,'color',linkColor);
 		});
 		Array.prototype.slice.call(header.querySelectorAll(activeLinkSelector)).forEach(function(link){
-			if(isCtaLink(link)){return;}
 			setImportant(link,'color',activeColor);
 		});
-		applyCtaState(header);
 	}
 	function updateHeaders(){
 		var headers=getHeaders();
