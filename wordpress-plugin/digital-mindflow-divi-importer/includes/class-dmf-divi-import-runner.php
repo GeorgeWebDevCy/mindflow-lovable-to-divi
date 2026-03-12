@@ -57,6 +57,12 @@ class DMF_Divi_Import_Runner {
 			'label' => 'Contact',
 			'url'   => '/#contact',
 		],
+		[
+			'type'    => 'custom',
+			'label'   => 'Free Consultation',
+			'url'     => '/#contact',
+			'classes' => [ 'dmf-menu-cta' ],
+		],
 	];
 
 	public function __construct( $exports_dir ) {
@@ -2049,20 +2055,6 @@ HTML;
 				'description' => 'Next-gen advertising leveraging AI for smarter targeting, creative generation, and presence across AI answer engines.',
 				'items'       => [ 'LLM Ads (ChatGPT, Gemini, Perplexity)', 'Generative Engine Optimization (GEO)', 'CTV Ads & Shoppable Experiences', 'AI-Generated Creatives & Commercials' ],
 			],
-			[
-				'icon_type'   => 'svg',
-				'icon'        => 'graduation-cap',
-				'title'       => 'Marketing Training',
-				'description' => 'Empower your team with hands-on workshops and frameworks to execute data-driven marketing campaigns independently.',
-				'items'       => [ 'Team Workshops & Strategy Sessions', 'SEO, PPC & Social Media Training', 'Analytics & Reporting Mastery', 'Custom Playbooks & SOPs' ],
-			],
-			[
-				'icon_type'   => 'svg',
-				'icon'        => 'bot',
-				'title'       => 'AI Training',
-				'description' => 'Equip your team with the skills to integrate AI tools into everyday workflows for productivity and competitive edge.',
-				'items'       => [ 'AI Tool Mastery (ChatGPT, Midjourney & more)', 'Prompt Engineering Workshops', 'Workflow Automation with AI', 'Custom AI Playbooks & Guidelines' ],
-			],
 		];
 	}
 
@@ -2784,35 +2776,423 @@ HTML;
 
 	private function apply_named_page_layout_fixes( WP_Post $page, $content ) {
 		if ( $this->is_home_target_page( $page ) ) {
-			return $this->apply_home_page_layout_fixes( (string) $content );
+			return $this->apply_home_page_layout_fixes( $content );
 		}
 
 		return (string) $content;
 	}
 
 	private function apply_home_page_layout_fixes( $content ) {
-		$replacements = [
-			'Home Hero Section' => $this->build_home_hero_section(),
-			'About Section'     => $this->build_about_section(),
-			'Services Section'  => $this->build_services_section(),
-			'Process Section'   => $this->build_process_section(),
-			'Contact Section'   => $this->build_contact_section(),
-		];
-
 		$content = (string) $content;
 
-		foreach ( $replacements as $label => $replacement ) {
-			$updated = $this->replace_divi_section_by_label( $content, $label, $replacement );
+		if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
+			return $content;
+		}
 
-			if ( null !== $updated ) {
-				$content = $updated;
+		$blocks = parse_blocks( $content );
+
+		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
+			return $content;
+		}
+
+		$blocks     = $this->prune_removed_home_service_card_blocks( $blocks );
+		$blocks     = $this->mutate_home_hover_blocks( $blocks );
+		$serialized = serialize_blocks( $blocks );
+
+		if ( ! is_string( $serialized ) || '' === $serialized ) {
+			$serialized = $content;
+		}
+
+		return $this->upsert_divi_block_in_container_by_label(
+			$serialized,
+			'Home Hero Section',
+			'section',
+			'Home Card Hover Runtime Row',
+			$this->build_home_card_hover_runtime_row_markup()
+		);
+	}
+
+	private function mutate_home_hover_blocks( array $blocks ) {
+		foreach ( $blocks as &$block ) {
+			if ( ! is_array( $block ) ) {
 				continue;
 			}
 
-			$this->warn( sprintf( 'Could not replace the "%s" section during home page normalization.', $label ) );
+			$this->mutate_home_hover_block( $block );
 		}
 
-		return $content;
+		unset( $block );
+
+		return $blocks;
+	}
+
+	private function prune_removed_home_service_card_blocks( array $blocks ) {
+		$pruned = [];
+		$labels = $this->get_removed_home_service_card_labels();
+
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			if ( 'divi/column' === (string) ( $block['blockName'] ?? '' ) && $this->block_contains_any_admin_label( $block, $labels ) ) {
+				continue;
+			}
+
+			if ( in_array( $this->get_divi_block_admin_label( $block ), $labels, true ) ) {
+				continue;
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->prune_removed_home_service_card_blocks( $block['innerBlocks'] );
+			}
+
+			$pruned[] = $block;
+		}
+
+		return $pruned;
+	}
+
+	private function block_contains_any_admin_label( array $block, array $labels ) {
+		if ( in_array( $this->get_divi_block_admin_label( $block ), $labels, true ) ) {
+			return true;
+		}
+
+		foreach ( $block['innerBlocks'] ?? [] as $inner_block ) {
+			if ( is_array( $inner_block ) && $this->block_contains_any_admin_label( $inner_block, $labels ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function mutate_home_hover_block( array &$block ) {
+		$contains_info_card    = false;
+		$contains_project_card = false;
+		$block_name            = (string) ( $block['blockName'] ?? '' );
+		$admin_label           = $this->get_divi_block_admin_label( $block );
+
+		if ( 'divi/text' === $block_name ) {
+			$markup = (string) ( $block['attrs']['content']['innerContent']['desktop']['value'] ?? '' );
+
+			if ( '' !== $markup ) {
+				$card_type      = $this->classify_home_card_label( $admin_label );
+				$updated_markup = $this->decorate_home_card_markup( $admin_label, $markup );
+
+				if ( $updated_markup !== $markup ) {
+					$block['attrs']['content']['innerContent']['desktop']['value'] = $updated_markup;
+				}
+
+				$contains_info_card    = 'info' === $card_type;
+				$contains_project_card = 'project' === $card_type;
+			}
+		}
+
+		if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+			foreach ( $block['innerBlocks'] as &$inner_block ) {
+				$child_flags = $this->mutate_home_hover_block( $inner_block );
+
+				$contains_info_card    = $contains_info_card || ! empty( $child_flags['info'] );
+				$contains_project_card = $contains_project_card || ! empty( $child_flags['project'] );
+			}
+
+			unset( $inner_block );
+		}
+
+		if ( 'divi/column' === $block_name && ( $contains_info_card || $contains_project_card ) ) {
+			$this->append_divi_block_class( $block, 'dmf-home-equal-column' );
+		}
+
+		if ( 'divi/row' === $block_name && ( $contains_info_card || $contains_project_card ) ) {
+			$this->append_divi_block_class( $block, 'dmf-home-equal-row' );
+		}
+
+		return [
+			'info'    => $contains_info_card,
+			'project' => $contains_project_card,
+		];
+	}
+
+	private function classify_home_card_label( $admin_label ) {
+		$admin_label = (string) $admin_label;
+
+		if ( in_array( $admin_label, $this->get_home_about_card_labels(), true ) || in_array( $admin_label, $this->get_home_service_card_labels(), true ) ) {
+			return 'info';
+		}
+
+		if ( in_array( $admin_label, $this->get_home_featured_project_card_labels(), true ) ) {
+			return 'project';
+		}
+
+		return '';
+	}
+
+	private function decorate_home_card_markup( $admin_label, $markup ) {
+		$admin_label = (string) $admin_label;
+		$markup      = (string) $markup;
+
+		if ( 'About Image' === $admin_label ) {
+			return $this->remove_about_image_decorative_square( $markup );
+		}
+
+		if ( in_array( $admin_label, $this->get_home_about_card_labels(), true ) || in_array( $admin_label, $this->get_home_service_card_labels(), true ) ) {
+			return $this->decorate_home_info_card_markup( $markup );
+		}
+
+		if ( in_array( $admin_label, $this->get_home_featured_project_card_labels(), true ) ) {
+			return $this->decorate_home_featured_project_card_markup( $markup );
+		}
+
+		return $markup;
+	}
+
+	private function remove_about_image_decorative_square( $markup ) {
+		$markup = (string) $markup;
+
+		$updated = preg_replace(
+			'#<span\b(?=[^>]*style="[^"]*position:absolute[^"]*right:-1rem[^"]*bottom:-1rem[^"]*width:6rem[^"]*height:6rem[^"]*z-index:-1[^"]*")[^>]*>\s*</span>#i',
+			'',
+			$markup,
+			1
+		);
+
+		return is_string( $updated ) ? $updated : $markup;
+	}
+
+	private function get_home_about_card_labels() {
+		return array_map(
+			static function ( array $card ) {
+				return (string) $card['title'] . ' Card';
+			},
+			$this->get_about_value_cards()
+		);
+	}
+
+	private function get_home_service_card_labels() {
+		return array_map(
+			static function ( array $card ) {
+				return (string) $card['title'] . ' Card';
+			},
+			$this->get_service_cards()
+		);
+	}
+
+	private function get_home_featured_project_card_labels() {
+		return [
+			'Social Media Campaign Card',
+			'E-Commerce Website Redesign Card',
+			'PPC Performance Campaign Card',
+		];
+	}
+
+	private function get_removed_home_service_card_labels() {
+		return [
+			'Marketing Training Card',
+			'AI Training Card',
+		];
+	}
+
+	private function decorate_home_info_card_markup( $markup ) {
+		$markup = $this->add_class_to_first_tag( $markup, 'div', 'dmf-home-hover-card' );
+		$markup = $this->add_class_to_first_tag( $markup, 'div', 'dmf-home-hover-icon', 'display:inline-flex;width:3.5rem;height:3.5rem' );
+		$markup = $this->add_class_to_first_tag( $markup, 'div', 'dmf-home-hover-icon', 'display:inline-flex;width:3rem;height:3rem' );
+		$markup = $this->add_class_to_first_tag( $markup, 'img', 'dmf-home-hover-icon-media', 'display:block;object-fit:contain' );
+		$markup = $this->add_class_to_first_tag( $markup, 'h3', 'dmf-home-hover-title' );
+
+		return $markup;
+	}
+
+	private function decorate_home_featured_project_card_markup( $markup ) {
+		$markup = $this->add_class_to_first_tag( $markup, 'div', 'dmf-home-hover-project', 'height:100%' );
+		$markup = $this->add_class_to_first_tag( $markup, 'a', 'dmf-home-hover-project-link' );
+		$markup = $this->add_class_to_first_tag( $markup, 'div', 'dmf-home-hover-project-media', 'position:relative;overflow:hidden' );
+		$markup = $this->add_class_to_first_tag( $markup, 'img', 'dmf-home-hover-project-image', 'display:block;width:100%;height:100%;object-fit:cover' );
+		$markup = $this->add_class_to_first_tag( $markup, 'h3', 'dmf-home-hover-project-title' );
+
+		return $markup;
+	}
+
+	private function add_class_to_first_tag( $markup, $tag, $class_name, $required_fragment = '' ) {
+		$markup            = (string) $markup;
+		$tag               = trim( (string) $tag );
+		$class_name        = trim( (string) $class_name );
+		$required_fragment = trim( (string) $required_fragment );
+
+		if ( '' === $markup || '' === $tag || '' === $class_name ) {
+			return $markup;
+		}
+
+		$pattern = '' === $required_fragment
+			? '#<' . preg_quote( $tag, '#' ) . '\b[^>]*>#i'
+			: '#<' . preg_quote( $tag, '#' ) . '\b(?=[^>]*' . preg_quote( $required_fragment, '#' ) . ')[^>]*>#i';
+
+		$updated = preg_replace_callback(
+			$pattern,
+			function ( array $matches ) use ( $class_name ) {
+				return $this->append_class_to_markup_tag( $matches[0], $class_name );
+			},
+			$markup,
+			1
+		);
+
+		return is_string( $updated ) ? $updated : $markup;
+	}
+
+	private function append_class_to_markup_tag( $tag_markup, $class_name ) {
+		$tag_markup  = (string) $tag_markup;
+		$class_name  = trim( (string) $class_name );
+
+		if ( '' === $tag_markup || '' === $class_name ) {
+			return $tag_markup;
+		}
+
+		if ( preg_match( '/\bclass=(["\'])(.*?)\1/i', $tag_markup ) ) {
+			$updated = preg_replace_callback(
+				'/\bclass=(["\'])(.*?)\1/i',
+				static function ( array $matches ) use ( $class_name ) {
+					$existing_classes = preg_split( '/\s+/', trim( (string) $matches[2] ) );
+					$existing_classes = array_filter( is_array( $existing_classes ) ? $existing_classes : [] );
+
+					foreach ( preg_split( '/\s+/', $class_name ) as $new_class ) {
+						$new_class = trim( (string) $new_class );
+
+						if ( '' === $new_class || in_array( $new_class, $existing_classes, true ) ) {
+							continue;
+						}
+
+						$existing_classes[] = $new_class;
+					}
+
+					return 'class=' . $matches[1] . implode( ' ', $existing_classes ) . $matches[1];
+				},
+				$tag_markup,
+				1
+			);
+
+			return is_string( $updated ) ? $updated : $tag_markup;
+		}
+
+		$updated = preg_replace( '/(\s*\/?>)$/', ' class="' . $class_name . '"$1', $tag_markup, 1 );
+
+		return is_string( $updated ) ? $updated : $tag_markup;
+	}
+
+	private function append_divi_block_class( array &$block, $class_name ) {
+		$class_name = trim( (string) $class_name );
+
+		if ( '' === $class_name ) {
+			return;
+		}
+
+		$entries = $block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] ?? [];
+
+		if ( ! is_array( $entries ) ) {
+			$entries = [];
+		}
+
+		foreach ( $entries as &$entry ) {
+			if ( ! is_array( $entry ) || 'class' !== (string) ( $entry['name'] ?? '' ) ) {
+				continue;
+			}
+
+			$existing_classes = preg_split( '/\s+/', trim( (string) ( $entry['value'] ?? '' ) ) );
+			$existing_classes = array_filter( is_array( $existing_classes ) ? $existing_classes : [] );
+
+			foreach ( preg_split( '/\s+/', $class_name ) as $new_class ) {
+				$new_class = trim( (string) $new_class );
+
+				if ( '' === $new_class || in_array( $new_class, $existing_classes, true ) ) {
+					continue;
+				}
+
+				$existing_classes[] = $new_class;
+			}
+
+			$entry['value'] = implode( ' ', $existing_classes );
+			$block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] = array_values( $entries );
+
+			return;
+		}
+
+		unset( $entry );
+
+		$entries[] = [
+			'id'            => uniqid( 'dmfAttr', true ),
+			'name'          => 'class',
+			'value'         => $class_name,
+			'adminLabel'    => 'CSS Class',
+			'targetElement' => '',
+		];
+
+		$block['attrs']['module']['decoration']['attributes']['desktop']['value']['attributes'] = array_values( $entries );
+	}
+
+	private function build_home_card_hover_runtime_row_markup() {
+		return $this->build_row_module(
+			'Home Card Hover Runtime Row',
+			[
+				$this->build_column_module(
+					'Home Card Hover Runtime Column',
+					[
+						$this->build_code_module( 'Home Card Hover Runtime', $this->build_home_card_hover_runtime_markup(), 'dmf-home-card-hover-runtime', false ),
+					],
+					'4_4',
+					'dmf-home-card-hover-runtime-column',
+					[
+						'width'      => '0',
+						'max-width'  => '0',
+						'height'     => '0',
+						'margin'     => '0',
+						'padding'    => '0',
+						'overflow'   => 'hidden',
+						'box-sizing' => 'border-box',
+					]
+				),
+			],
+			'4_4',
+			'dmf-home-card-hover-runtime-row',
+			[
+				'width'      => '0',
+				'max-width'  => '0',
+				'height'     => '0',
+				'margin'     => '0',
+				'padding'    => '0',
+				'overflow'   => 'hidden',
+				'box-sizing' => 'border-box',
+			]
+		);
+	}
+
+	private function build_home_card_hover_runtime_markup() {
+		return <<<'HTML'
+<style id="dmf-home-card-hover-runtime-styles">
+.dmf-home-card-hover-runtime{display:none!important}
+.dmf-home-equal-row{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important}
+.dmf-home-equal-column{display:flex!important;flex-direction:column!important}
+.dmf-home-equal-column .et_pb_module,.dmf-home-equal-column .et_pb_module_inner,.dmf-home-equal-column .et_pb_text_inner{height:100%!important}
+.dmf-home-hover-card,.dmf-home-hover-project{position:relative;display:flex;flex-direction:column;height:100%;transform:translateY(0);transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.dmf-home-hover-card:hover,.dmf-home-hover-project:hover{transform:translateY(-8px)}
+.dmf-home-hover-card:hover{border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 34%,transparent)!important;box-shadow:0 1.35rem 2.8rem color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 16%,transparent)!important}
+.dmf-home-hover-icon{transition:background-color .28s ease,color .28s ease}
+.dmf-home-hover-icon-media{transition:filter .28s ease}
+.dmf-home-hover-title{transition:color .2s ease}
+.dmf-home-hover-card:hover .dmf-home-hover-icon{background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important}
+.dmf-home-hover-card:hover .dmf-home-hover-icon-media{filter:brightness(0) invert(1)}
+.dmf-home-hover-card:hover .dmf-home-hover-title{color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-home-hover-project-link{display:flex;flex-direction:column;height:100%}
+.dmf-home-hover-project-media{position:relative}
+.dmf-home-hover-project-media::before{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--gcid-dmf-primary,#131b26) 34%,transparent);opacity:0;transition:opacity .28s ease;z-index:1;pointer-events:none}
+.dmf-home-hover-project-media::after{content:"↗";position:absolute;top:50%;left:50%;width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 16%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.25rem;transform:translate(-50%,-50%) scale(.92);opacity:0;transition:opacity .28s ease,transform .28s ease;z-index:2;pointer-events:none}
+.dmf-home-hover-project-image{transition:transform .45s ease}
+.dmf-home-hover-project-title{transition:color .2s ease}
+.dmf-home-hover-project:hover .dmf-home-hover-project-media::before,.dmf-home-hover-project:hover .dmf-home-hover-project-media::after{opacity:1}
+.dmf-home-hover-project:hover .dmf-home-hover-project-media::after{transform:translate(-50%,-50%) scale(1)}
+.dmf-home-hover-project:hover .dmf-home-hover-project-image{transform:scale(1.05)}
+.dmf-home-hover-project:hover .dmf-home-hover-project-title{color:var(--gcid-dmf-accent,#941213)!important}
+@media (max-width: 980px){.dmf-home-equal-row{display:flex!important}.dmf-home-equal-column{width:100%!important}}
+</style>
+HTML;
 	}
 
 	private function apply_global_footer_layout_fix( $content ) {
@@ -3695,7 +4075,34 @@ HTML;
 	}
 
 	private function apply_global_header_layout_fix( $content ) {
-		return $this->build_global_header_layout_content( (string) $content );
+		$content = (string) $content;
+
+		if ( function_exists( 'parse_blocks' ) && function_exists( 'serialize_blocks' ) ) {
+			$blocks = parse_blocks( $content );
+
+			if ( ! empty( $blocks ) && is_array( $blocks ) ) {
+				$blocks     = $this->mutate_global_header_blocks( $blocks );
+				$serialized = serialize_blocks( $blocks );
+
+				if ( is_string( $serialized ) && '' !== $serialized ) {
+					$content = $serialized;
+				}
+			}
+		}
+
+		$removed_cta_button = $this->replace_divi_block_by_label( $content, 'Header CTA Button', '' );
+
+		if ( is_string( $removed_cta_button ) ) {
+			$content = $removed_cta_button;
+		}
+
+		return $this->upsert_divi_block_in_container_by_label(
+			$content,
+			'Global Header Section',
+			'section',
+			'Header Runtime Row',
+			$this->build_header_runtime_row_markup()
+		);
 	}
 
 	private function build_global_header_layout_content( $content ) {
@@ -3795,7 +4202,8 @@ HTML;
 								'width'      => '100%',
 								'max-width'  => '80rem',
 								'margin'     => '0 auto',
-								'padding'    => '0.3rem 1.5rem 0.25rem',
+								'min-height' => '64px',
+								'padding'    => '0 1.5rem',
 								'background' => 'transparent',
 								'box-sizing' => 'border-box',
 							]
@@ -3816,9 +4224,6 @@ HTML;
 						'class' => 'dmf-global-header-column',
 						'style' => $this->build_inline_style(
 							[
-								'display'    => 'flex',
-								'align-items' => 'center',
-								'gap'        => '0.9rem',
 								'background' => 'transparent',
 								'margin'     => '0',
 								'padding'    => '0',
@@ -3851,7 +4256,7 @@ HTML;
 				'style' => $this->build_inline_style(
 					[
 						'position'   => 'absolute',
-						'top'        => '0',
+						'top'        => 'var(--wp-admin--admin-bar--height, 0px)',
 						'right'      => '0',
 						'left'       => '0',
 						'width'      => '100%',
@@ -3890,19 +4295,12 @@ HTML;
 	}
 
 	private function mutate_global_header_menu_attrs( array $attrs ) {
-		$nav_color                = 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 76%, transparent)';
-		$nav_active_color         = 'var(--gcid-dmf-white, #fafafa)';
-		$scrolled_nav_color       = 'var(--gcid-dmf-muted, #486262)';
-		$scrolled_nav_active_color = 'var(--gcid-dmf-foreground, #131b26)';
-
 		$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes(
 			[
 				'class' => 'dmf-global-header-menu',
 				'style' => $this->build_inline_style(
 					[
 						'width'      => '100%',
-						'flex'       => '1 1 auto',
-						'min-width'  => '0',
 						'background' => 'transparent',
 						'border'     => '0',
 						'box-shadow' => 'none',
@@ -3910,24 +4308,6 @@ HTML;
 				),
 			]
 		);
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['width']       = 'clamp(7rem, calc(6.45rem + 1.5vw), 8.4rem)';
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxWidth']    = 'clamp(7rem, calc(6.45rem + 1.5vw), 8.4rem)';
-		$attrs['logo']['decoration']['sizing']['desktop']['value']['maxHeight']   = '2.8rem';
-		$attrs['menu']['advanced']['activeLinkColor']['desktop']['value']         = $nav_active_color;
-		$attrs['menu']['advanced']['activeLinkColor']['desktop']['sticky']        = $scrolled_nav_active_color;
-		$attrs['menu']['decoration']['font']['font']['desktop']['value']['color'] = $nav_color;
-		$attrs['menu']['decoration']['font']['font']['desktop']['sticky']['color'] = $scrolled_nav_color;
-		$attrs['menuDropdown']['advanced']['activeLinkColor']['desktop']['value'] = 'var(--gcid-dmf-accent, #941213)';
-		$attrs['menuDropdown']['advanced']['lineColor']['desktop']['value']       = 'var(--gcid-dmf-border, #a1a5a4)';
-		$attrs['menuDropdown']['decoration']['font']['font']['desktop']['value']['color'] = 'var(--gcid-dmf-foreground, #131b26)';
-		$attrs['menuMobile']['decoration']['font']['font']['desktop']['value']['color']   = $nav_active_color;
-		$attrs['menuMobile']['decoration']['font']['font']['desktop']['sticky']['color']  = $scrolled_nav_active_color;
-		$attrs['cartIcon']['decoration']['font']['font']['desktop']['value']['color']      = $nav_active_color;
-		$attrs['cartIcon']['decoration']['font']['font']['desktop']['sticky']['color']     = $scrolled_nav_active_color;
-		$attrs['searchIcon']['decoration']['font']['font']['desktop']['value']['color']    = $nav_active_color;
-		$attrs['searchIcon']['decoration']['font']['font']['desktop']['sticky']['color']   = $scrolled_nav_active_color;
-		$attrs['hamburgerMenuIcon']['decoration']['font']['font']['desktop']['value']['color'] = $nav_active_color;
-		$attrs['hamburgerMenuIcon']['decoration']['font']['font']['desktop']['sticky']['color'] = $scrolled_nav_active_color;
 		$attrs['module']['decoration']['transition']['desktop']['value'] = [
 			'duration'   => '220ms',
 			'delay'      => '0ms',
@@ -3981,6 +4361,24 @@ HTML;
 		);
 	}
 
+	private function build_header_runtime_row_markup() {
+		return $this->build_row_module(
+			'Header Runtime Row',
+			[
+				$this->build_column_module(
+					'Header Runtime Column',
+					[
+						$this->build_header_runtime_block_markup(),
+					],
+					'4_4',
+					'dmf-header-runtime-column'
+				),
+			],
+			'4_4',
+			'dmf-header-runtime-row'
+		);
+	}
+
 	private function build_header_cta_button_block_markup() {
 		return $this->build_button_module(
 			'Header CTA Button',
@@ -3996,7 +4394,7 @@ HTML;
 <style id="dmf-header-runtime-styles">
 .et-l--header{
 	position:absolute !important;
-	top:0 !important;
+	top:var(--wp-admin--admin-bar--height,0px) !important;
 	right:0 !important;
 	left:0 !important;
 	width:100% !important;
@@ -4009,7 +4407,7 @@ HTML;
 }
 .dmf-global-header-shell{
 	position:absolute !important;
-	top:0 !important;
+	top:var(--wp-admin--admin-bar--height,0px) !important;
 	right:0 !important;
 	left:0 !important;
 	width:100% !important;
@@ -4034,7 +4432,10 @@ HTML;
 	width:min(80rem,calc(100% - 3rem)) !important;
 	max-width:none !important;
 	margin:0 auto !important;
-	padding:.28rem 0 .22rem !important;
+	min-height:64px !important;
+	padding:0 !important;
+	display:flex !important;
+	align-items:center !important;
 }
 .dmf-global-header-shell.dmf-header-is-scrolled{
 	background:rgba(237,236,237,0.96) !important;
@@ -4043,27 +4444,18 @@ HTML;
 	right:0 !important;
 	left:0 !important;
 }
-.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta{
-	display:none !important;
-}
 .dmf-global-header-shell .dmf-global-header-column{
-	display:flex !important;
-	align-items:center !important;
-	justify-content:space-between !important;
-	flex-wrap:nowrap !important;
-	gap:.9rem !important;
 	padding:0 !important;
 	margin:0 !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu{
-	flex:1 1 auto !important;
-	min-width:0 !important;
 	background:transparent !important;
 	margin:0 !important;
 	padding:0 !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__wrap{
 	width:100% !important;
+	min-height:64px !important;
 	justify-content:space-between !important;
 	align-items:center !important;
 }
@@ -4071,7 +4463,7 @@ HTML;
 	margin-right:1.35rem !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__logo-wrap img{
-	max-height:2.45rem !important;
+	max-height:2.7rem !important;
 	width:auto !important;
 }
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu,
@@ -4123,24 +4515,12 @@ HTML;
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .current-page-ancestor>a{
 	color:var(--gcid-dmf-foreground,#131b26) !important;
 }
-.dmf-global-header-shell .dmf-header-cta-button{
-	display:flex !important;
-	flex:0 0 auto !important;
-	align-items:center !important;
-	margin:0 !important;
-	padding:0 !important;
-	width:auto !important;
-	max-width:none !important;
-}
-.dmf-global-header-shell .dmf-header-cta-button .et_pb_module_inner,
-.dmf-global-header-shell .dmf-header-cta-button .et_pb_button_module_wrapper{
-	margin:0 !important;
-	padding:0 !important;
-	width:auto !important;
-	max-width:none !important;
-}
-.dmf-global-header-shell .dmf-header-cta-button .et_pb_button,
-.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button{
+.dmf-global-header-shell .dmf-global-header-menu .dmf-menu-cta>a,
+.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta>a,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu li.dmf-menu-cta>a,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav li.dmf-menu-cta>a,
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu li.dmf-menu-cta>a,
+.dmf-global-header-shell .dmf-global-header-menu a.dmf-menu-cta{
 	background:var(--gcid-dmf-white,#fafafa) !important;
 	background-color:var(--gcid-dmf-white,#fafafa) !important;
 	background-image:none !important;
@@ -4168,12 +4548,20 @@ HTML;
 	color:var(--gcid-dmf-foreground,#131b26) !important;
 	box-sizing:border-box !important;
 }
-.dmf-global-header-shell .dmf-header-cta-button .et_pb_button:after,
-.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button:after{
+.dmf-global-header-shell .dmf-global-header-menu .dmf-menu-cta>a:after,
+.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta>a:after,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu li.dmf-menu-cta>a:after,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav li.dmf-menu-cta>a:after,
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu li.dmf-menu-cta>a:after,
+.dmf-global-header-shell .dmf-global-header-menu a.dmf-menu-cta:after{
 	display:none !important;
 }
-.dmf-global-header-shell .dmf-header-cta-button .et_pb_button:hover,
-.dmf-global-header-shell .dmf-header-cta-button a.et_pb_button:hover{
+.dmf-global-header-shell .dmf-global-header-menu .dmf-menu-cta>a:hover,
+.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta>a:hover,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu li.dmf-menu-cta>a:hover,
+.dmf-global-header-shell .dmf-global-header-menu .et-menu-nav li.dmf-menu-cta>a:hover,
+.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu li.dmf-menu-cta>a:hover,
+.dmf-global-header-shell .dmf-global-header-menu a.dmf-menu-cta:hover{
 	background:var(--gcid-dmf-white,#fafafa) !important;
 	background-color:var(--gcid-dmf-white,#fafafa) !important;
 	background-image:none !important;
@@ -4185,9 +4573,10 @@ HTML;
 @media (max-width: 980px){
 	.dmf-global-header-shell .dmf-global-header-row{
 		width:min(80rem,calc(100% - 2rem)) !important;
-		padding:.3rem 0 !important;
+		min-height:64px !important;
+		padding:0 !important;
 	}
-	.dmf-global-header-shell .dmf-header-cta-button{
+	.dmf-global-header-shell .dmf-global-header-menu li.dmf-menu-cta{
 		display:none !important;
 	}
 }
@@ -4206,13 +4595,31 @@ HTML;
 		linkTop:'rgba(250,250,250,0.76)',
 		linkActiveTop:'var(--gcid-dmf-white,#fafafa)',
 		linkScrolled:'var(--gcid-dmf-muted,#486262)',
-		linkActiveScrolled:'var(--gcid-dmf-foreground,#131b26)'
+		linkActiveScrolled:'var(--gcid-dmf-foreground,#131b26)',
+		ctaBackground:'var(--gcid-dmf-white,#fafafa)',
+		ctaText:'var(--gcid-dmf-foreground,#131b26)',
+		ctaBorder:'1px solid color-mix(in srgb, var(--gcid-dmf-primary,#131b26) 22%, transparent)'
 	};
 	var menuLinkSelector='.dmf-global-header-menu .et-menu>li>a,.dmf-global-header-menu .et-menu-nav>ul>li>a,.dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,.dmf-global-header-menu .et_mobile_menu a';
 	var activeLinkSelector='.dmf-global-header-menu .current-menu-item>a,.dmf-global-header-menu .current-menu-ancestor>a,.dmf-global-header-menu .current_page_item>a,.dmf-global-header-menu .current-page-ancestor>a';
+	var ctaLinkSelector='.dmf-global-header-menu .dmf-menu-cta>a,.dmf-global-header-menu li.dmf-menu-cta>a,.dmf-global-header-menu a.dmf-menu-cta';
 	function setImportant(node,property,value){
 		if(!node){return;}
 		node.style.setProperty(property,value,'important');
+	}
+	function isCtaLink(link){
+		if(!link){return false;}
+		if(link.classList && link.classList.contains('dmf-menu-cta')){return true;}
+		var item=link.closest ? link.closest('li') : null;
+		return !!(item && item.classList && item.classList.contains('dmf-menu-cta'));
+	}
+	function applyCtaState(header){
+		Array.prototype.slice.call(header.querySelectorAll(ctaLinkSelector)).forEach(function(link){
+			setImportant(link,'background',headerStyles.ctaBackground);
+			setImportant(link,'background-color',headerStyles.ctaBackground);
+			setImportant(link,'color',headerStyles.ctaText);
+			setImportant(link,'border',headerStyles.ctaBorder);
+		});
 	}
 	function getHeaders(){
 		return Array.prototype.slice.call(document.querySelectorAll('.dmf-global-header-shell'));
@@ -4226,16 +4633,19 @@ HTML;
 		header.classList.toggle('dmf-header-is-scrolled',isScrolled);
 		setImportant(header,'background',isScrolled ? headerStyles.backgroundScrolled : headerStyles.backgroundTop);
 		setImportant(header,'position',isScrolled ? 'fixed' : 'absolute');
-		setImportant(header,'top',isScrolled ? 'var(--wp-admin--admin-bar--height,0px)' : '0');
+		setImportant(header,'top','var(--wp-admin--admin-bar--height,0px)');
 		setImportant(header,'right','0');
 		setImportant(header,'left','0');
 		setImportant(header,'width','100%');
 		Array.prototype.slice.call(header.querySelectorAll(menuLinkSelector)).forEach(function(link){
+			if(isCtaLink(link)){return;}
 			setImportant(link,'color',linkColor);
 		});
 		Array.prototype.slice.call(header.querySelectorAll(activeLinkSelector)).forEach(function(link){
+			if(isCtaLink(link)){return;}
 			setImportant(link,'color',activeColor);
 		});
+		applyCtaState(header);
 	}
 	function updateHeaders(){
 		var headers=getHeaders();
