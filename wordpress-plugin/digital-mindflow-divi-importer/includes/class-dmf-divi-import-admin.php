@@ -10,6 +10,8 @@ class DMF_Divi_Import_Admin {
 
 	const ACTION = 'dmf_divi_importer_run';
 
+	const FIX_ACTION = 'dmf_divi_importer_fix_portfolio_loops';
+
 	public static function boot() {
 		if ( ! is_admin() ) {
 			return;
@@ -17,6 +19,7 @@ class DMF_Divi_Import_Admin {
 
 		add_action( 'admin_menu', [ __CLASS__, 'register_page' ] );
 		add_action( 'admin_post_' . self::ACTION, [ __CLASS__, 'handle_run' ] );
+		add_action( 'admin_post_' . self::FIX_ACTION, [ __CLASS__, 'handle_fix_portfolio_loops' ] );
 	}
 
 	public static function register_page() {
@@ -76,6 +79,51 @@ class DMF_Divi_Import_Admin {
 		exit;
 	}
 
+	public static function handle_fix_portfolio_loops() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::FIX_ACTION );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Portfolio loop fix complete.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->fix_portfolio_loops(
+				[
+					'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+				]
+			);
+
+			$report['summary'] = [
+				'portfolio_loops_updated' => $summary['updated'] ?? [],
+				'portfolio_loops_missing' => $summary['missing'] ?? [],
+				'warnings'                => $summary['warnings'] ?? [],
+			];
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Portfolio loop fix failed.';
+			$report['error']  = $error->getMessage();
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect(
+			add_query_arg(
+				[
+					'page' => self::PAGE_SLUG,
+				],
+				admin_url( 'tools.php' )
+			)
+		);
+		exit;
+	}
+
 	public static function render_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'dmf-divi-importer' ) );
@@ -90,7 +138,7 @@ class DMF_Divi_Import_Admin {
 		?>
 		<div class="wrap">
 			<h1>Digital MindFlow Divi Importer</h1>
-			<p>This temporary tool imports the bundled Divi 5 layouts, updates the global Theme Builder header and footer, and creates the primary WordPress menu used by the Divi 5 menu block.</p>
+			<p>This tool imports the bundled Divi 5 layouts, updates the global Theme Builder header and footer, creates the primary WordPress menu used by the Divi 5 menu block, and can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops.</p>
 
 			<?php self::render_notice( $notice ); ?>
 
@@ -183,17 +231,46 @@ class DMF_Divi_Import_Admin {
 				</p>
 			</form>
 
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::FIX_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::FIX_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Fix Portfolio Loops</h2>
+				<p>Replace the static imported portfolio cards on the Home and Portfolio pages with native Divi 5 loop-builder output from the <code>portfolio</code> post type.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-fix">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-fix" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary">
+						Fix Portfolio Loops
+					</button>
+				</p>
+			</form>
+
 			<div style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
 				<h2 style="margin-top: 0;">What This Does</h2>
 				<ul style="list-style: disc; padding-left: 20px;">
 					<li>Finds pages by slug first, then falls back to exact page-title matching.</li>
 					<li>Can create any missing pages automatically before importing their layouts.</li>
 					<li>Reimports the bundled Divi page layouts onto the existing pages with the expected slugs.</li>
+					<li>Can replace the static Home and Portfolio portfolio sections with native Divi 5 loop-builder content from the Portfolio post type.</li>
 					<li>Updates the default global Theme Builder template using the bundled header and footer export.</li>
 					<li>Creates or replaces a WordPress menu named <code>Digital MindFlow Primary Navigation</code> and assigns it to <code>primary-menu</code>.</li>
 					<li>Reimports the shared Divi 5 global variables and color tokens used by the layouts.</li>
 				</ul>
-				<p>Deactivate and delete this plugin after the import is signed off.</p>
+				<p>The Portfolio loop fix writes native Divi content into the pages, so the site does not need this plugin active just to render those loops.</p>
 			</div>
 		</div>
 		<?php
@@ -221,12 +298,14 @@ class DMF_Divi_Import_Admin {
 
 	private static function render_summary( array $summary ) {
 		$sections = [
-			'pages_updated' => 'Updated pages',
-			'pages_created' => 'Created pages',
-			'pages_missing' => 'Missing pages',
-			'theme_updated' => 'Theme Builder',
-			'menu_updated'  => 'Primary menu',
-			'warnings'      => 'Warnings',
+			'pages_updated'           => 'Updated pages',
+			'pages_created'           => 'Created pages',
+			'pages_missing'           => 'Missing pages',
+			'portfolio_loops_updated' => 'Portfolio loop pages',
+			'portfolio_loops_missing' => 'Portfolio loop pages missing',
+			'theme_updated'           => 'Theme Builder',
+			'menu_updated'            => 'Primary menu',
+			'warnings'                => 'Warnings',
 		];
 
 		foreach ( $sections as $key => $label ) {

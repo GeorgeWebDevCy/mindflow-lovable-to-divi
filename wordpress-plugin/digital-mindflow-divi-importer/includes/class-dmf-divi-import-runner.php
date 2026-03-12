@@ -166,13 +166,15 @@ class DMF_Divi_Import_Runner {
 		$home_slug     = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
 
 		$summary = [
-			'dry_run'       => $dry_run,
-			'pages_updated' => [],
-			'pages_created' => [],
-			'pages_missing' => [],
-			'theme_updated' => [],
-			'menu_updated'  => [],
-			'warnings'      => [],
+			'dry_run'                 => $dry_run,
+			'pages_updated'           => [],
+			'pages_created'           => [],
+			'pages_missing'           => [],
+			'portfolio_loops_updated' => [],
+			'portfolio_loops_missing' => [],
+			'theme_updated'           => [],
+			'menu_updated'            => [],
+			'warnings'                => [],
 		];
 
 		if ( $include_pages ) {
@@ -207,6 +209,15 @@ class DMF_Divi_Import_Runner {
 
 				$summary['pages_updated'][] = sprintf( '%s (#%d)', $item['label'], $page->ID );
 			}
+
+			$portfolio_fix_summary               = $this->apply_portfolio_loop_fix(
+				[
+					'dry_run' => $dry_run,
+					'home_slug' => $home_slug,
+				]
+			);
+			$summary['portfolio_loops_updated'] = $portfolio_fix_summary['updated'];
+			$summary['portfolio_loops_missing'] = $portfolio_fix_summary['missing'];
 		}
 
 		if ( $include_theme ) {
@@ -224,6 +235,20 @@ class DMF_Divi_Import_Runner {
 		}
 
 		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+
+		return $summary;
+	}
+
+	public function fix_portfolio_loops( array $args = [] ) {
+		$this->warnings = [];
+
+		$summary = $this->apply_portfolio_loop_fix( $args );
+
+		if ( empty( $args['dry_run'] ) && ( ! isset( $args['flush_cache'] ) || ! empty( $args['flush_cache'] ) ) ) {
 			$this->flush_divi_caches();
 		}
 
@@ -417,12 +442,609 @@ class DMF_Divi_Import_Runner {
 			);
 		}
 
-		update_post_meta( $page->ID, '_et_pb_use_builder', 'on' );
-		update_post_meta( $page->ID, '_et_pb_use_divi_5', 'on' );
-		update_post_meta( $page->ID, '_et_pb_built_for_post_type', 'page' );
-		update_post_meta( $page->ID, '_et_pb_show_page_creation', 'off' );
-		update_post_meta( $page->ID, '_et_pb_page_layout', 'et_full_width_page' );
-		update_post_meta( $page->ID, '_wp_page_template', 'default' );
+		$this->configure_divi_page_meta( (int) $page->ID );
+	}
+
+	private function apply_portfolio_loop_fix( array $args = [] ) {
+		$dry_run   = ! empty( $args['dry_run'] );
+		$home_slug = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+		$summary   = [
+			'updated' => [],
+			'missing' => [],
+		];
+		$targets   = [
+			[
+				'label'   => 'Home',
+				'slug'    => '__front_page__',
+				'context' => 'home',
+			],
+			[
+				'label'   => 'Portfolio',
+				'slug'    => 'portfolio',
+				'context' => 'portfolio',
+			],
+		];
+
+		foreach ( $targets as $target ) {
+			$page = $this->find_target_page( $target['slug'], $home_slug, $target['label'] );
+
+			if ( ! $page instanceof WP_Post ) {
+				$summary['missing'][] = $target['label'];
+				continue;
+			}
+
+			$fix_state = $this->apply_portfolio_loop_template_to_page(
+				$page,
+				(string) $target['context'],
+				$dry_run
+			);
+
+			if ( 'missing-section' === $fix_state ) {
+				$this->warn(
+					sprintf(
+						'Could not locate the static portfolio section on %1$s (#%2$d).',
+						$target['label'],
+						$page->ID
+					)
+				);
+				continue;
+			}
+
+			if ( 'unchanged' === $fix_state ) {
+				$summary['updated'][] = sprintf( '%s (#%d) already uses the native Divi portfolio loop', $target['label'], $page->ID );
+				continue;
+			}
+
+			$summary['updated'][] = sprintf(
+				'%s (#%d)%s',
+				$target['label'],
+				$page->ID,
+				$dry_run ? ' [dry run]' : ''
+			);
+		}
+
+		return $summary;
+	}
+
+	private function apply_portfolio_loop_template_to_page( WP_Post $page, $context, $dry_run ) {
+		$current_content = (string) $page->post_content;
+
+		if ( $this->page_has_native_portfolio_loop( $current_content ) ) {
+			return 'unchanged';
+		}
+
+		$content = $this->replace_existing_portfolio_loop_markup(
+			$current_content,
+			(string) $context,
+			$this->build_portfolio_loop_section( (string) $context )
+		);
+
+		if ( null === $content ) {
+			return 'missing-section';
+		}
+
+		if ( $dry_run ) {
+			return 'updated';
+		}
+
+		$result = wp_update_post(
+			[
+				'ID'           => $page->ID,
+				'post_content' => wp_slash( $content ),
+			],
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new RuntimeException(
+				'Failed to update portfolio loop on page #' . $page->ID . ': ' . $result->get_error_message()
+			);
+		}
+
+		$this->configure_divi_page_meta( (int) $page->ID );
+
+		return 'updated';
+	}
+
+	private function page_has_native_portfolio_loop( $content ) {
+		return false !== strpos(
+			(string) $content,
+			'"adminLabel":{"desktop":{"value":"DMF Portfolio Loop Card"}}'
+		);
+	}
+
+	private function replace_existing_portfolio_loop_markup( $content, $context, $replacement ) {
+		$content            = (string) $content;
+		$context            = sanitize_key( (string) $context );
+		$replacement        = (string) $replacement;
+		$legacy_shortcode   = sprintf( '[dmf_portfolio_loop context="%s"]', $context );
+		$legacy_block_regex = '#<!--\s+wp:shortcode\s+-->\s*' . preg_quote( $legacy_shortcode, '#' ) . '\s*<!--\s+/wp:shortcode\s+-->#';
+		$replaced_content   = preg_replace( $legacy_block_regex, $replacement, $content, 1, $replacements );
+
+		if ( null !== $replaced_content && 1 === (int) $replacements ) {
+			return $replaced_content;
+		}
+
+		if ( false !== strpos( $content, $legacy_shortcode ) ) {
+			return str_replace( $legacy_shortcode, $replacement, $content );
+		}
+
+		return $this->replace_divi_section_by_label(
+			$content,
+			'Portfolio Projects Section',
+			$replacement
+		);
+	}
+
+	private function build_portfolio_loop_section( $context ) {
+		$context = 'home' === sanitize_key( (string) $context ) ? 'home' : 'portfolio';
+		$blocks  = [
+			$this->build_portfolio_intro_row( $context ),
+			$this->build_portfolio_loop_row( $context ),
+		];
+
+		if ( 'home' === $context ) {
+			$blocks[] = $this->build_portfolio_archive_button_row();
+		}
+
+		return $this->render_divi_block(
+			'section',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta' => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Portfolio Projects Section',
+							],
+						],
+					],
+				],
+			],
+			implode( "\n", $blocks )
+		);
+	}
+
+	private function build_portfolio_intro_row( $context ) {
+		$text_block = $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta' => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Intro',
+							],
+						],
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => $this->build_portfolio_intro_markup( $context ),
+						],
+					],
+				],
+			]
+		);
+
+		$column_block = $this->render_divi_block(
+			'column',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Portfolio Intro Column',
+							],
+						],
+					],
+					'advanced' => [
+						'type' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$text_block
+		);
+
+		return $this->render_divi_block(
+			'row',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Portfolio Intro Row',
+							],
+						],
+					],
+					'advanced' => [
+						'columnStructure' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$column_block
+		);
+	}
+
+	private function build_portfolio_loop_row( $context ) {
+		$text_block = $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Loop Card',
+							],
+						],
+					],
+					'advanced' => [
+						'loop' => [
+							'desktop' => [
+								'value' => [
+									'enable'             => 'on',
+									'queryType'          => 'post_types',
+									'subTypes'           => [
+										[
+											'value' => 'portfolio',
+										],
+									],
+									'orderBy'            => 'date',
+									'order'              => 'descending',
+									'postPerPage'        => (string) $this->get_portfolio_loop_posts_per_page( $context ),
+									'ignoreStickysPost'  => 'on',
+									'excludeCurrentPost' => 'off',
+									'loopId'             => 'home' === $context ? 'dmfPortfolioHomeLoop' : 'dmfPortfolioArchiveLoop',
+								],
+							],
+						],
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => $this->build_portfolio_card_markup(),
+						],
+					],
+				],
+			]
+		);
+
+		$column_block = $this->render_divi_block(
+			'column',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Loop Column',
+							],
+						],
+					],
+					'advanced'   => [
+						'type' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+					'decoration' => [
+						'layout' => [
+							'desktop' => [
+								'value' => [
+									'display'            => 'grid',
+									'gridColumnWidths'   => 'equalMinimum',
+									'gridColumnMinWidth' => '20rem',
+									'columnGap'          => '1.5rem',
+									'rowGap'             => '1.5rem',
+								],
+							],
+							'tablet'  => [
+								'value' => [
+									'gridColumnMinWidth' => '17rem',
+								],
+							],
+							'phone'   => [
+								'value' => [
+									'gridColumnMinWidth' => '100%',
+								],
+							],
+						],
+					],
+				],
+			],
+			$text_block
+		);
+
+		return $this->render_divi_block(
+			'row',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Loop Row',
+							],
+						],
+					],
+					'advanced' => [
+						'columnStructure' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$column_block
+		);
+	}
+
+	private function build_portfolio_archive_button_row() {
+		$text_block = $this->render_divi_block(
+			'text',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta' => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Archive Button',
+							],
+						],
+					],
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => $this->build_portfolio_archive_button_markup(),
+						],
+					],
+				],
+			]
+		);
+
+		$column_block = $this->render_divi_block(
+			'column',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Portfolio CTA Column',
+							],
+						],
+					],
+					'advanced' => [
+						'type' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$text_block
+		);
+
+		return $this->render_divi_block(
+			'row',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'     => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Portfolio CTA Row',
+							],
+						],
+					],
+					'advanced' => [
+						'columnStructure' => [
+							'desktop' => [
+								'value' => '4_4',
+							],
+						],
+					],
+				],
+			],
+			$column_block
+		);
+	}
+
+	private function build_portfolio_intro_markup( $context ) {
+		if ( 'home' === $context ) {
+			return <<<'HTML'
+<div style="text-align:center;padding:0.625rem 0 0.25rem">
+	<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-accent, #941213);margin-bottom:0.875rem">Portfolio</div>
+	<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.8vw, 3.4rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1rem 0">Recent <span style="display:inline-block;background:linear-gradient(135deg, var(--gcid-dmf-accent, #941213), var(--gcid-dmf-accent-deep, #893637));color:transparent;-webkit-background-clip:text;background-clip:text">Projects</span></h2>
+	<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 auto;max-width:43.75rem">Explore a live selection of Portfolio posts powered by Divi 5's native loop builder.</p>
+</div>
+HTML;
+		}
+
+		return <<<'HTML'
+<div style="text-align:center;padding:0.625rem 0 0.25rem">
+	<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 auto;max-width:43.75rem">A curated selection of campaigns, brand systems, websites, automation flows, and next-gen advertising work.</p>
+</div>
+HTML;
+	}
+
+	private function build_portfolio_card_markup() {
+		$link_token          = $this->build_dynamic_content_token(
+			'loop_post_link',
+			[
+				'before' => '',
+				'after'  => '',
+			]
+		);
+		$image_token         = $this->build_dynamic_content_token(
+			'loop_post_featured_image',
+			[
+				'before'         => '',
+				'after'          => '',
+				'thumbnail_size' => 'large',
+			]
+		);
+		$image_alt_token     = $this->build_dynamic_content_token(
+			'loop_post_featured_image_alt_text',
+			[
+				'before' => '',
+				'after'  => '',
+			]
+		);
+		$title_token         = $this->build_dynamic_content_token(
+			'loop_post_title',
+			[
+				'before' => '',
+				'after'  => '',
+			]
+		);
+		$excerpt_token       = $this->build_dynamic_content_token(
+			'loop_post_excerpt',
+			[
+				'before' => '',
+				'after'  => '',
+				'words'  => 24,
+			]
+		);
+		$card_markup_template = <<<'HTML'
+<div style="display:flex;flex-direction:column;height:100%;background:var(--gcid-dmf-card, #edeced);border:0.0625rem solid var(--gcid-dmf-border, #a1a5a4);border-radius:var(--gvid-dmf-radius-lg);padding:1.5rem;box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #131b26) 8%, transparent)">
+	<a href="__DMF_LINK__" style="display:block;text-decoration:none;margin-bottom:1.125rem">
+		<img src="__DMF_IMAGE__" alt="__DMF_IMAGE_ALT__" style="display:block;width:100%;height:17.5rem;object-fit:cover;border-radius:1.25rem;box-shadow:none">
+	</a>
+	<h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.61rem, calc(1.61rem + 0.4vw), 1.995rem);font-weight:700;line-height:1.2;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.875rem 0">
+		<a href="__DMF_LINK__" style="color:inherit;text-decoration:none">__DMF_TITLE__</a>
+	</h3>
+	<div style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 0 1.25rem 0">__DMF_EXCERPT__</div>
+	<div style="margin-top:auto">
+		<a href="__DMF_LINK__" style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem);font-weight:700;color:var(--gcid-dmf-accent-deep, #893637);text-decoration:none">View Project &rarr;</a>
+	</div>
+</div>
+HTML;
+
+		return strtr(
+			$card_markup_template,
+			[
+				'__DMF_LINK__'      => $link_token,
+				'__DMF_IMAGE__'     => $image_token,
+				'__DMF_IMAGE_ALT__' => $image_alt_token,
+				'__DMF_TITLE__'     => $title_token,
+				'__DMF_EXCERPT__'   => $excerpt_token,
+			]
+		);
+	}
+
+	private function build_portfolio_archive_button_markup() {
+		$button_markup_template = <<<'HTML'
+<div style="text-align:center;padding:0.5rem 0 0.25rem">
+	<a href="__DMF_PORTFOLIO_URL__" style="display:inline-block;padding:calc(var(--gvid-dmf-space-sm) - 0.125rem) calc(var(--gvid-dmf-space-md) + 0rem);border-radius:var(--gvid-dmf-radius-md);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-base);font-weight:700;line-height:1.1;text-align:center;text-decoration:none;transition:all 0.2s ease;color:var(--gcid-dmf-foreground, #131b26);border:0.0625rem solid var(--gcid-dmf-accent, #941213);background:linear-gradient(135deg, var(--gcid-dmf-accent, #941213), var(--gcid-dmf-accent-deep, #893637));box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-accent, #941213) 25%, transparent)">View Full Portfolio</a>
+</div>
+HTML;
+
+		return strtr(
+			$button_markup_template,
+			[
+				'__DMF_PORTFOLIO_URL__' => esc_url( $this->get_portfolio_page_url() ),
+			]
+		);
+	}
+
+	private function get_portfolio_page_url() {
+		$page = $this->find_target_page( 'portfolio', '', 'Portfolio' );
+
+		if ( $page instanceof WP_Post ) {
+			$permalink = get_permalink( $page );
+			if ( $permalink ) {
+				return $permalink;
+			}
+		}
+
+		return home_url( '/portfolio/' );
+	}
+
+	private function get_portfolio_loop_posts_per_page( $context ) {
+		return 'home' === $context ? 3 : 999;
+	}
+
+	private function build_dynamic_content_token( $name, array $settings = [] ) {
+		return '$variable(' . wp_json_encode(
+			[
+				'type'  => 'content',
+				'value' => [
+					'name'     => (string) $name,
+					'settings' => $settings,
+				],
+			],
+			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+		) . ')$';
+	}
+
+	private function render_divi_block( $block_name, array $attrs = [], $inner_content = null ) {
+		$encoded_attrs = empty( $attrs )
+			? ''
+			: ' ' . wp_json_encode( $attrs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		if ( null === $inner_content ) {
+			return sprintf(
+				'<!-- wp:divi/%1$s%2$s /-->',
+				(string) $block_name,
+				$encoded_attrs
+			);
+		}
+
+		return sprintf(
+			"<!-- wp:divi/%1\$s%2\$s -->\n%3\$s\n<!-- /wp:divi/%1\$s -->",
+			(string) $block_name,
+			$encoded_attrs,
+			(string) $inner_content
+		);
+	}
+
+	private function replace_divi_section_by_label( $content, $label, $replacement ) {
+		$content     = (string) $content;
+		$label_token = '"adminLabel":{"desktop":{"value":"' . (string) $label . '"}}';
+		$label_pos   = strpos( $content, $label_token );
+
+		if ( false === $label_pos ) {
+			return null;
+		}
+
+		$start = strrpos( substr( $content, 0, $label_pos ), '<!-- wp:divi/section ' );
+		$end   = strpos( $content, '<!-- /wp:divi/section -->', $label_pos );
+
+		if ( false === $start || false === $end ) {
+			return null;
+		}
+
+		$end += strlen( '<!-- /wp:divi/section -->' );
+
+		return substr( $content, 0, $start ) . $replacement . substr( $content, $end );
+	}
+
+	private function configure_divi_page_meta( $page_id ) {
+		update_post_meta( $page_id, '_et_pb_use_builder', 'on' );
+		update_post_meta( $page_id, '_et_pb_use_divi_5', 'on' );
+		update_post_meta( $page_id, '_et_pb_built_for_post_type', 'page' );
+		update_post_meta( $page_id, '_et_pb_show_page_creation', 'off' );
+		update_post_meta( $page_id, '_et_pb_page_layout', 'et_full_width_page' );
+		update_post_meta( $page_id, '_wp_page_template', 'default' );
 	}
 
 	private function import_global_theme_template( array $export, $dry_run ) {

@@ -1,16 +1,16 @@
 <?php
 /**
  * Plugin Name: Digital MindFlow Divi Importer
- * Description: Temporary wp-admin importer for the Digital MindFlow Divi 5 layouts, Theme Builder template, and primary navigation.
- * Version: 0.1.4
- * Author: OpenAI Codex
+ * Description: WP admin importer for the Digital MindFlow Divi 5 layouts, Theme Builder template, primary navigation, and native Divi portfolio loop fix.
+ * Version: 0.1.6
+ * Author: George Nicolaou
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'DMF_DIVI_IMPORTER_VERSION', '0.1.4' );
+define( 'DMF_DIVI_IMPORTER_VERSION', '0.1.6' );
 define( 'DMF_DIVI_IMPORTER_FILE', __FILE__ );
 define( 'DMF_DIVI_IMPORTER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DMF_DIVI_IMPORTER_URL', plugin_dir_url( __FILE__ ) );
