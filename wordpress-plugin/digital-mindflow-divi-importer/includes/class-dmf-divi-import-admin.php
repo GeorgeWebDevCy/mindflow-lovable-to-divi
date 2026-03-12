@@ -138,7 +138,7 @@ class DMF_Divi_Import_Admin {
 		?>
 		<div class="wrap">
 			<h1>Digital MindFlow Divi Importer</h1>
-			<p>This tool imports the bundled Divi 5 layouts, updates the global Theme Builder header and footer, creates the primary WordPress menu used by the Divi 5 menu block, and can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops.</p>
+			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, and can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops.</p>
 
 			<?php self::render_notice( $notice ); ?>
 
@@ -177,7 +177,7 @@ class DMF_Divi_Import_Admin {
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>">
 
 				<h2 style="margin-top: 0;">Run Import</h2>
-				<p>Leave all three items enabled for a full refresh of the current setup.</p>
+				<p>Leave all three items enabled for a full refresh of the current Home, Portfolio, Theme Builder, and menu setup.</p>
 
 				<table class="form-table" role="presentation">
 					<tbody>
@@ -199,11 +199,11 @@ class DMF_Divi_Import_Admin {
 								</label>
 								<label style="display:block; margin-bottom:8px;">
 									<input type="checkbox" name="include_pages" value="1" checked>
-									Update page layouts by slug
+									Update page layouts by slug (Home and Portfolio only)
 								</label>
 								<label style="display:block; margin-bottom:8px;">
 									<input type="checkbox" name="include_theme" value="1" checked>
-									Update global Theme Builder header and footer
+									Update global Theme Builder header/footer and the single portfolio template
 								</label>
 								<label style="display:block;">
 									<input type="checkbox" name="include_menu" value="1" checked>
@@ -264,9 +264,10 @@ class DMF_Divi_Import_Admin {
 				<ul style="list-style: disc; padding-left: 20px;">
 					<li>Finds pages by slug first, then falls back to exact page-title matching.</li>
 					<li>Can create any missing pages automatically before importing their layouts.</li>
-					<li>Reimports the bundled Divi page layouts onto the existing pages with the expected slugs.</li>
+					<li>Reimports only the bundled Home and Portfolio Divi layouts onto the existing pages with the expected slugs.</li>
 					<li>Can replace the static Home and Portfolio portfolio sections with native Divi 5 loop-builder content from the Portfolio post type.</li>
 					<li>Updates the default global Theme Builder template using the bundled header and footer export.</li>
+					<li>Creates or updates a dedicated Theme Builder body template for all single <code>portfolio</code> posts.</li>
 					<li>Creates or replaces a WordPress menu named <code>Digital MindFlow Primary Navigation</code> and assigns it to <code>primary-menu</code>.</li>
 					<li>Reimports the shared Divi 5 global variables and color tokens used by the layouts.</li>
 				</ul>
