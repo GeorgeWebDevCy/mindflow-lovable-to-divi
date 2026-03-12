@@ -678,14 +678,37 @@ class DMF_Divi_Import_Runner {
 			[
 				'builderVersion' => 0.7,
 				'module'         => [
-					'meta'     => [
+					'meta' => [
 						'adminLabel' => [
 							'desktop' => [
-								'value' => 'DMF Portfolio Loop Card',
+								'value' => 'DMF Portfolio Loop Card Content',
 							],
 						],
 					],
-					'advanced' => [
+				],
+				'content'        => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => $this->build_portfolio_card_markup(),
+						],
+					],
+				],
+			]
+		);
+
+		$group_block = $this->render_divi_block(
+			'group',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'DMF Portfolio Loop Group',
+							],
+						],
+					],
+					'advanced'   => [
 						'loop' => [
 							'desktop' => [
 								'value' => [
@@ -729,14 +752,8 @@ class DMF_Divi_Import_Runner {
 						],
 					],
 				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => $this->build_portfolio_card_markup(),
-						],
-					],
-				],
-			]
+			],
+			$text_block
 		);
 
 		$column_block = $this->render_divi_block(
@@ -776,7 +793,7 @@ class DMF_Divi_Import_Runner {
 					],
 				],
 			],
-			$text_block
+			$group_block
 		);
 
 		return $this->render_divi_block(
