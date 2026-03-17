@@ -2146,6 +2146,44 @@ HTML;
 		return $this->render_divi_block( 'group', $attrs, implode( "\n", $children ) );
 	}
 
+	private function build_loop_group_module( $admin_label, array $children, array $loop_args, $class = '', array $style = [], array $extra_attributes = [] ) {
+		$attrs = [
+			'builderVersion' => 0.7,
+			'module'         => [
+				'meta'     => [
+					'adminLabel' => [
+						'desktop' => [
+							'value' => (string) $admin_label,
+						],
+					],
+				],
+				'advanced' => [
+					'loop' => $this->build_portfolio_single_loop_settings( $loop_args ),
+				],
+			],
+		];
+
+		$attributes = array_filter(
+			array_merge(
+				$extra_attributes,
+				'' !== trim( (string) $class ) ? [ 'class' => trim( (string) $class ) ] : []
+			),
+			static function ( $value ) {
+				return '' !== trim( (string) $value );
+			}
+		);
+
+		if ( ! empty( $style ) ) {
+			$attributes['style'] = $this->build_inline_style( $style );
+		}
+
+		if ( ! empty( $attributes ) ) {
+			$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes( $attributes );
+		}
+
+		return $this->render_divi_block( 'group', $attrs, implode( "\n", $children ) );
+	}
+
 	private function build_column_module( $admin_label, array $children, $type = '4_4', $class = '', array $style = [], array $extra_attributes = [] ) {
 		$attrs = [
 			'builderVersion' => 0.7,
@@ -4699,448 +4737,295 @@ HTML;
 	}
 
 	private function build_portfolio_single_body_layout_content() {
-		$hero_copy_group = $this->render_divi_block(
-			'group',
+		$hero_section = $this->build_section_module(
+			'Portfolio Single Hero Section',
 			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Hero Copy Group',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
+				$this->build_code_module( 'Portfolio Single Styles', $this->build_portfolio_single_styles_markup(), 'dmf-portfolio-single__styles' ),
+				$this->build_row_module(
+					'Portfolio Single Hero Row',
+					[
+						$this->build_column_module(
+							'Portfolio Single Hero Copy Column',
 							[
-								'class' => 'dmf-portfolio-single-copy',
-								'style' => $this->build_inline_style(
+								$this->build_group_module(
+									'Portfolio Single Hero Copy',
 									[
-										'display'        => 'flex',
-										'flex-direction' => 'column',
-										'align-items'    => 'flex-start',
-										'gap'            => '1.25rem',
-									]
+										$this->build_portfolio_single_back_link_block(),
+										$this->build_portfolio_single_badge_block(),
+										$this->build_portfolio_single_title_block(),
+										$this->build_portfolio_single_subtitle_block(),
+										$this->build_portfolio_single_meta_block(),
+									],
+									'dmf-portfolio-single__hero-copy'
 								),
+							],
+							'1_2',
+							'dmf-portfolio-single__hero-copy-column',
+							[
+								'margin'  => '0',
+								'padding' => '0',
+							]
+						),
+						$this->build_column_module(
+							'Portfolio Single Hero Image Column',
+							[
+								$this->build_portfolio_single_featured_image_block(),
+							],
+							'1_2',
+							'dmf-portfolio-single__hero-image-column',
+							[
+								'margin'  => '0',
+								'padding' => '0',
 							]
 						),
 					],
-				],
+					'1_2,1_2',
+					'dmf-portfolio-single__hero-row',
+					[
+						'width'      => '100%',
+						'max-width'  => '80rem',
+						'margin'     => '0 auto',
+						'padding'    => 'clamp(8rem, 12vw, 10rem) 1.5rem clamp(3rem, 6vw, 4.5rem)',
+						'box-sizing' => 'border-box',
+					]
+				),
 			],
-			implode(
-				"\n",
-				[
-					$this->build_portfolio_single_eyebrow_block(),
-					$this->build_portfolio_single_title_block(),
-					$this->build_portfolio_single_excerpt_block(),
-					$this->build_portfolio_button_block(
-						'Portfolio Single Back Button',
-						'Back to Portfolio',
-						esc_url( $this->get_portfolio_page_url() ),
-						'left'
-					),
-				]
-			)
+			'dmf-portfolio-single__hero',
+			[
+				'background' => 'var(--gcid-dmf-primary, #131b26)',
+				'margin'     => '0',
+				'padding'    => '0',
+			]
 		);
 
-		$left_column = $this->render_divi_block(
-			'column',
+		$metrics_section = $this->build_section_module(
+			'Portfolio Single Metrics Section',
 			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Hero Copy Column',
-							],
-						],
-					],
-					'advanced'   => [
-						'type' => [
-							'desktop' => [
-								'value' => '1_2',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
+				$this->build_row_module(
+					'Portfolio Single Metrics Row',
+					[
+						$this->build_column_module(
+							'Portfolio Single Metrics Column',
 							[
-								'style' => $this->build_inline_style(
+								$this->build_group_module(
+									'Portfolio Single Metrics Grid',
 									[
-										'margin'  => '0',
-										'padding' => '0',
-									]
+										$this->build_portfolio_single_metric_item_block(
+											'Portfolio Single Top Metrics Item',
+											'dmf-portfolio-single__metric-card'
+										),
+									],
+									'dmf-portfolio-single__metrics-grid'
 								),
-							]
+							],
+							'4_4',
+							'dmf-portfolio-single__metrics-column'
 						),
 					],
-				],
+					'4_4',
+					'dmf-portfolio-single__metrics-row',
+					[
+						'width'      => '100%',
+						'max-width'  => '80rem',
+						'margin'     => '0 auto',
+						'padding'    => '0 1.5rem',
+						'box-sizing' => 'border-box',
+					]
+				),
 			],
-			$hero_copy_group
+			'dmf-portfolio-single__metrics-section',
+			[
+				'background' => '#F4F3F0',
+				'margin'     => '0',
+				'padding'    => '1.85rem 0',
+			]
 		);
 
-		$right_column = $this->render_divi_block(
-			'column',
+		$content_section = $this->build_section_module(
+			'Portfolio Single Content Section',
 			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Hero Image Column',
-							],
-						],
-					],
-					'advanced'   => [
-						'type' => [
-							'desktop' => [
-								'value' => '1_2',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
+				$this->build_row_module(
+					'Portfolio Single Content Row',
+					[
+						$this->build_column_module(
+							'Portfolio Single Content Column',
 							[
-								'style' => $this->build_inline_style(
+								$this->build_group_module(
+									'Portfolio Single Content Stack',
 									[
-										'margin'  => '0',
-										'padding' => '0',
-									]
+										$this->build_portfolio_single_copy_section(
+											'Portfolio Single Overview Section',
+											'dmf-portfolio-single__section dmf-portfolio-single__section--overview',
+											'Project',
+											'Overview',
+											'project_overview'
+										),
+										$this->build_portfolio_single_copy_section(
+											'Portfolio Single Challenge Section',
+											'dmf-portfolio-single__section dmf-portfolio-single__section--challenge',
+											'The',
+											'Challenge',
+											'project_challenge'
+										),
+										$this->build_portfolio_single_approach_section(),
+										$this->build_portfolio_single_results_section(),
+										$this->build_portfolio_single_quote_block(),
+									],
+									'dmf-portfolio-single__content-stack'
 								),
-							]
+							],
+							'4_4',
+							'dmf-portfolio-single__content-column'
 						),
 					],
-				],
+					'4_4',
+					'dmf-portfolio-single__content-row',
+					[
+						'width'      => '100%',
+						'max-width'  => '70rem',
+						'margin'     => '0 auto',
+						'padding'    => 'clamp(3rem, 6vw, 4.75rem) 1.5rem clamp(4rem, 8vw, 5.5rem)',
+						'box-sizing' => 'border-box',
+					]
+				),
 			],
-			$this->build_portfolio_single_featured_image_block()
+			'dmf-portfolio-single__content-section',
+			[
+				'background' => 'var(--gcid-dmf-background, #fafafa)',
+				'margin'     => '0',
+				'padding'    => '0',
+			]
 		);
 
-		$hero_row = $this->render_divi_block(
-			'row',
+		$bottom_section = $this->build_section_module(
+			'Portfolio Single Bottom Section',
 			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Hero Row',
-							],
-						],
-					],
-					'advanced'   => [
-						'columnStructure' => [
-							'desktop' => [
-								'value' => '1_2,1_2',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
+				$this->build_row_module(
+					'Portfolio Single Bottom Row',
+					[
+						$this->build_column_module(
+							'Portfolio Single Next Project Column',
 							[
-								'class' => 'dmf-portfolio-single-hero-row',
-								'style' => $this->build_inline_style(
-									[
-										'width'      => '100%',
-										'max-width'  => '80rem',
-										'margin'     => '0 auto',
-										'padding'    => 'clamp(8rem, 12vw, 10rem) 1.5rem clamp(3rem, 6vw, 4.5rem)',
-										'box-sizing' => 'border-box',
-									]
-								),
-							]
+								$this->build_portfolio_single_next_project_block(),
+							],
+							'1_2',
+							'dmf-portfolio-single__bottom-column dmf-portfolio-single__bottom-column--next'
+						),
+						$this->build_column_module(
+							'Portfolio Single CTA Column',
+							[
+								$this->build_portfolio_single_cta_block(),
+							],
+							'1_2',
+							'dmf-portfolio-single__bottom-column dmf-portfolio-single__bottom-column--cta'
 						),
 					],
-				],
+					'1_2,1_2',
+					'dmf-portfolio-single__bottom-row',
+					[
+						'width'      => '100%',
+						'max-width'  => '80rem',
+						'margin'     => '0 auto',
+						'padding'    => '2rem 1.5rem',
+						'box-sizing' => 'border-box',
+					]
+				),
 			],
-			$left_column . "\n" . $right_column
-		);
-
-		$hero_section = $this->render_divi_block(
-			'section',
+			'dmf-portfolio-single__bottom-section',
 			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Hero Section',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
-							[
-								'class' => 'dmf-portfolio-single-hero',
-								'style' => $this->build_inline_style(
-									[
-										'background' => 'var(--gcid-dmf-primary, #131b26)',
-										'margin'     => '0',
-										'padding'    => '0',
-									]
-								),
-							]
-						),
-					],
-				],
-			],
-			$hero_row
-		);
-
-		$content_column = $this->render_divi_block(
-			'column',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'     => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Content Column',
-							],
-						],
-					],
-					'advanced' => [
-						'type' => [
-							'desktop' => [
-								'value' => '4_4',
-							],
-						],
-					],
-				],
-			],
-			$this->render_divi_block(
-				'post-content',
-				[
-					'builderVersion' => 0.7,
-					'module'         => [
-						'meta'       => [
-							'adminLabel' => [
-								'desktop' => [
-									'value' => 'Portfolio Single Post Content',
-								],
-							],
-						],
-						'decoration' => [
-							'attributes' => $this->build_custom_attributes(
-								[
-									'class' => 'dmf-portfolio-single-post-content',
-								]
-							),
-						],
-					],
-				]
-			)
-		);
-
-		$content_row = $this->render_divi_block(
-			'row',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Content Row',
-							],
-						],
-					],
-					'advanced'   => [
-						'columnStructure' => [
-							'desktop' => [
-								'value' => '4_4',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
-							[
-								'class' => 'dmf-portfolio-single-content-row',
-								'style' => $this->build_inline_style(
-									[
-										'width'      => '100%',
-										'max-width'  => '70rem',
-										'margin'     => '0 auto',
-										'padding'    => 'clamp(2.5rem, 5vw, 3.5rem) 1.5rem clamp(4rem, 8vw, 5.5rem)',
-										'box-sizing' => 'border-box',
-									]
-								),
-							]
-						),
-					],
-				],
-			],
-			$content_column
-		);
-
-		$content_section = $this->render_divi_block(
-			'section',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta'       => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Content Section',
-							],
-						],
-					],
-					'decoration' => [
-						'attributes' => $this->build_custom_attributes(
-							[
-								'class' => 'dmf-portfolio-single-content',
-								'style' => $this->build_inline_style(
-									[
-										'background' => 'var(--gcid-dmf-background, #fafafa)',
-										'margin'     => '0',
-										'padding'    => '0',
-									]
-								),
-							]
-						),
-					],
-				],
-			],
-			$content_row
+				'background' => '#F4F3F0',
+				'margin'     => '0',
+				'padding'    => '0',
+			]
 		);
 
 		return $this->render_divi_block(
 			'placeholder',
 			[],
-			$hero_section . "\n" . $content_section
+			implode(
+				"\n",
+				[
+					$hero_section,
+					$metrics_section,
+					$content_section,
+					$bottom_section,
+				]
+			)
 		);
 	}
 
-	private function build_portfolio_single_eyebrow_block() {
-		return $this->render_divi_block(
-			'text',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta' => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Eyebrow',
-							],
-						],
-					],
-				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => sprintf(
-								'<div style="%1$s">%2$s</div>',
-								esc_attr(
-									$this->build_inline_style(
-										[
-											'font-family'    => 'var(--gvid-dmf-body-font)',
-											'font-size'      => 'var(--gvid-dmf-text-xs)',
-											'font-weight'    => '700',
-											'letter-spacing' => '0.22em',
-											'text-transform' => 'uppercase',
-											'color'          => 'var(--gcid-dmf-accent, #941213)',
-											'margin'         => '0',
-										]
-									)
-								),
-								'Portfolio'
-							),
-						],
-					],
-				],
-			]
+	private function build_portfolio_single_back_link_block() {
+		return $this->build_text_module(
+			'Portfolio Single Back Link',
+			sprintf(
+				'<a class="dmf-portfolio-single__back-link" href="%1$s"><span class="dmf-portfolio-single__back-link-arrow" aria-hidden="true">&larr;</span><span>Back to Portfolio</span></a>',
+				esc_url( $this->get_portfolio_page_url() )
+			),
+			'dmf-portfolio-single__back'
+		);
+	}
+
+	private function build_portfolio_single_badge_block() {
+		$taxonomy   = $this->get_portfolio_loop_taxonomy_slug( 'badge' );
+		$badge_html = '';
+
+		if ( '' !== $taxonomy ) {
+			$badge_html = $this->build_portfolio_single_terms_token(
+				$taxonomy,
+				[
+					'separator' => '',
+					'links'     => 'on',
+				]
+			);
+		}
+
+		return $this->build_text_module(
+			'Portfolio Single Badge',
+			'<div class="dmf-portfolio-single__badge-list">' . $badge_html . '</div>',
+			'dmf-portfolio-single__badge'
 		);
 	}
 
 	private function build_portfolio_single_title_block() {
-		return $this->render_divi_block(
-			'text',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta' => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Title',
-							],
-						],
-					],
-				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => sprintf(
-								'<h1 style="%1$s">%2$s</h1>',
-								esc_attr(
-									$this->build_inline_style(
-										[
-											'font-family' => 'var(--gvid-dmf-heading-font)',
-											'font-size'   => 'clamp(2.5rem, 5vw, 4.5rem)',
-											'font-weight' => '700',
-											'line-height' => '1.04',
-											'color'       => 'var(--gcid-dmf-white, #fafafa)',
-											'margin'      => '0',
-										]
-									)
-								),
-								$this->build_dynamic_content_token(
-									'post_title',
-									[
-										'before' => '',
-										'after'  => '',
-									]
-								)
-							),
-						],
-					],
-				],
-			]
+		return $this->build_text_module(
+			'Portfolio Single Title',
+			'<h1 class="dmf-portfolio-single__title">' . $this->build_dynamic_content_token(
+				'post_title',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			) . '</h1>',
+			'dmf-portfolio-single__title-wrap'
 		);
 	}
 
-	private function build_portfolio_single_excerpt_block() {
-		return $this->render_divi_block(
-			'text',
-			[
-				'builderVersion' => 0.7,
-				'module'         => [
-					'meta' => [
-						'adminLabel' => [
-							'desktop' => [
-								'value' => 'Portfolio Single Excerpt',
-							],
-						],
-					],
-				],
-				'content'        => [
-					'innerContent' => [
-						'desktop' => [
-							'value' => sprintf(
-								'<p style="%1$s">%2$s</p>',
-								esc_attr(
-									$this->build_inline_style(
-										[
-											'font-family' => 'var(--gvid-dmf-body-font)',
-											'font-size'   => 'clamp(1rem, calc(1rem + 0.35vw), 1.25rem)',
-											'line-height' => '1.85',
-											'color'       => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 74%, transparent)',
-											'margin'      => '0',
-											'max-width'   => '42rem',
-										]
-									)
-								),
-								$this->build_dynamic_content_token(
-									'post_excerpt',
-									[
-										'before' => '',
-										'after'  => '',
-										'words'  => 34,
-									]
-								)
-							),
-						],
-					],
-				],
-			]
+	private function build_portfolio_single_subtitle_block() {
+		return $this->build_text_module(
+			'Portfolio Single Subtitle',
+			'<div class="dmf-portfolio-single__subtitle">' . $this->build_portfolio_single_current_meta_token( 'small_top_title' ) . '</div>',
+			'dmf-portfolio-single__subtitle-wrap'
+		);
+	}
+
+	private function build_portfolio_single_meta_block() {
+		$taxonomy  = $this->get_portfolio_loop_taxonomy_slug( 'tags' );
+		$tags_html = '';
+
+		if ( '' !== $taxonomy ) {
+			$tags_html = $this->build_portfolio_single_terms_token(
+				$taxonomy,
+				[
+					'separator' => '',
+					'links'     => 'on',
+				]
+			);
+		}
+
+		return $this->build_text_module(
+			'Portfolio Single Meta',
+			'<div class="dmf-portfolio-single__meta"><div class="dmf-portfolio-single__timeline">' . $this->build_portfolio_single_clock_icon_markup() . '<span class="dmf-portfolio-single__timeline-label">Timeline: </span><span class="dmf-portfolio-single__timeline-value">' . $this->build_portfolio_single_current_meta_token( 'timeline' ) . '</span></div><div class="dmf-portfolio-single__tag-list">' . $tags_html . '</div></div>',
+			'dmf-portfolio-single__meta-wrap'
 		);
 	}
 
@@ -5176,13 +5061,13 @@ HTML;
 					'decoration' => [
 						'attributes' => $this->build_custom_attributes(
 							[
-								'class' => 'dmf-portfolio-single-image',
+								'class' => 'dmf-portfolio-single__image',
 								'style' => $this->build_inline_style(
 									[
 										'width'         => '100%',
 										'overflow'      => 'hidden',
-										'border-radius' => '1.5rem',
-										'box-shadow'    => '0 1.5rem 3rem color-mix(in srgb, var(--gcid-dmf-foreground, #131b26) 18%, transparent)',
+										'border-radius' => '1.75rem',
+										'box-shadow'    => '0 1.75rem 4rem color-mix(in srgb, var(--gcid-dmf-foreground, #131b26) 22%, transparent)',
 									]
 								),
 							]
@@ -5230,6 +5115,385 @@ HTML;
 				],
 			]
 		);
+	}
+
+	private function build_portfolio_single_copy_section( $admin_label, $class, $lead, $accent, $meta_key ) {
+		return $this->build_group_module(
+			(string) $admin_label,
+			[
+				$this->build_portfolio_single_section_heading_block(
+					$admin_label . ' Heading',
+					(string) $lead,
+					(string) $accent
+				),
+				$this->build_portfolio_single_body_block(
+					$admin_label . ' Body',
+					(string) $meta_key
+				),
+			],
+			(string) $class
+		);
+	}
+
+	private function build_portfolio_single_approach_section() {
+		return $this->build_group_module(
+			'Portfolio Single Approach Section',
+			[
+				$this->build_portfolio_single_section_heading_block( 'Portfolio Single Approach Heading', 'Our', 'Approach' ),
+				$this->build_group_module(
+					'Portfolio Single Approach List',
+					[
+						$this->build_portfolio_single_approach_item_block(),
+					],
+					'dmf-portfolio-single__approach-list'
+				),
+			],
+			'dmf-portfolio-single__section dmf-portfolio-single__section--approach'
+		);
+	}
+
+	private function build_portfolio_single_results_section() {
+		return $this->build_group_module(
+			'Portfolio Single Results Section',
+			[
+				$this->build_portfolio_single_section_heading_block( 'Portfolio Single Results Heading', 'The', 'Results' ),
+				$this->build_portfolio_single_body_block(
+					'Portfolio Single Results Intro',
+					'outcome',
+					'dmf-portfolio-single__body dmf-portfolio-single__body--results-intro'
+				),
+				$this->build_group_module(
+					'Portfolio Single Results Grid',
+					[
+						$this->build_portfolio_single_result_card_block(),
+					],
+					'dmf-portfolio-single__results-grid'
+				),
+			],
+			'dmf-portfolio-single__section dmf-portfolio-single__section--results'
+		);
+	}
+
+	private function build_portfolio_single_quote_block() {
+		return $this->build_group_module(
+			'Portfolio Single Quote Block',
+			[
+				$this->build_text_module(
+					'Portfolio Single Quote Mark',
+					'<div class="dmf-portfolio-single__quote-mark">&ldquo;</div>',
+					'dmf-portfolio-single__quote-mark-wrap'
+				),
+				$this->build_text_module(
+					'Portfolio Single Quote Text',
+					'<div class="dmf-portfolio-single__quote-text">' . $this->build_portfolio_single_current_meta_token( 'testimonial_quote' ) . '</div>',
+					'dmf-portfolio-single__quote-text-wrap'
+				),
+				$this->build_text_module(
+					'Portfolio Single Quote Author',
+					'<div class="dmf-portfolio-single__quote-author">' . $this->build_portfolio_single_current_meta_token( 'testimonial_author' ) . '</div>',
+					'dmf-portfolio-single__quote-author-wrap'
+				),
+				$this->build_text_module(
+					'Portfolio Single Quote Role',
+					'<div class="dmf-portfolio-single__quote-role">' . $this->build_portfolio_single_current_meta_token( 'testimonial_role' ) . '</div>',
+					'dmf-portfolio-single__quote-role-wrap'
+				),
+			],
+			'dmf-portfolio-single__quote-box'
+		);
+	}
+
+	private function build_portfolio_single_next_project_block() {
+		return $this->build_group_module(
+			'Portfolio Single Next Project',
+			[
+				$this->build_text_module(
+					'Portfolio Single Next Project Label',
+					'<div class="dmf-portfolio-single__next-project-label">Next Project</div>',
+					'dmf-portfolio-single__next-project-label-wrap'
+				),
+				$this->build_text_module(
+					'Portfolio Single Next Project Link',
+					'<a class="dmf-portfolio-single__next-project-link" href="' . $this->build_portfolio_single_current_meta_token( 'next_project_url' ) . '"><span class="dmf-portfolio-single__next-project-text">' . $this->build_portfolio_single_current_meta_token( 'next_project_title' ) . '</span><span aria-hidden="true">&rarr;</span></a>',
+					'dmf-portfolio-single__next-project-link-wrap'
+				),
+			],
+			'dmf-portfolio-single__next-project'
+		);
+	}
+
+	private function build_portfolio_single_cta_block() {
+		return $this->build_text_module(
+			'Portfolio Single CTA',
+			sprintf(
+				'<div class="dmf-portfolio-single__cta-wrap"><a class="dmf-portfolio-single__cta-link" href="%1$s">Start Your Project <span aria-hidden="true">&rarr;</span></a></div>',
+				esc_url( home_url( '/#contact' ) )
+			),
+			'dmf-portfolio-single__cta'
+		);
+	}
+
+	private function build_portfolio_single_section_heading_block( $admin_label, $lead, $accent ) {
+		return $this->build_text_module(
+			(string) $admin_label,
+			sprintf(
+				'<h2 class="dmf-portfolio-single__section-title">%1$s <span>%2$s</span></h2>',
+				esc_html( (string) $lead ),
+				esc_html( (string) $accent )
+			),
+			'dmf-portfolio-single__section-title-wrap'
+		);
+	}
+
+	private function build_portfolio_single_body_block( $admin_label, $meta_key, $class = 'dmf-portfolio-single__body' ) {
+		return $this->build_text_module(
+			(string) $admin_label,
+			'<div class="' . esc_attr( (string) $class ) . '">' . $this->build_portfolio_single_current_meta_token( $meta_key ) . '</div>',
+			'dmf-portfolio-single__body-wrap'
+		);
+	}
+
+	private function build_portfolio_single_metric_item_block( $admin_label, $class ) {
+		return $this->build_loop_group_module(
+			(string) $admin_label,
+			[
+				$this->build_text_module(
+					$admin_label . ' Value',
+					'<div class="dmf-portfolio-single__metric-value">' . $this->build_portfolio_single_repeater_token( 'result_metrics', 'metric_value' ) . '</div>',
+					'dmf-portfolio-single__metric-value-wrap'
+				),
+				$this->build_text_module(
+					$admin_label . ' Label',
+					'<div class="dmf-portfolio-single__metric-label">' . $this->build_portfolio_single_repeater_token( 'result_metrics', 'metric_label' ) . '</div>',
+					'dmf-portfolio-single__metric-label-wrap'
+				),
+			],
+			[
+				'queryType'          => 'repeater_result_metrics',
+				'orderBy'            => 'date',
+				'order'              => 'ascending',
+				'postPerPage'        => '8',
+				'postOffset'         => '0',
+				'excludeCurrentPost' => 'off',
+				'ignoreStickysPost'  => 'on',
+				'loopId'             => sanitize_key( (string) $admin_label ),
+			],
+			(string) $class
+		);
+	}
+
+	private function build_portfolio_single_result_card_block() {
+		return $this->build_portfolio_single_metric_item_block(
+			'Portfolio Single Results Card',
+			'dmf-portfolio-single__result-card'
+		);
+	}
+
+	private function build_portfolio_single_approach_item_block() {
+		return $this->build_loop_group_module(
+			'Portfolio Single Approach Item',
+			[
+				$this->build_text_module(
+					'Portfolio Single Approach Copy',
+					'<div class="dmf-portfolio-single__approach-copy">' . $this->build_portfolio_single_repeater_token( 'approach_steps', 'step_text' ) . '</div>',
+					'dmf-portfolio-single__approach-copy-wrap'
+				),
+			],
+			[
+				'queryType'          => 'repeater_approach_steps',
+				'orderBy'            => 'date',
+				'order'              => 'ascending',
+				'postPerPage'        => '12',
+				'postOffset'         => '0',
+				'excludeCurrentPost' => 'off',
+				'ignoreStickysPost'  => 'on',
+				'loopId'             => 'dmfPortfolioSingleApproach',
+			],
+			'dmf-portfolio-single__approach-item'
+		);
+	}
+
+	private function build_portfolio_single_current_meta_token( $meta_key, array $settings = [] ) {
+		$meta_key = sanitize_key( (string) $meta_key );
+
+		if ( '' === $meta_key ) {
+			return '';
+		}
+
+		return $this->build_dynamic_content_token(
+			'custom_meta_' . $meta_key,
+			array_merge(
+				[
+					'before' => '',
+					'after'  => '',
+				],
+				$settings
+			)
+		);
+	}
+
+	private function build_portfolio_single_terms_token( $taxonomy, array $settings = [] ) {
+		$taxonomy = sanitize_key( (string) $taxonomy );
+
+		if ( '' === $taxonomy ) {
+			return '';
+		}
+
+		return $this->build_dynamic_content_token(
+			'post_categories',
+			array_merge(
+				[
+					'before'        => '',
+					'after'         => '',
+					'category_type' => $taxonomy,
+					'separator'     => '',
+					'links'         => 'on',
+				],
+				$settings
+			)
+		);
+	}
+
+	private function build_portfolio_single_repeater_token( $repeater_name, $field_name, array $settings = [] ) {
+		$repeater_name = sanitize_key( (string) $repeater_name );
+		$field_name    = sanitize_key( (string) $field_name );
+
+		if ( '' === $repeater_name || '' === $field_name ) {
+			return '';
+		}
+
+		return $this->build_dynamic_content_token(
+			'loop_acf_' . $repeater_name . '|||' . $field_name,
+			array_merge(
+				[
+					'before' => '',
+					'after'  => '',
+				],
+				$settings
+			)
+		);
+	}
+
+	private function build_portfolio_single_loop_settings( array $loop_args ) {
+		$defaults  = [
+			'queryType'          => 'post_types',
+			'subTypes'           => [],
+			'orderBy'            => 'date',
+			'order'              => 'descending',
+			'postPerPage'        => '10',
+			'postOffset'         => '0',
+			'excludeCurrentPost' => 'off',
+			'ignoreStickysPost'  => 'on',
+			'loopId'             => 'dmfPortfolioSingleLoop',
+		];
+		$loop_args = wp_parse_args( $loop_args, $defaults );
+		$value     = [
+			'enable'             => 'on',
+			'queryType'          => (string) $loop_args['queryType'],
+			'orderBy'            => (string) $loop_args['orderBy'],
+			'order'              => (string) $loop_args['order'],
+			'postPerPage'        => (string) $loop_args['postPerPage'],
+			'postOffset'         => (string) $loop_args['postOffset'],
+			'excludeCurrentPost' => (string) $loop_args['excludeCurrentPost'],
+			'ignoreStickysPost'  => (string) $loop_args['ignoreStickysPost'],
+			'loopId'             => (string) $loop_args['loopId'],
+		];
+
+		if ( ! empty( $loop_args['subTypes'] ) && is_array( $loop_args['subTypes'] ) ) {
+			$value['subTypes'] = array_map(
+				static function ( $sub_type ) {
+					return [
+						'value' => sanitize_key( (string) $sub_type ),
+					];
+				},
+				array_values( $loop_args['subTypes'] )
+			);
+		}
+
+		return [
+			'desktop' => [
+				'value' => $value,
+			],
+		];
+	}
+
+	private function build_portfolio_single_clock_icon_markup() {
+		return '<svg class="dmf-portfolio-single__timeline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+	}
+
+	private function build_portfolio_single_styles_markup() {
+		return <<<'HTML'
+<style>
+.dmf-portfolio-single__hero-row,.dmf-portfolio-single__metrics-row,.dmf-portfolio-single__content-row,.dmf-portfolio-single__bottom-row{max-width:none!important}
+.dmf-portfolio-single__hero-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1rem!important}
+.dmf-portfolio-single__back-link{display:inline-flex!important;align-items:center!important;gap:.55rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;font-weight:600!important;line-height:1.4!important;color:rgba(250,250,250,.72)!important;text-decoration:none!important}
+.dmf-portfolio-single__back-link:hover{opacity:1!important;color:var(--gcid-dmf-white,#fafafa)!important}
+.dmf-portfolio-single__back-link-arrow{font-size:1rem!important;line-height:1!important}
+.dmf-portfolio-single__badge-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
+.dmf-portfolio-single__badge-list:empty,.dmf-portfolio-single__subtitle:empty,.dmf-portfolio-single__quote-role:empty,.dmf-portfolio-single__quote-author:empty,.dmf-portfolio-single__next-project-link:empty{display:none!important}
+.dmf-portfolio-single__badge-list a{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:.5rem .95rem!important;border-radius:999px!important;background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important}
+.dmf-portfolio-single__title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2.6rem,5vw,4.4rem)!important;font-weight:700!important;line-height:1.05!important;color:var(--gcid-dmf-white,#fafafa)!important}
+.dmf-portfolio-single__subtitle{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(1rem,calc(1rem + .24vw),1.18rem)!important;line-height:1.7!important;color:rgba(250,250,250,.76)!important}
+.dmf-portfolio-single__meta{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:.85rem 1rem!important}
+.dmf-portfolio-single__timeline{display:inline-flex!important;align-items:center!important;gap:.45rem!important;color:rgba(250,250,250,.74)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.5!important}
+.dmf-portfolio-single__timeline-icon{width:1rem!important;height:1rem!important;flex:0 0 auto!important}
+.dmf-portfolio-single__timeline:has(.dmf-portfolio-single__timeline-value:empty){display:none!important}
+.dmf-portfolio-single__tag-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
+.dmf-portfolio-single__tag-list:empty{display:none!important}
+.dmf-portfolio-single__tag-list a{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:.42rem .76rem!important;border-radius:999px!important;background:rgba(250,250,250,.12)!important;color:rgba(250,250,250,.84)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:600!important;line-height:1.1!important;text-decoration:none!important}
+.dmf-portfolio-single__meta:has(.dmf-portfolio-single__timeline-value:empty):has(.dmf-portfolio-single__tag-list:empty){display:none!important}
+.dmf-portfolio-single__image img{display:block!important;width:100%!important;height:100%!important;min-height:24rem!important;max-height:34rem!important;object-fit:cover!important;border-radius:1.75rem!important}
+.dmf-portfolio-single__metrics-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:1.25rem!important}
+.dmf-portfolio-single__metric-card,.dmf-portfolio-single__result-card{text-align:center!important}
+.dmf-portfolio-single__metric-value{font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2rem,3vw,2.8rem)!important;font-weight:700!important;line-height:1.05!important;color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-single__metric-label{margin-top:.35rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.45!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-portfolio-single__metrics-grid>.entry,.dmf-portfolio-single__approach-list>.entry,.dmf-portfolio-single__results-grid>.entry{display:none!important}
+.dmf-portfolio-single__metrics-section:has(.dmf-portfolio-single__metrics-grid:empty),.dmf-portfolio-single__metrics-section:has(.dmf-portfolio-single__metrics-grid>.entry:only-child){display:none!important}
+.dmf-portfolio-single__content-stack{display:flex!important;flex-direction:column!important;gap:3rem!important}
+.dmf-portfolio-single__section{display:flex!important;flex-direction:column!important;gap:1rem!important}
+.dmf-portfolio-single__section-title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2rem,4vw,3rem)!important;font-weight:700!important;line-height:1.14!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+.dmf-portfolio-single__section-title span{color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-single__body{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.98rem,calc(.98rem + .18vw),1.08rem)!important;line-height:1.9!important;color:var(--gcid-dmf-muted,#486262)!important;white-space:pre-line!important}
+.dmf-portfolio-single__section--overview:has(.dmf-portfolio-single__body:empty),.dmf-portfolio-single__section--challenge:has(.dmf-portfolio-single__body:empty){display:none!important}
+.dmf-portfolio-single__approach-list{display:flex!important;flex-direction:column!important;gap:1rem!important;counter-reset:dmf-approach!important}
+.dmf-portfolio-single__approach-item{counter-increment:dmf-approach!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:start!important;gap:1rem!important}
+.dmf-portfolio-single__approach-item::before{content:counter(dmf-approach)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:2rem!important;height:2rem!important;border-radius:999px!important;background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:.92rem!important;font-weight:700!important;line-height:1!important}
+.dmf-portfolio-single__approach-copy{padding-top:.15rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.98rem,calc(.98rem + .12vw),1.04rem)!important;line-height:1.8!important;color:var(--gcid-dmf-muted,#486262)!important;white-space:pre-line!important}
+.dmf-portfolio-single__section--approach:has(.dmf-portfolio-single__approach-list:empty),.dmf-portfolio-single__section--approach:has(.dmf-portfolio-single__approach-list>.entry:only-child){display:none!important}
+.dmf-portfolio-single__body--results-intro:empty{display:none!important}
+.dmf-portfolio-single__results-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1rem!important}
+.dmf-portfolio-single__result-card{padding:1.55rem 1.2rem!important;border:1px solid color-mix(in srgb,var(--gcid-dmf-border,#a1a5a4) 45%,transparent)!important;border-radius:1.25rem!important;background:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.5rem color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 6%,transparent)!important}
+.dmf-portfolio-single__section--results:has(.dmf-portfolio-single__body--results-intro:empty):has(.dmf-portfolio-single__results-grid:empty),.dmf-portfolio-single__section--results:has(.dmf-portfolio-single__body--results-intro:empty):has(.dmf-portfolio-single__results-grid>.entry:only-child){display:none!important}
+.dmf-portfolio-single__quote-box{margin-top:.5rem!important;padding:2rem 2.25rem!important;border-radius:1.5rem!important;background:var(--gcid-dmf-primary,#131b26)!important;display:flex!important;flex-direction:column!important;gap:.65rem!important}
+.dmf-portfolio-single__quote-box:has(.dmf-portfolio-single__quote-text:empty){display:none!important}
+.dmf-portfolio-single__quote-mark{font-family:var(--gvid-dmf-heading-font)!important;font-size:3rem!important;line-height:1!important;color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 65%,var(--gcid-dmf-white,#fafafa))!important}
+.dmf-portfolio-single__quote-text{font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.35rem,2.4vw,2rem)!important;font-weight:600!important;line-height:1.45!important;color:var(--gcid-dmf-white,#fafafa)!important;white-space:pre-line!important}
+.dmf-portfolio-single__quote-author{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;font-weight:700!important;line-height:1.5!important;color:var(--gcid-dmf-white,#fafafa)!important}
+.dmf-portfolio-single__quote-role{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.5!important;color:rgba(250,250,250,.68)!important}
+.dmf-portfolio-single__bottom-row{align-items:center!important}
+.dmf-portfolio-single__next-project{display:flex!important;flex-direction:column!important;gap:.45rem!important}
+.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__next-project-link[href=""]),.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__next-project-text:empty){display:none!important}
+.dmf-portfolio-single__next-project-label{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:700!important;line-height:1.2!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-portfolio-single__next-project-link{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.15rem,1.9vw,1.45rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important;text-decoration:none!important}
+.dmf-portfolio-single__next-project-link:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-single__cta-wrap{display:flex!important;justify-content:flex-end!important}
+.dmf-portfolio-single__cta-link{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:.55rem!important;padding:.95rem 1.5rem!important;border-radius:1rem!important;border:1px solid var(--gcid-dmf-accent,#941213)!important;background:linear-gradient(135deg,var(--gcid-dmf-accent,#941213),var(--gcid-dmf-accent-deep,#893637))!important;color:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-accent,#941213) 24%,transparent)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-base)!important;font-weight:700!important;line-height:1.1!important;text-decoration:none!important}
+.dmf-portfolio-single__cta-link:hover{opacity:1!important;transform:translateY(-1px)!important}
+@media (max-width:980px){
+.dmf-portfolio-single__hero-row{padding-top:clamp(7rem,16vw,8.5rem)!important}
+.dmf-portfolio-single__image img{min-height:20rem!important;max-height:none!important}
+.dmf-portfolio-single__metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.dmf-portfolio-single__bottom-row{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1.5rem!important}
+.dmf-portfolio-single__cta-wrap{justify-content:flex-start!important}
+}
+@media (max-width:767px){
+.dmf-portfolio-single__hero-row,.dmf-portfolio-single__metrics-row,.dmf-portfolio-single__content-row,.dmf-portfolio-single__bottom-row{padding-left:1rem!important;padding-right:1rem!important}
+.dmf-portfolio-single__metrics-grid,.dmf-portfolio-single__results-grid{grid-template-columns:1fr!important}
+.dmf-portfolio-single__quote-box{padding:1.5rem!important}
+.dmf-portfolio-single__image img{min-height:17rem!important;border-radius:1.25rem!important}
+}
+</style>
+HTML;
 	}
 
 	private function upsert_theme_builder_layout( array $layout_export, $existing_layout_id, $dry_run ) {

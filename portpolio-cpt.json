@@ -67,6 +67,27 @@
                 "new_lines": ""
             },
             {
+                "key": "field_699c0ab03ab7d",
+                "label": "Timeline",
+                "name": "timeline",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "placeholder": "3 months",
+                "prepend": "",
+                "append": ""
+            },
+            {
                 "key": "field_699c0a903ab7c",
                 "label": "Outcome",
                 "name": "outcome",
@@ -86,6 +107,261 @@
                 "rows": "",
                 "placeholder": "",
                 "new_lines": ""
+            },
+            {
+                "key": "field_699c0ad03ab7e",
+                "label": "Project Overview",
+                "name": "project_overview",
+                "aria-label": "",
+                "type": "textarea",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "rows": 5,
+                "placeholder": "",
+                "new_lines": ""
+            },
+            {
+                "key": "field_699c0af03ab7f",
+                "label": "Project Challenge",
+                "name": "project_challenge",
+                "aria-label": "",
+                "type": "textarea",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "rows": 5,
+                "placeholder": "",
+                "new_lines": ""
+            },
+            {
+                "key": "field_699c0b103ab80",
+                "label": "Approach Steps",
+                "name": "approach_steps",
+                "aria-label": "",
+                "type": "repeater",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "layout": "table",
+                "pagination": 0,
+                "min": 0,
+                "max": 0,
+                "collapsed": "field_699c0b303ab81",
+                "button_label": "Add Step",
+                "rows_per_page": 20,
+                "sub_fields": [
+                    {
+                        "key": "field_699c0b303ab81",
+                        "label": "Step Text",
+                        "name": "step_text",
+                        "aria-label": "",
+                        "type": "textarea",
+                        "instructions": "",
+                        "required": 0,
+                        "conditional_logic": 0,
+                        "wrapper": {
+                            "width": "",
+                            "class": "",
+                            "id": ""
+                        },
+                        "default_value": "",
+                        "maxlength": "",
+                        "allow_in_bindings": 0,
+                        "rows": 3,
+                        "placeholder": "",
+                        "new_lines": ""
+                    }
+                ]
+            },
+            {
+                "key": "field_699c0b503ab82",
+                "label": "Result Metrics",
+                "name": "result_metrics",
+                "aria-label": "",
+                "type": "repeater",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "layout": "table",
+                "pagination": 0,
+                "min": 0,
+                "max": 0,
+                "collapsed": "field_699c0b703ab83",
+                "button_label": "Add Metric",
+                "rows_per_page": 20,
+                "sub_fields": [
+                    {
+                        "key": "field_699c0b703ab83",
+                        "label": "Metric Value",
+                        "name": "metric_value",
+                        "aria-label": "",
+                        "type": "text",
+                        "instructions": "",
+                        "required": 0,
+                        "conditional_logic": 0,
+                        "wrapper": {
+                            "width": "35",
+                            "class": "",
+                            "id": ""
+                        },
+                        "default_value": "",
+                        "maxlength": "",
+                        "allow_in_bindings": 0,
+                        "placeholder": "52%",
+                        "prepend": "",
+                        "append": ""
+                    },
+                    {
+                        "key": "field_699c0b903ab84",
+                        "label": "Metric Label",
+                        "name": "metric_label",
+                        "aria-label": "",
+                        "type": "text",
+                        "instructions": "",
+                        "required": 0,
+                        "conditional_logic": 0,
+                        "wrapper": {
+                            "width": "65",
+                            "class": "",
+                            "id": ""
+                        },
+                        "default_value": "",
+                        "maxlength": "",
+                        "allow_in_bindings": 0,
+                        "placeholder": "Open Rate",
+                        "prepend": "",
+                        "append": ""
+                    }
+                ]
+            },
+            {
+                "key": "field_699c0bb03ab85",
+                "label": "Testimonial Quote",
+                "name": "testimonial_quote",
+                "aria-label": "",
+                "type": "textarea",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "rows": 4,
+                "placeholder": "",
+                "new_lines": ""
+            },
+            {
+                "key": "field_699c0bd03ab86",
+                "label": "Testimonial Author",
+                "name": "testimonial_author",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "50",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "placeholder": "",
+                "prepend": "",
+                "append": ""
+            },
+            {
+                "key": "field_699c0bf03ab87",
+                "label": "Testimonial Role",
+                "name": "testimonial_role",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "50",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "placeholder": "",
+                "prepend": "",
+                "append": ""
+            },
+            {
+                "key": "field_699c0c103ab88",
+                "label": "Next Project Title",
+                "name": "next_project_title",
+                "aria-label": "",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "50",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "maxlength": "",
+                "allow_in_bindings": 0,
+                "placeholder": "AI-Powered Ad Campaign",
+                "prepend": "",
+                "append": ""
+            },
+            {
+                "key": "field_699c0c303ab89",
+                "label": "Next Project URL",
+                "name": "next_project_url",
+                "aria-label": "",
+                "type": "url",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "50",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "allow_in_bindings": 0,
+                "placeholder": "https://example.com/portfolio/next-project"
             }
         ],
         "location": [
