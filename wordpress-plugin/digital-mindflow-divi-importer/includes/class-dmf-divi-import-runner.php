@@ -5552,11 +5552,13 @@ HTML;
 .dmf-portfolio-single__quote-author{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;font-weight:700!important;line-height:1.5!important;color:var(--gcid-dmf-white,#fafafa)!important}
 .dmf-portfolio-single__quote-role{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.5!important;color:rgba(250,250,250,.68)!important}
 .dmf-portfolio-single__bottom-row{align-items:center!important}
-.dmf-portfolio-single__next-project{display:flex!important;flex-direction:column!important;gap:.45rem!important}
+.dmf-portfolio-single__next-project{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:.45rem!important}
 .dmf-portfolio-single__next-project:has(.dmf-portfolio-single__post-nav:empty),.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__post-nav .nav-next:empty){display:none!important}
 .dmf-portfolio-single__next-project-label{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:700!important;line-height:1.2!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--gcid-dmf-muted,#486262)!important}
-.dmf-portfolio-single__post-nav{margin:0!important}
+.dmf-portfolio-single__post-nav{margin:0!important;width:auto!important}
+.dmf-portfolio-single__post-nav .nav-single{display:block!important;margin:0!important;text-align:left!important}
 .dmf-portfolio-single__post-nav .nav-previous,.dmf-portfolio-single__post-nav .meta-nav:empty{display:none!important}
+.dmf-portfolio-single__post-nav .nav-next{float:none!important;display:block!important;margin:0!important;text-align:left!important}
 .dmf-portfolio-single__post-nav .nav-next a{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.15rem,1.9vw,1.45rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important;text-decoration:none!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
 .dmf-portfolio-single__post-nav .nav-next a:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
 .dmf-portfolio-single__post-nav .nav-next .meta-nav{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:1rem!important;line-height:1!important;color:inherit!important}
