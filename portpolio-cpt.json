@@ -323,45 +323,6 @@
                 "placeholder": "",
                 "prepend": "",
                 "append": ""
-            },
-            {
-                "key": "field_699c0c103ab88",
-                "label": "Next Project Title",
-                "name": "next_project_title",
-                "aria-label": "",
-                "type": "text",
-                "instructions": "",
-                "required": 0,
-                "conditional_logic": 0,
-                "wrapper": {
-                    "width": "50",
-                    "class": "",
-                    "id": ""
-                },
-                "default_value": "",
-                "maxlength": "",
-                "allow_in_bindings": 0,
-                "placeholder": "AI-Powered Ad Campaign",
-                "prepend": "",
-                "append": ""
-            },
-            {
-                "key": "field_699c0c303ab89",
-                "label": "Next Project URL",
-                "name": "next_project_url",
-                "aria-label": "",
-                "type": "url",
-                "instructions": "",
-                "required": 0,
-                "conditional_logic": 0,
-                "wrapper": {
-                    "width": "50",
-                    "class": "",
-                    "id": ""
-                },
-                "default_value": "",
-                "allow_in_bindings": 0,
-                "placeholder": "https://example.com/portfolio/next-project"
             }
         ],
         "location": [

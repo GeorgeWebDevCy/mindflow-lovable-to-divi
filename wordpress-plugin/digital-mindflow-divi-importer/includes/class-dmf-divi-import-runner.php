@@ -5212,10 +5212,68 @@ HTML;
 					'<div class="dmf-portfolio-single__next-project-label">Next Project</div>',
 					'dmf-portfolio-single__next-project-label-wrap'
 				),
-				$this->build_text_module(
-					'Portfolio Single Next Project Link',
-					'<a class="dmf-portfolio-single__next-project-link" href="' . $this->build_portfolio_single_current_meta_token( 'next_project_url' ) . '"><span class="dmf-portfolio-single__next-project-text">' . $this->build_portfolio_single_current_meta_token( 'next_project_title' ) . '</span><span aria-hidden="true">&rarr;</span></a>',
-					'dmf-portfolio-single__next-project-link-wrap'
+				$this->render_divi_block(
+					'post-nav',
+					[
+						'builderVersion' => 0.7,
+						'module'         => [
+							'meta'       => [
+								'adminLabel' => [
+									'desktop' => [
+										'value' => 'Portfolio Single Next Project Navigation',
+									],
+								],
+							],
+							'advanced'   => [
+								'inSameTerm'   => [
+									'desktop' => [
+										'value' => 'off',
+									],
+								],
+								'taxonomyName' => [
+									'desktop' => [
+										'value' => '',
+									],
+								],
+								'targetLoop'   => [
+									'desktop' => [
+										'value' => 'main_query',
+									],
+								],
+							],
+							'decoration' => [
+								'attributes' => $this->build_custom_attributes(
+									[
+										'class' => 'dmf-portfolio-single__post-nav',
+									]
+								),
+							],
+						],
+						'links'          => [
+							'advanced' => [
+								'prevText' => [
+									'desktop' => [
+										'value' => '',
+									],
+								],
+								'nextText' => [
+									'desktop' => [
+										'value' => '%title',
+									],
+								],
+								'showPrev' => [
+									'desktop' => [
+										'value' => 'off',
+									],
+								],
+								'showNext' => [
+									'desktop' => [
+										'value' => 'on',
+									],
+								],
+							],
+						],
+					]
 				),
 			],
 			'dmf-portfolio-single__next-project'
@@ -5430,7 +5488,7 @@ HTML;
 .dmf-portfolio-single__back-link:hover{opacity:1!important;color:var(--gcid-dmf-white,#fafafa)!important}
 .dmf-portfolio-single__back-link-arrow{font-size:1rem!important;line-height:1!important}
 .dmf-portfolio-single__badge-list{display:flex!important;flex-wrap:wrap!important;gap:.5rem!important}
-.dmf-portfolio-single__badge-list:empty,.dmf-portfolio-single__subtitle:empty,.dmf-portfolio-single__quote-role:empty,.dmf-portfolio-single__quote-author:empty,.dmf-portfolio-single__next-project-link:empty{display:none!important}
+.dmf-portfolio-single__badge-list:empty,.dmf-portfolio-single__subtitle:empty,.dmf-portfolio-single__quote-role:empty,.dmf-portfolio-single__quote-author:empty{display:none!important}
 .dmf-portfolio-single__badge-list a{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:.5rem .95rem!important;border-radius:999px!important;background:var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:700!important;line-height:1.1!important;letter-spacing:.02em!important;text-decoration:none!important}
 .dmf-portfolio-single__title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2.6rem,5vw,4.4rem)!important;font-weight:700!important;line-height:1.05!important;color:var(--gcid-dmf-white,#fafafa)!important}
 .dmf-portfolio-single__subtitle{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(1rem,calc(1rem + .24vw),1.18rem)!important;line-height:1.7!important;color:rgba(250,250,250,.76)!important}
@@ -5472,10 +5530,13 @@ HTML;
 .dmf-portfolio-single__quote-role{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.5!important;color:rgba(250,250,250,.68)!important}
 .dmf-portfolio-single__bottom-row{align-items:center!important}
 .dmf-portfolio-single__next-project{display:flex!important;flex-direction:column!important;gap:.45rem!important}
-.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__next-project-link[href=""]),.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__next-project-text:empty){display:none!important}
+.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__post-nav:empty),.dmf-portfolio-single__next-project:has(.dmf-portfolio-single__post-nav .nav-next:empty){display:none!important}
 .dmf-portfolio-single__next-project-label{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-xs)!important;font-weight:700!important;line-height:1.2!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--gcid-dmf-muted,#486262)!important}
-.dmf-portfolio-single__next-project-link{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.15rem,1.9vw,1.45rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important;text-decoration:none!important}
-.dmf-portfolio-single__next-project-link:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-single__post-nav{margin:0!important}
+.dmf-portfolio-single__post-nav .nav-previous,.dmf-portfolio-single__post-nav .meta-nav:empty{display:none!important}
+.dmf-portfolio-single__post-nav .nav-next a{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.15rem,1.9vw,1.45rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important;text-decoration:none!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+.dmf-portfolio-single__post-nav .nav-next a:hover{opacity:1!important;color:var(--gcid-dmf-accent,#941213)!important}
+.dmf-portfolio-single__post-nav .nav-next .meta-nav{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:1rem!important;line-height:1!important;color:inherit!important}
 .dmf-portfolio-single__cta-wrap{display:flex!important;justify-content:flex-end!important}
 .dmf-portfolio-single__cta-link{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:.55rem!important;padding:.95rem 1.5rem!important;border-radius:1rem!important;border:1px solid var(--gcid-dmf-accent,#941213)!important;background:linear-gradient(135deg,var(--gcid-dmf-accent,#941213),var(--gcid-dmf-accent-deep,#893637))!important;color:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-accent,#941213) 24%,transparent)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-base)!important;font-weight:700!important;line-height:1.1!important;text-decoration:none!important}
 .dmf-portfolio-single__cta-link:hover{opacity:1!important;transform:translateY(-1px)!important}
