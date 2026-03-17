@@ -4905,7 +4905,7 @@ HTML;
 					'dmf-portfolio-single__content-row',
 					[
 						'width'      => '100%',
-						'max-width'  => '70rem',
+						'max-width'  => '62rem',
 						'margin'     => '0 auto',
 						'padding'    => 'clamp(3rem, 6vw, 4.75rem) 1.5rem clamp(4rem, 8vw, 5.5rem)',
 						'box-sizing' => 'border-box',
@@ -5505,7 +5505,7 @@ HTML;
 	private function build_portfolio_single_styles_markup() {
 		return <<<'HTML'
 <style>
-.dmf-portfolio-single__hero-row,.dmf-portfolio-single__metrics-row,.dmf-portfolio-single__content-row,.dmf-portfolio-single__bottom-row{max-width:none!important}
+.dmf-portfolio-single__hero-row,.dmf-portfolio-single__metrics-row,.dmf-portfolio-single__content-row,.dmf-portfolio-single__bottom-row{width:100%!important;margin-left:auto!important;margin-right:auto!important}
 .dmf-portfolio-single__hero-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1rem!important}
 .dmf-portfolio-single__back-link{display:inline-flex!important;align-items:center!important;gap:.55rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;font-weight:600!important;line-height:1.4!important;color:rgba(250,250,250,.72)!important;text-decoration:none!important}
 .dmf-portfolio-single__back-link:hover{opacity:1!important;color:var(--gcid-dmf-white,#fafafa)!important}
