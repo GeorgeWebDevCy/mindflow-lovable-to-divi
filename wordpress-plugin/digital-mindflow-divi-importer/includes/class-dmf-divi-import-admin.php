@@ -12,6 +12,8 @@ class DMF_Divi_Import_Admin {
 
 	const FIX_ACTION = 'dmf_divi_importer_fix_portfolio_loops';
 
+	const PORTFOLIO_BODY_ACTION = 'dmf_divi_importer_refresh_portfolio_body';
+
 	const HEADER_DIAGNOSTIC_ACTION = 'dmf_divi_importer_capture_header_diagnostics';
 
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
@@ -24,6 +26,7 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_menu', [ __CLASS__, 'register_page' ] );
 		add_action( 'admin_post_' . self::ACTION, [ __CLASS__, 'handle_run' ] );
 		add_action( 'admin_post_' . self::FIX_ACTION, [ __CLASS__, 'handle_fix_portfolio_loops' ] );
+		add_action( 'admin_post_' . self::PORTFOLIO_BODY_ACTION, [ __CLASS__, 'handle_refresh_portfolio_body' ] );
 		add_action( 'admin_post_' . self::HEADER_DIAGNOSTIC_ACTION, [ __CLASS__, 'handle_capture_header_diagnostics' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 	}
@@ -123,6 +126,51 @@ class DMF_Divi_Import_Admin {
 			DMF_Divi_Import_Logger::log(
 				'error',
 				'Portfolio loop fix action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_refresh_portfolio_body() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::PORTFOLIO_BODY_ACTION );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Portfolio body layout refreshed.',
+			'summary' => [],
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin portfolio body refresh submitted.' );
+
+		try {
+			$summary = $runner->refresh_portfolio_single_template();
+
+			$report['summary'] = [
+				'theme_updated' => $summary['updated'] ?? [],
+				'warnings'      => $summary['warnings'] ?? [],
+			];
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Portfolio body layout refresh failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Portfolio body refresh action failed.',
 				[
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
@@ -369,6 +417,20 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-secondary">
 						Fix Portfolio Loops
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::PORTFOLIO_BODY_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::PORTFOLIO_BODY_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Refresh Portfolio Body Layout Only</h2>
+				<p>Rebuild only the dedicated Theme Builder body template for single <code>portfolio</code> posts. This does not reimport the global header, global footer, Home page, Portfolio page, or menu.</p>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! empty( $missing_files ) || ! $divi_ready ); ?>>
+						Refresh Portfolio Body Layout Only
 					</button>
 				</p>
 			</form>

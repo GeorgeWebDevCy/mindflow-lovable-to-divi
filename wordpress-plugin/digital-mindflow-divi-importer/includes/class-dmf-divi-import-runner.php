@@ -252,6 +252,29 @@ class DMF_Divi_Import_Runner {
 		return $summary;
 	}
 
+	public function refresh_portfolio_single_template( array $args = [] ) {
+		$this->warnings = [];
+		$this->log(
+			'info',
+			'Portfolio single template refresh started.',
+			[
+				'dry_run' => ! empty( $args['dry_run'] ),
+			]
+		);
+
+		$dry_run = ! empty( $args['dry_run'] );
+		$summary = $this->upsert_portfolio_single_theme_template( $dry_run );
+
+		if ( ! $dry_run && ( ! isset( $args['flush_cache'] ) || ! empty( $args['flush_cache'] ) ) ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Portfolio single template refresh completed.', $summary );
+
+		return $summary;
+	}
+
 	public function capture_header_diagnostics( array $args = [] ) {
 		$home_slug    = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
 		$diagnostics  = [
