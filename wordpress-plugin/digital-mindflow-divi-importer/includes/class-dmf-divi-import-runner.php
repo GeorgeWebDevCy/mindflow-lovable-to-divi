@@ -934,7 +934,7 @@ class DMF_Divi_Import_Runner {
 
 	private function build_portfolio_hero_section() {
 		$markup = <<<'HTML'
-<div style="background:var(--gcid-dmf-primary, #2b5b5b);width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding:clamp(6rem, 10vw, 7.5rem) 1.5rem clamp(4rem, 8vw, 5.5rem);text-align:center">
+<div style="background:#181D25;width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding:clamp(6rem, 10vw, 7.5rem) 1.5rem clamp(4rem, 8vw, 5.5rem);text-align:center">
 	<div style="max-width:64rem;margin:0 auto">
 		<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 74%, transparent);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">Our Work</div>
 		<h1 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2.5rem, 6vw, 4.25rem);font-weight:700;line-height:1.1;color:var(--gcid-dmf-white, #fafafa);margin:0 0 1.125rem 0">Recent <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Projects</span></h1>
