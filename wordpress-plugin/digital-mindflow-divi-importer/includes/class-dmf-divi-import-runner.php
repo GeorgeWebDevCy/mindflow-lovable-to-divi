@@ -2775,8 +2775,14 @@ HTML;
 			$steps[] = $this->build_group_module(
 				sprintf( 'Process Step %d', $index + 1 ),
 				[
-					$this->build_text_module( sprintf( 'Process Number %d', $index + 1 ), '<div class="dmf-process-number">' . esc_html( $step['step'] ) . '</div>', 'dmf-home-text' ),
-					$this->build_text_module( sprintf( 'Process Icon %d', $index + 1 ), '<div class="dmf-process-icon-frame">' . $this->build_icon_markup( $step['icon'] ) . '</div>', 'dmf-home-text' ),
+					$this->build_group_module(
+						sprintf( 'Process Step Head %d', $index + 1 ),
+						[
+							$this->build_text_module( sprintf( 'Process Number %d', $index + 1 ), '<div class="dmf-process-number">' . esc_html( $step['step'] ) . '</div>', 'dmf-home-text' ),
+							$this->build_text_module( sprintf( 'Process Icon %d', $index + 1 ), '<div class="dmf-process-icon-frame">' . $this->build_icon_markup( $step['icon'] ) . '</div>', 'dmf-home-text' ),
+						],
+						'dmf-process-step-head'
+					),
 					$this->build_text_module( sprintf( 'Process Title %d', $index + 1 ), '<h3 class="dmf-card-title">' . esc_html( $step['title'] ) . '</h3>', 'dmf-home-text' ),
 					$this->build_text_module( sprintf( 'Process Copy %d', $index + 1 ), '<p class="dmf-card-copy">' . esc_html( $step['description'] ) . '</p>', 'dmf-home-text' ),
 				],
@@ -3321,14 +3327,17 @@ HTML,
 .dmf-service-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.7rem}
 .dmf-service-list li{position:relative;padding-left:1rem;font-family:var(--gvid-dmf-body-font);font-size:clamp(.87rem,calc(.86rem + .16vw),.98rem);line-height:1.7;color:var(--gcid-dmf-foreground,#131b26)}
 .dmf-service-list li::before{content:"";position:absolute;left:0;top:.72rem;width:.42rem;height:.42rem;border-radius:999px;background:var(--gcid-dmf-primary,#2b5b5b)}
-.dmf-process-steps{position:relative;align-items:stretch}
-.dmf-process-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.9rem}
-.dmf-process-step>.et_pb_module_inner{display:grid;grid-template-columns:auto auto;justify-content:center;align-items:center;gap:.85rem .75rem;flex:1 1 auto;width:100%;height:100%}
-.dmf-process-step>.et_pb_module_inner>.et_pb_module{margin:0 !important}
-.dmf-process-step>.et_pb_module_inner>.et_pb_module:nth-child(3),
-.dmf-process-step>.et_pb_module_inner>.et_pb_module:nth-child(4){grid-column:1 / -1;justify-self:center;width:100%}
-.dmf-process-number{display:inline-flex;align-items:center;justify-content:center;width:4rem;height:4rem;border-radius:1.15rem;background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.18rem;font-weight:700;box-shadow:0 1.25rem 3rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 15%,transparent)}
-.dmf-process-icon-frame{width:2.75rem;height:2.75rem;border-radius:999px}
+.dmf-process-steps{position:relative;align-items:start;gap:clamp(2rem,4vw,3.25rem);margin-top:clamp(.5rem,1vw,.9rem)}
+.dmf-process-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:1rem;padding:clamp(.25rem,.75vw,.5rem) 0}
+.dmf-process-step>.et_pb_module_inner{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1rem;flex:1 1 auto;width:100%;height:100%}
+.dmf-process-step>.et_pb_module_inner>.et_pb_module{margin:0 !important;width:100%}
+.dmf-process-step-head,.dmf-process-step-head>.et_pb_module_inner{display:flex;align-items:center;justify-content:center;gap:.85rem;width:auto}
+.dmf-process-step-head>.et_pb_module{margin:0 !important;width:auto}
+.dmf-process-step .et_pb_text_inner{text-align:center}
+.dmf-process-step .dmf-card-title{font-size:clamp(1.35rem,calc(1.25rem + .55vw),1.8rem);line-height:1.15;max-width:14ch;margin:0 auto}
+.dmf-process-step .dmf-card-copy{max-width:19rem;margin:0 auto;font-size:clamp(1rem,calc(.98rem + .16vw),1.08rem);line-height:1.72;text-align:center}
+.dmf-process-number{display:inline-flex;align-items:center;justify-content:center;min-width:4rem;width:4rem;height:4rem;border-radius:1.15rem;background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.18rem;font-weight:700;letter-spacing:-.02em;box-shadow:0 1.25rem 3rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 15%,transparent)}
+.dmf-process-icon-frame{width:2.95rem;height:2.95rem;border-radius:999px;box-shadow:none}
 .dmf-contact-panels{display:flex;flex-wrap:wrap;gap:2rem}
 .dmf-contact-panel{display:flex;flex-direction:column;gap:1.5rem}
 .dmf-contact-panel--info{flex:1 1 21rem;min-width:min(100%,19rem)}
@@ -3358,8 +3367,8 @@ HTML,
 .dmf-contact-form input:focus,.dmf-contact-form textarea:focus{outline:2px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 35%,transparent);outline-offset:0;border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 44%,transparent)}
 .dmf-form-submit{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;min-height:2.8rem;padding:.78rem 1.2rem;border:1px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 78%,var(--gcid-dmf-foreground,#131b26));border-radius:.62rem;background:var(--gcid-dmf-primary,#2b5b5b);background-color:var(--gcid-dmf-primary,#2b5b5b);background-image:none;color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-body-font);font-size:.92rem;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap;box-shadow:0 .95rem 1.9rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 24%,transparent);cursor:pointer;box-sizing:border-box;transition:transform .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease}
 .dmf-form-submit:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));background-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 82%,var(--gcid-dmf-foreground,#131b26));box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 28%,transparent)}
-@media (max-width: 980px){.dmf-flex-cards--three{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width: 767px){.dmf-home-hero-section{padding-top:6.5rem;padding-bottom:4.75rem}.dmf-home-hero-stack{min-height:clamp(26rem,58vh,32rem);width:100%}.dmf-home-shell-row{padding:0 1rem!important}.dmf-hero-title{max-width:12ch}.dmf-flex-cards--three{grid-template-columns:minmax(0,1fr)}.dmf-contact-panel--info,.dmf-contact-panel--form{flex-basis:100%}.dmf-home-actions{width:100%}.dmf-hero-action,.dmf-button,.dmf-button .et_pb_button,.dmf-button a.et_pb_button,.dmf-form-submit,.dmf-contact-form-shell .ff-btn-submit,.dmf-contact-form-shell button[type="submit"],.dmf-contact-form-shell input[type="submit"]{width:100%!important}}
+@media (max-width: 980px){.dmf-flex-cards--three{grid-template-columns:repeat(2,minmax(0,1fr))}.dmf-process-steps{gap:2.25rem 1.75rem}.dmf-process-step .dmf-card-copy{max-width:20rem}}
+@media (max-width: 767px){.dmf-home-hero-section{padding-top:6.5rem;padding-bottom:4.75rem}.dmf-home-hero-stack{min-height:clamp(26rem,58vh,32rem);width:100%}.dmf-home-shell-row{padding:0 1rem!important}.dmf-hero-title{max-width:12ch}.dmf-flex-cards--three{grid-template-columns:minmax(0,1fr)}.dmf-process-steps{gap:2rem}.dmf-process-step>.et_pb_module_inner{gap:.9rem}.dmf-process-step-head,.dmf-process-step-head>.et_pb_module_inner{gap:.7rem}.dmf-process-number{width:3.65rem;min-width:3.65rem;height:3.65rem}.dmf-process-icon-frame{width:2.7rem;height:2.7rem}.dmf-process-step .dmf-card-title{max-width:none}.dmf-process-step .dmf-card-copy{max-width:24rem}.dmf-contact-panel--info,.dmf-contact-panel--form{flex-basis:100%}.dmf-home-actions{width:100%}.dmf-hero-action,.dmf-button,.dmf-button .et_pb_button,.dmf-button a.et_pb_button,.dmf-form-submit,.dmf-contact-form-shell .ff-btn-submit,.dmf-contact-form-shell button[type="submit"],.dmf-contact-form-shell input[type="submit"]{width:100%!important}}
 </style>
 HTML;
 	}
