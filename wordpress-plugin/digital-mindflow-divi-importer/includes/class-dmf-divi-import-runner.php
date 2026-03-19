@@ -2390,6 +2390,8 @@ HTML;
 				return '<svg ' . $common . '><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>';
 			case 'brain-circuit':
 				return '<svg ' . $common . '><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path><path d="M9 13a4.5 4.5 0 0 0 3-4"></path><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path><path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path><path d="M6 18a4 4 0 0 1-1.967-.516"></path><path d="M12 13h4"></path><path d="M12 18h6a2 2 0 0 1 2 2v1"></path><path d="M12 8h8"></path><path d="M16 8V5a2 2 0 0 1 2-2"></path><circle cx="16" cy="13" r=".5"></circle><circle cx="18" cy="3" r=".5"></circle><circle cx="20" cy="21" r=".5"></circle><circle cx="20" cy="8" r=".5"></circle></svg>';
+			case 'sparkles':
+				return '<svg ' . $common . '><path d="M12 3.5 13.6 7.4 17.5 9 13.6 10.6 12 14.5 10.4 10.6 6.5 9 10.4 7.4Z"></path><path d="M19 13.5 19.8 15.2 21.5 16 19.8 16.8 19 18.5 18.2 16.8 16.5 16 18.2 15.2Z"></path><path d="M5 14.5 5.8 16.2 7.5 17 5.8 17.8 5 19.5 4.2 17.8 2.5 17 4.2 16.2Z"></path></svg>';
 		}
 
 		return '<svg ' . $common . '><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>';
@@ -2408,6 +2410,8 @@ HTML;
 	}
 
 	private function build_home_hero_section() {
+		$hero_eyebrow = '<div class="dmf-hero-eyebrow"><span class="dmf-hero-eyebrow__icon">' . $this->build_icon_markup( 'sparkles' ) . '</span><span class="dmf-hero-eyebrow__text">Strategy · Data · Creativity</span></div>';
+
 		$hero_actions = sprintf(
 			'<div class="dmf-home-actions"><a class="dmf-hero-action dmf-hero-action--primary" href="%1$s">Request Free Consultation</a><a class="dmf-hero-action dmf-hero-action--secondary" href="%2$s">Explore Our Services</a></div>',
 			esc_url( home_url( '/#contact' ) ),
@@ -2427,7 +2431,7 @@ HTML;
 								$this->build_group_module(
 									'Home Hero Stack',
 									[
-										$this->build_text_module( 'Home Hero Eyebrow', '<div class="dmf-hero-eyebrow">Strategy · Data · Creativity</div>', 'dmf-home-text' ),
+										$this->build_text_module( 'Home Hero Eyebrow', $hero_eyebrow, 'dmf-home-text' ),
 										$this->build_text_module( 'Home Hero Title', '<h1 class="dmf-hero-title">Providing a Strong <span class="dmf-text-gradient">Online Presence</span> Through Strategic Digital Marketing</h1>', 'dmf-home-text' ),
 										$this->build_text_module( 'Home Hero Copy', '<p class="dmf-hero-copy">We offer strategic, modern and effective solutions for businesses that want to grow their online presence. Let us take you one step closer to your business goals.</p>', 'dmf-home-text' ),
 										$this->build_text_module( 'Home Hero Actions', $hero_actions, 'dmf-home-text' ),
@@ -3261,17 +3265,19 @@ HTML,
 .dmf-home-hero-section::after{content:"";position:absolute;right:max(-6rem,calc(50% - 46rem));bottom:clamp(2rem,7vw,5rem);width:clamp(16rem,28vw,24rem);height:clamp(16rem,28vw,24rem);border-radius:999px;background:radial-gradient(circle,color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 9%,transparent) 0%,transparent 72%);pointer-events:none}
 .dmf-home-hero-stack{position:relative;z-index:1;min-height:clamp(30rem,62vh,38rem);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:1.75rem;width:min(100%,72rem);max-width:72rem;margin:0 auto;padding:clamp(1rem,2vw,1.75rem) 0}
 .dmf-home-hero-stack .et_pb_module,.dmf-home-hero-stack .et_pb_module_inner,.dmf-home-hero-stack .et_pb_text_inner{width:100%!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;text-align:center!important}
-.dmf-hero-eyebrow{display:flex;flex-direction:column;align-items:center;gap:.65rem;width:fit-content;max-width:100%;margin:0 auto;padding:0;border:none;background:none;color:var(--gcid-dmf-primary,#2b5b5b);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;text-align:center}
-.dmf-hero-eyebrow::before,.dmf-section-eyebrow::before{content:"";display:block;width:2.75rem;max-width:100%;height:1px;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 48%,var(--gcid-dmf-primary,#2b5b5b))}
+.dmf-hero-eyebrow{display:inline-flex;align-items:center;justify-content:center;gap:.6rem;max-width:100%;margin:0 auto;padding:.68rem 1.2rem;border:1px solid color-mix(in srgb,var(--gcid-dmf-accent,#941213) 26%,var(--gcid-dmf-primary,#2b5b5b));border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 88%,transparent);box-shadow:0 .5rem 1.3rem color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 5%,transparent);color:var(--gcid-dmf-primary,#2b5b5b);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.12em;text-transform:uppercase;text-align:center}
+.dmf-hero-eyebrow__icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:1rem;height:1rem}
+.dmf-hero-eyebrow__icon .dmf-inline-icon{width:100%;height:100%}
+.dmf-hero-eyebrow__text{display:block}
 .dmf-hero-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2.85rem,6vw,5.1rem);font-weight:700;line-height:1.04;color:var(--gcid-dmf-foreground,#131b26);margin:0 auto;max-width:18ch}
 .dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem,4.5vw,3.5rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground,#131b26);margin:0}
 .dmf-hero-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(1rem,calc(.98rem + .22vw),1.17rem);line-height:1.85;color:var(--gcid-dmf-muted,#486262);margin:0 auto;max-width:42rem;text-align:center}
 .dmf-section-body,.dmf-card-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.98rem,calc(.96rem + .25vw),1.16rem);line-height:1.8;color:var(--gcid-dmf-muted,#486262);margin:0;max-width:46rem}
 .dmf-section-header--center,.dmf-section-title--center,.dmf-section-body--center{text-align:center}
 .dmf-section-header--center .et_pb_text_inner,.dmf-section-title--center .et_pb_text_inner,.dmf-section-body--center .et_pb_text_inner{text-align:center !important}
-.dmf-section-header--center .dmf-section-eyebrow{margin-left:auto;margin-right:auto;align-items:center;text-align:center}
+.dmf-section-header--center .dmf-section-eyebrow{margin-left:auto;margin-right:auto;text-align:center}
 .dmf-section-body--center{margin-left:auto !important;margin-right:auto !important}
-.dmf-section-eyebrow{display:flex;flex-direction:column;align-items:flex-start;gap:.65rem;width:fit-content;max-width:100%;margin:0;font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gcid-dmf-primary,#2b5b5b);text-align:left}
+.dmf-section-eyebrow{display:block;width:fit-content;max-width:100%;margin:0;font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gcid-dmf-primary,#2b5b5b);text-align:left}
 .dmf-home-split{display:flex;flex-wrap:wrap;align-items:center;gap:clamp(2rem,4vw,4rem)}
 .dmf-home-media{flex:1 1 22rem;min-width:min(100%,19rem)}
 .dmf-home-copy{flex:1 1 24rem;min-width:min(100%,19rem);display:flex;flex-direction:column;gap:1rem}
