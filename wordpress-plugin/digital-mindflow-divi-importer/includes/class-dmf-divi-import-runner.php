@@ -3266,7 +3266,8 @@ HTML,
 .dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem,4.5vw,3.5rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground,#131b26);margin:0}
 .dmf-hero-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(1rem,calc(.98rem + .22vw),1.17rem);line-height:1.85;color:var(--gcid-dmf-muted,#486262);margin:0 auto;max-width:42rem;text-align:center}
 .dmf-section-body,.dmf-card-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.98rem,calc(.96rem + .25vw),1.16rem);line-height:1.8;color:var(--gcid-dmf-muted,#486262);margin:0;max-width:46rem}
-.dmf-section-header--center,.dmf-section-title--center,.dmf-section-body--center{text-align:center;align-self:center}
+.dmf-section-header--center,.dmf-section-title--center,.dmf-section-body--center{text-align:center}
+.dmf-section-body--center{margin-left:auto !important;margin-right:auto !important}
 .dmf-section-eyebrow{display:block;font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gcid-dmf-primary,#2b5b5b)}
 .dmf-home-split{display:flex;flex-wrap:wrap;align-items:center;gap:clamp(2rem,4vw,4rem)}
 .dmf-home-media{flex:1 1 22rem;min-width:min(100%,19rem)}
@@ -3313,6 +3314,10 @@ HTML,
 .dmf-service-list li::before{content:"";position:absolute;left:0;top:.72rem;width:.42rem;height:.42rem;border-radius:999px;background:var(--gcid-dmf-primary,#2b5b5b)}
 .dmf-process-steps{position:relative;align-items:stretch}
 .dmf-process-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.9rem}
+.dmf-process-step>.et_pb_module_inner{display:grid;grid-template-columns:auto auto;justify-content:center;align-items:center;gap:.85rem .75rem;flex:1 1 auto;width:100%;height:100%}
+.dmf-process-step>.et_pb_module_inner>.et_pb_module{margin:0 !important}
+.dmf-process-step>.et_pb_module_inner>.et_pb_module:nth-child(3),
+.dmf-process-step>.et_pb_module_inner>.et_pb_module:nth-child(4){grid-column:1 / -1;justify-self:center;width:100%}
 .dmf-process-number{display:inline-flex;align-items:center;justify-content:center;width:4rem;height:4rem;border-radius:1.15rem;background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.18rem;font-weight:700;box-shadow:0 1.25rem 3rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 15%,transparent)}
 .dmf-process-icon-frame{width:2.75rem;height:2.75rem;border-radius:999px}
 .dmf-contact-panels{display:flex;flex-wrap:wrap;gap:2rem}
