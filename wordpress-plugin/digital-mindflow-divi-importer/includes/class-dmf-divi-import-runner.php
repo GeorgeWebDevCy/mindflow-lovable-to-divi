@@ -1757,7 +1757,7 @@ class DMF_Divi_Import_Runner {
 			return <<<'HTML'
 <div style="text-align:center;padding:0.625rem 0 0.25rem">
 	<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-primary, #2b5b5b);margin-bottom:0.875rem">Portfolio</div>
-	<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.8vw, 3.4rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1rem 0">Recent <span style="display:inline-block;background:linear-gradient(135deg, var(--gcid-dmf-primary, #2b5b5b), var(--gcid-dmf-accent, #941213));color:transparent;-webkit-background-clip:text;background-clip:text">Projects</span></h2>
+	<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.8vw, 3.4rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1rem 0">Recent <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Projects</span></h2>
 	<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 auto;max-width:43.75rem">Explore a live selection of Portfolio posts powered by Divi 5's native loop builder.</p>
 </div>
 HTML;
@@ -2837,11 +2837,8 @@ HTML;
 		);
 		$accent_text_style = $this->build_inline_style(
 			[
-				'display'               => 'inline-block',
-				'background'            => 'linear-gradient(135deg, var(--gcid-dmf-primary, #2b5b5b), var(--gcid-dmf-accent, #941213))',
-				'color'                 => 'transparent',
-				'-webkit-background-clip' => 'text',
-				'background-clip'       => 'text',
+				'display' => 'inline-block',
+				'color'   => 'var(--gcid-dmf-accent, #941213)',
 			]
 		);
 		$body_style         = $this->build_inline_style(
@@ -3219,7 +3216,7 @@ HTML,
 		return <<<'HTML'
 <style id="dmf-home-runtime-styles">
 .dmf-home-runtime{display:none!important}
-.dmf-text-gradient{display:inline-block;background:linear-gradient(135deg,var(--gcid-dmf-primary,#2b5b5b),var(--gcid-dmf-accent,#941213));color:transparent;-webkit-background-clip:text;background-clip:text}
+.dmf-text-gradient{display:inline-block;color:var(--gcid-dmf-accent,#941213)}
 .dmf-home-shell-row,.dmf-home-shell-column,.dmf-home-shell,.dmf-home-text{position:relative}
 .dmf-home-shell-row{width:100%!important;max-width:100%!important;margin:0!important;padding:0 1.5rem!important;box-sizing:border-box}
 .dmf-home-shell-column{padding:0!important;margin:0 auto!important}
@@ -3228,7 +3225,7 @@ HTML,
 .dmf-home-section--light{background:var(--gcid-dmf-background,#fafafa)}
 .dmf-home-section--muted{background:var(--gcid-dmf-card,#edeced)}
 .dmf-home-hero-section{position:relative;overflow:hidden;padding:clamp(8.5rem,14vw,11rem) 0 clamp(5rem,8vw,6.5rem)}
-.dmf-home-hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 72%,transparent),color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 84%,transparent));opacity:.92}
+.dmf-home-hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 46%,transparent),color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 58%,transparent));opacity:.78}
 .dmf-home-hero-stack{position:relative;z-index:1;min-height:calc(100vh - 1rem);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:1.5rem;max-width:66rem;margin:0 auto}
 .dmf-hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;padding:.45rem 1rem;border-radius:999px;border:1px solid color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 36%,transparent);background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 8%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-sm);font-weight:700}
 .dmf-hero-title,.dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2.5rem,6.5vw,4.75rem);font-weight:700;line-height:1.08;color:var(--gcid-dmf-white,#fafafa);margin:0}
@@ -3864,14 +3861,21 @@ HTML;
 			$serialized = $content;
 		}
 
-		$replaced_contact = $this->replace_divi_section_by_label( $serialized, 'Contact Section', $this->build_contact_section() );
-		if ( is_string( $replaced_contact ) ) {
-			$serialized = $replaced_contact;
-		}
+		$home_section_replacements = [
+			'Home Hero Section'       => $this->build_home_hero_section(),
+			'About Section'           => $this->build_about_section(),
+			'Services Section'        => $this->build_services_section(),
+			'Portfolio Projects Section' => $this->build_portfolio_loop_section( 'home' ),
+			'Process Section'         => $this->build_process_section(),
+			'Contact Section'         => $this->build_contact_section(),
+		];
 
-		$replaced_hero = $this->replace_divi_section_by_label( $serialized, 'Home Hero Section', $this->build_home_hero_section() );
-		if ( is_string( $replaced_hero ) ) {
-			$serialized = $replaced_hero;
+		foreach ( $home_section_replacements as $section_label => $replacement_markup ) {
+			$replaced = $this->replace_divi_section_by_label( $serialized, $section_label, $replacement_markup );
+
+			if ( is_string( $replaced ) ) {
+				$serialized = $replaced;
+			}
 		}
 
 		$serialized = $this->upsert_divi_block_in_container_by_label(
