@@ -2134,6 +2134,13 @@ HTML;
 		);
 	}
 
+	private function build_shortcode_block( $shortcode ) {
+		return sprintf(
+			"<!-- wp:shortcode -->\n%1\$s\n<!-- /wp:shortcode -->",
+			trim( (string) $shortcode )
+		);
+	}
+
 	private function build_group_module( $admin_label, array $children, $class = '', array $style = [], array $extra_attributes = [] ) {
 		$attrs = [
 			'builderVersion' => 0.7,
@@ -2765,46 +2772,33 @@ HTML;
 	}
 
 	private function build_contact_form_markup() {
-		return <<<'HTML'
-<div class="dmf-contact-form-shell">
-	<form class="dmf-contact-form" action="mailto:info@mindflowdigital.com" method="post" enctype="text/plain">
-		<label class="dmf-form-field">
-			<span class="dmf-form-label">Full Name *</span>
-			<input type="text" name="name" maxlength="100" placeholder="Your name" required>
-		</label>
-		<label class="dmf-form-field">
-			<span class="dmf-form-label">Email Address *</span>
-			<input type="email" name="email" maxlength="255" placeholder="you@company.com" required>
-		</label>
-		<label class="dmf-form-field">
-			<span class="dmf-form-label">Message *</span>
-			<textarea name="message" rows="6" maxlength="1000" placeholder="Tell us about your project and goals..." required></textarea>
-		</label>
-		<button class="dmf-form-submit" type="submit">Send Message</button>
-	</form>
-</div>
-HTML;
+		return $this->build_group_module(
+			'Contact Form Shell',
+			[
+				$this->build_shortcode_block( '[fluentform id="4"]' ),
+			],
+			'dmf-contact-form-shell',
+			[
+				'padding'     => '1.75rem',
+				'border'      => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius' => '1.35rem',
+				'background'  => 'var(--gcid-dmf-background, #fafafa)',
+				'box-shadow'  => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent)',
+				'height'      => '100%',
+				'box-sizing'  => 'border-box',
+			]
+		);
 	}
 
 	private function build_contact_section() {
 		$email_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/email.svg' );
 		$phone_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/phone.svg' );
 		$location_icon_url = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/location-icon.svg' );
-		$send_icon_url  = esc_url( 'https://mindflowdigital.com/wp-content/uploads/2026/03/send-icon.svg' );
 
-		$wrapper_style = $this->build_inline_style(
-			[
-				'width'      => '100%',
-				'max-width'  => '82rem',
-				'margin'     => '0 auto',
-				'box-sizing' => 'border-box',
-			]
-		);
 		$header_style  = $this->build_inline_style(
 			[
-				'max-width'  => '46rem',
-				'margin'     => '0 auto 3rem',
 				'text-align' => 'center',
+				'padding'    => '0.875rem 0 0.5rem',
 			]
 		);
 		$eyebrow_style = $this->build_inline_style(
@@ -2847,29 +2841,11 @@ HTML;
 				'max-width'   => '45rem',
 			]
 		);
-		$panel_wrap_style   = $this->build_inline_style(
-			[
-				'display'         => 'flex',
-				'flex-wrap'       => 'wrap',
-				'align-items'     => 'flex-start',
-				'justify-content' => 'space-between',
-				'gap'             => '2.5rem',
-			]
-		);
 		$info_panel_style   = $this->build_inline_style(
 			[
-				'flex'           => '0 1 24rem',
-				'min-width'      => 'min(100%, 22rem)',
 				'display'        => 'flex',
 				'flex-direction' => 'column',
 				'gap'            => '1.75rem',
-			]
-		);
-		$form_panel_style   = $this->build_inline_style(
-			[
-				'flex'      => '1 1 34rem',
-				'min-width' => 'min(100%, 22rem)',
-				'display'   => 'block',
 			]
 		);
 		$info_title_style   = $this->build_inline_style(
@@ -2982,93 +2958,6 @@ HTML;
 				'box-shadow'      => '0 0.95rem 1.9rem color-mix(in srgb, var(--gcid-dmf-accent, #941213) 22%, transparent)',
 			]
 		);
-		$submit_button_style = $this->build_inline_style(
-			[
-				'display'         => 'inline-flex',
-				'align-items'     => 'center',
-				'justify-content' => 'center',
-				'align-self'      => 'flex-start',
-				'gap'             => '0.5rem',
-				'width'           => 'fit-content',
-				'max-width'       => '100%',
-				'min-height'      => '2.95rem',
-				'padding'         => '0.85rem 1.35rem',
-				'border-radius'   => '0.8rem',
-				'border'          => '0.0625rem solid color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 80%, var(--gcid-dmf-foreground, #131b26))',
-				'background'      => 'var(--gcid-dmf-primary, #2b5b5b)',
-				'color'           => 'var(--gcid-dmf-white, #fafafa)',
-				'font-family'     => 'var(--gvid-dmf-body-font)',
-				'font-size'       => '0.95rem',
-				'font-weight'     => '700',
-				'line-height'     => '1',
-				'text-decoration' => 'none',
-				'white-space'     => 'nowrap',
-				'box-shadow'      => '0 0.95rem 1.9rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 22%, transparent)',
-			]
-		);
-		$form_style          = $this->build_inline_style(
-			[
-				'display'    => 'block',
-				'margin'     => '0',
-				'padding'    => '0',
-				'width'      => '100%',
-				'box-sizing' => 'border-box',
-			]
-		);
-		$field_style         = $this->build_inline_style(
-			[
-				'display' => 'block',
-				'margin'  => '0 0 1.2rem 0',
-			]
-		);
-		$field_label_style   = $this->build_inline_style(
-			[
-				'display'     => 'block',
-				'font-family' => 'var(--gvid-dmf-body-font)',
-				'font-size'   => 'clamp(0.7637rem, calc(0.7637rem + 0.12vw), 0.8287rem)',
-				'font-weight' => '700',
-				'line-height' => '1.3',
-				'color'       => 'var(--gcid-dmf-foreground, #131b26)',
-				'margin'      => '0 0 0.5rem 0',
-			]
-		);
-		$field_input_style   = $this->build_inline_style(
-			[
-				'width'         => '100%',
-				'min-height'    => '3.1rem',
-				'padding'       => '0.95rem 1.125rem',
-				'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
-				'border-radius' => '1rem',
-				'background'    => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 28%, transparent)',
-				'font-family'   => 'var(--gvid-dmf-body-font)',
-				'font-size'     => 'clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem)',
-				'color'         => 'var(--gcid-dmf-foreground, #131b26)',
-				'box-sizing'    => 'border-box',
-			]
-		);
-		$field_textarea_style = $this->build_inline_style(
-			[
-				'width'         => '100%',
-				'min-height'    => '5.9rem',
-				'padding'       => '0.95rem 1.125rem',
-				'border'        => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
-				'border-radius' => '1rem',
-				'background'    => 'color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 28%, transparent)',
-				'font-family'   => 'var(--gvid-dmf-body-font)',
-				'font-size'     => 'clamp(0.8906rem, calc(0.8906rem + 0.18vw), 0.9938rem)',
-				'color'         => 'var(--gcid-dmf-foreground, #131b26)',
-				'box-sizing'    => 'border-box',
-				'resize'        => 'vertical',
-			]
-		);
-		$send_button_icon_style = $this->build_inline_style(
-			[
-				'display'    => 'block',
-				'width'      => '1rem',
-				'height'     => '1rem',
-				'object-fit' => 'contain',
-			]
-		);
 
 		$info_items = [
 			sprintf(
@@ -3097,53 +2986,34 @@ HTML;
 			),
 		];
 
-		$content = sprintf(
+		$header_content = sprintf(
 			<<<HTML
-<div id="contact" style="%1\$s">
-	<div style="%2\$s">
-		<div style="%3\$s">Get In Touch</div>
-		<h2 style="%4\$s">Let's <span style="%5\$s">Work Together</span></h2>
-		<p style="%6\$s">Ready to grow your online presence? Get in touch for a free consultation and let's discuss your goals.</p>
-	</div>
-	<div style="%7\$s">
-		<div style="%8\$s">
-			<div>
-				<h3 style="%9\$s">Contact Information</h3>
-				<div style="%10\$s">%11\$s</div>
-			</div>
-			<div style="%12\$s">
-				<h4 style="%13\$s">Book a Discovery Call</h4>
-				<p style="%14\$s">Schedule a free 30-minute call with our team to discuss your business goals and how we can help.</p>
-				<a href="tel:+35799882116" style="%15\$s">Call Now</a>
-			</div>
-		</div>
-		<div style="%16\$s">
-			<form action="mailto:info@mindflowdigital.com" method="post" enctype="text/plain" style="%17\$s">
-				<div style="%18\$s">
-					<label for="dmf-contact-name" style="%19\$s">Full Name *</label>
-					<input id="dmf-contact-name" type="text" name="name" placeholder="Your name" required style="%20\$s">
-				</div>
-				<div style="%18\$s">
-					<label for="dmf-contact-email" style="%19\$s">Email Address *</label>
-					<input id="dmf-contact-email" type="email" name="email" placeholder="you@company.com" required style="%20\$s">
-				</div>
-				<div style="%18\$s">
-					<label for="dmf-contact-message" style="%19\$s">Message *</label>
-					<textarea id="dmf-contact-message" name="message" rows="5" maxlength="1000" placeholder="Tell us about your project and goals..." required style="%21\$s"></textarea>
-				</div>
-				<button type="submit" style="%22\$s">Send Message <img src="%23\$s" alt="" style="%24\$s"></button>
-			</form>
-		</div>
-	</div>
+<div style="%1\$s">
+	<div style="%2\$s">Get In Touch</div>
+	<h2 style="%3\$s">Let's <span style="%4\$s">Work Together</span></h2>
+	<p style="%5\$s">Ready to grow your online presence? Get in touch for a free consultation and let's discuss your goals.</p>
 </div>
 HTML,
-			$wrapper_style,
 			$header_style,
 			$eyebrow_style,
 			$title_style,
 			$accent_text_style,
-			$body_style,
-			$panel_wrap_style,
+			$body_style
+		);
+		$info_content = sprintf(
+			<<<HTML
+<div style="%1\$s">
+	<div>
+		<h3 style="%2\$s">Contact Information</h3>
+		<div style="%3\$s">%4\$s</div>
+	</div>
+	<div style="%5\$s">
+		<h4 style="%6\$s">Book a Discovery Call</h4>
+		<p style="%7\$s">Schedule a free 30-minute call with our team to discuss your business goals and how we can help.</p>
+		<a href="tel:+35799882116" style="%8\$s">Call Now</a>
+	</div>
+</div>
+HTML,
 			$info_panel_style,
 			$info_title_style,
 			$info_links_style,
@@ -3151,28 +3021,19 @@ HTML,
 			$callout_style,
 			$callout_title_style,
 			$callout_body_style,
-			$callout_button_style,
-			$form_panel_style,
-			$form_style,
-			$field_style,
-			$field_label_style,
-			$field_input_style,
-			$field_textarea_style,
-			$submit_button_style,
-			$send_icon_url,
-			$send_button_icon_style
+			$callout_button_style
 		);
 
 		return $this->build_section_module(
 			'Contact Section',
 			[
 				$this->build_row_module(
-					'Contact Layout Row',
+					'Contact Header Row',
 					[
 						$this->build_column_module(
-							'Contact Layout Column',
+							'Contact Header Column',
 							[
-								$this->build_text_module( 'Contact Layout', $content ),
+								$this->build_text_module( 'Contact Header', $header_content ),
 							],
 							'4_4',
 							'',
@@ -3183,20 +3044,79 @@ HTML,
 						),
 					],
 					'4_4',
-					'',
+					'dmf-home-contact-header-row',
 					[
-						'width'      => '100%',
+						'width'      => 'min(82rem, calc(100% - 3rem))',
 						'max-width'  => 'none',
-						'margin'     => '0',
-						'padding'    => '0 1.5rem',
+						'margin'     => '0 auto',
+						'padding'    => '0 0 1rem',
 						'box-sizing' => 'border-box',
 					]
 				),
+				$this->build_row_module(
+					'Contact Content Row',
+					[
+						$this->build_column_module(
+							'Contact Info Column',
+							[
+								$this->build_text_module( 'Contact Info', $info_content ),
+							],
+							'2_5',
+							'dmf-home-contact-info-column',
+							[
+								'float'      => 'none',
+								'clear'      => 'none',
+								'margin'     => '0',
+								'padding'    => '0',
+								'width'      => '24rem',
+								'max-width'  => '24rem',
+								'flex'       => '0 0 24rem',
+								'box-sizing' => 'border-box',
+							]
+						),
+						$this->build_column_module(
+							'Contact Form Column',
+							[
+								$this->build_contact_form_markup(),
+							],
+							'3_5',
+							'dmf-home-contact-form-column',
+							[
+								'float'      => 'none',
+								'clear'      => 'none',
+								'margin'     => '0',
+								'padding'    => '0',
+								'width'      => 'auto',
+								'max-width'  => 'none',
+								'min-width'  => '0',
+								'flex'       => '1 1 0',
+								'box-sizing' => 'border-box',
+							]
+						),
+					],
+					'2_5,3_5',
+					'dmf-home-contact-content-row',
+					[
+						'width'           => 'min(82rem, calc(100% - 3rem))',
+						'max-width'       => 'none',
+						'margin'          => '0 auto',
+						'padding'         => '1.25rem 0 0',
+						'box-sizing'      => 'border-box',
+						'display'         => 'flex',
+						'flex-wrap'       => 'nowrap',
+						'align-items'     => 'stretch',
+						'justify-content' => 'space-between',
+						'gap'             => '2.5rem',
+					]
+				),
 			],
-			'',
+			'dmf-home-contact-section',
 			[
 				'background' => 'var(--gcid-dmf-card, #edeced)',
 				'padding'    => 'clamp(5rem, 8vw, 7rem) 0',
+			],
+			[
+				'id' => 'contact',
 			]
 		);
 	}
@@ -3354,6 +3274,14 @@ HTML,
 .dmf-callout-title{color:var(--gcid-dmf-white,#fafafa)}
 .dmf-callout-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.87rem,calc(.86rem + .16vw),.98rem);line-height:1.8;color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 74%,transparent);margin:0}
 .dmf-contact-form-shell{padding:1.75rem;border:1px solid var(--gcid-dmf-border,#a1a5a4);border-radius:1.35rem;background:var(--gcid-dmf-background,#fafafa);box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 8%,transparent)}
+.dmf-contact-form-shell form,.dmf-contact-form-shell .fluentform{margin:0}
+.dmf-contact-form-shell .ff-el-group,.dmf-contact-form-shell .ff-t-cell,.dmf-contact-form-shell .ff-btn-submit-wrapper{margin-bottom:1rem}
+.dmf-contact-form-shell .ff-el-input--label label,.dmf-contact-form-shell label{font-family:var(--gvid-dmf-body-font);font-size:clamp(.77rem,calc(.76rem + .1vw),.85rem);font-weight:700;line-height:1.35;color:var(--gcid-dmf-foreground,#131b26)}
+.dmf-contact-form-shell .ff-el-form-control,.dmf-contact-form-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="hidden"]),.dmf-contact-form-shell textarea,.dmf-contact-form-shell select{width:100%;border:1px solid var(--gcid-dmf-border,#a1a5a4);border-radius:1rem;background:var(--gcid-dmf-background,#fafafa);padding:1rem 1.1rem;font-family:var(--gvid-dmf-body-font);font-size:clamp(.89rem,calc(.88rem + .15vw),.99rem);color:var(--gcid-dmf-foreground,#131b26);box-sizing:border-box}
+.dmf-contact-form-shell textarea{resize:vertical;min-height:9.5rem}
+.dmf-contact-form-shell .ff-el-form-control:focus,.dmf-contact-form-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="hidden"]):focus,.dmf-contact-form-shell textarea:focus,.dmf-contact-form-shell select:focus{outline:2px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 35%,transparent);outline-offset:0;border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 44%,transparent)}
+.dmf-contact-form-shell .ff-btn-submit,.dmf-contact-form-shell button[type="submit"],.dmf-contact-form-shell input[type="submit"]{display:inline-flex;align-items:center;justify-content:center;min-height:2.8rem;padding:.78rem 1.2rem;border:1px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 78%,var(--gcid-dmf-foreground,#131b26));border-radius:.62rem;background:var(--gcid-dmf-primary,#2b5b5b);background-color:var(--gcid-dmf-primary,#2b5b5b);background-image:none;color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-body-font);font-size:.92rem;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap;box-shadow:0 .95rem 1.9rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 24%,transparent);cursor:pointer;box-sizing:border-box;transition:transform .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease}
+.dmf-contact-form-shell .ff-btn-submit:hover,.dmf-contact-form-shell button[type="submit"]:hover,.dmf-contact-form-shell input[type="submit"]:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));background-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 82%,var(--gcid-dmf-foreground,#131b26));box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 28%,transparent)}
 .dmf-contact-form{display:flex;flex-direction:column;gap:1rem}
 .dmf-form-field{display:flex;flex-direction:column;gap:.5rem}
 .dmf-form-label{font-family:var(--gvid-dmf-body-font);font-size:clamp(.77rem,calc(.76rem + .1vw),.85rem);font-weight:700;color:var(--gcid-dmf-foreground,#131b26)}
@@ -3363,7 +3291,7 @@ HTML,
 .dmf-form-submit{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;min-height:2.8rem;padding:.78rem 1.2rem;border:1px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 78%,var(--gcid-dmf-foreground,#131b26));border-radius:.62rem;background:var(--gcid-dmf-primary,#2b5b5b);background-color:var(--gcid-dmf-primary,#2b5b5b);background-image:none;color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-body-font);font-size:.92rem;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap;box-shadow:0 .95rem 1.9rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 24%,transparent);cursor:pointer;box-sizing:border-box;transition:transform .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease}
 .dmf-form-submit:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));background-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26));border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 82%,var(--gcid-dmf-foreground,#131b26));box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 28%,transparent)}
 @media (max-width: 980px){.dmf-flex-cards--three>.dmf-lift-card,.dmf-flex-cards--three>.dmf-process-step{flex-basis:calc((100% - 1.5rem)/2)}}
-@media (max-width: 767px){.dmf-home-hero-section{padding-top:7.5rem}.dmf-home-shell-row{padding:0 1rem!important}.dmf-flex-cards--three>.dmf-lift-card,.dmf-flex-cards--three>.dmf-process-step,.dmf-contact-panel--info,.dmf-contact-panel--form{flex-basis:100%}.dmf-home-actions{width:100%}.dmf-button{width:100%}.dmf-button .et_pb_button,.dmf-button a.et_pb_button,.dmf-form-submit{width:100%!important}}
+@media (max-width: 767px){.dmf-home-hero-section{padding-top:7.5rem}.dmf-home-shell-row{padding:0 1rem!important}.dmf-flex-cards--three>.dmf-lift-card,.dmf-flex-cards--three>.dmf-process-step,.dmf-contact-panel--info,.dmf-contact-panel--form{flex-basis:100%}.dmf-home-actions{width:100%}.dmf-button{width:100%}.dmf-button .et_pb_button,.dmf-button a.et_pb_button,.dmf-form-submit,.dmf-contact-form-shell .ff-btn-submit,.dmf-contact-form-shell button[type="submit"],.dmf-contact-form-shell input[type="submit"]{width:100%!important}}
 </style>
 HTML;
 	}
