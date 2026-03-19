@@ -2630,6 +2630,20 @@ HTML;
 				'description' => 'Next-gen advertising leveraging AI for smarter targeting, creative generation, and presence across AI answer engines.',
 				'items'       => [ 'LLM Ads (ChatGPT, Gemini, Perplexity)', 'Generative Engine Optimization (GEO)', 'CTV Ads & Shoppable Experiences', 'AI-Generated Creatives & Commercials' ],
 			],
+			[
+				'icon_type'   => 'svg',
+				'icon'        => 'graduation-cap',
+				'title'       => 'Marketing Training',
+				'description' => 'Empower your team with hands-on workshops and frameworks to execute data-driven marketing campaigns independently.',
+				'items'       => [ 'Team Workshops & Strategy Sessions', 'SEO, PPC & Social Media Training', 'Analytics & Reporting Mastery', 'Custom Playbooks & SOPs' ],
+			],
+			[
+				'icon_type'   => 'svg',
+				'icon'        => 'brain-circuit',
+				'title'       => 'AI Training',
+				'description' => 'Equip your team with the skills to integrate AI tools into everyday workflows for productivity and competitive edge.',
+				'items'       => [ 'AI Tool Mastery (ChatGPT, Midjourney & more)', 'Prompt Engineering Workshops', 'Workflow Automation with AI', 'Custom AI Playbooks & Guidelines' ],
+			],
 		];
 	}
 
@@ -4166,10 +4180,7 @@ HTML;
 	}
 
 	private function get_removed_home_service_card_labels() {
-		return [
-			'Marketing Training Card',
-			'AI Training Card',
-		];
+		return [];
 	}
 
 	private function decorate_home_info_card_markup( $markup ) {
