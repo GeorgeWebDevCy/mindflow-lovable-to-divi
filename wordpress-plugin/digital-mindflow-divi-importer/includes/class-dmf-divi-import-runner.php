@@ -3209,7 +3209,7 @@ HTML,
 			],
 			'dmf-footer-section',
 			[
-				'background' => 'var(--gcid-dmf-primary, #2b5b5b)',
+				'background' => '#181D25',
 				'margin'     => '0',
 				'padding'    => '0',
 			]
@@ -3231,7 +3231,7 @@ HTML,
 .dmf-home-hero-section{position:relative;overflow:hidden;padding:clamp(8.5rem,14vw,11rem) 0 clamp(5rem,8vw,6.5rem)}
 .dmf-home-hero-section::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 72%,transparent),color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 84%,transparent));opacity:.92}
 .dmf-home-hero-stack{position:relative;z-index:1;min-height:calc(100vh - 1rem);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:1.5rem;max-width:66rem;margin:0 auto}
-.dmf-hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;padding:.45rem 1rem;border-radius:999px;border:1px solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 28%,transparent);background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 10%,transparent);color:var(--gcid-dmf-primary,#2b5b5b);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-sm);font-weight:700}
+.dmf-hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;padding:.45rem 1rem;border-radius:999px;border:1px solid color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 36%,transparent);background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 8%,transparent);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-sm);font-weight:700}
 .dmf-hero-title,.dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2.5rem,6.5vw,4.75rem);font-weight:700;line-height:1.08;color:var(--gcid-dmf-white,#fafafa);margin:0}
 .dmf-section-title{font-size:clamp(2rem,4.5vw,3.5rem);line-height:1.12;color:var(--gcid-dmf-foreground,#131b26)}
 .dmf-hero-copy,.dmf-section-body,.dmf-card-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.98rem,calc(.96rem + .25vw),1.16rem);line-height:1.8;color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 74%,transparent);margin:0;max-width:43rem}
@@ -3250,8 +3250,8 @@ HTML,
 .dmf-button--primary .et_pb_button:hover,.dmf-button--primary a.et_pb_button:hover{background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26))!important;background-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 88%,var(--gcid-dmf-foreground,#131b26))!important;border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 82%,var(--gcid-dmf-foreground,#131b26))!important;box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 28%,transparent)!important}
 .dmf-button--accent .et_pb_button,.dmf-button--accent a.et_pb_button{color:var(--gcid-dmf-white,#fafafa)!important;background:linear-gradient(135deg,var(--gcid-dmf-accent,#941213),var(--gcid-dmf-accent-deep,#893637))!important;background-color:var(--gcid-dmf-accent,#941213)!important;border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 74%,var(--gcid-dmf-foreground,#131b26))!important;box-shadow:0 .95rem 1.9rem color-mix(in srgb,var(--gcid-dmf-accent,#941213) 24%,transparent)!important}
 .dmf-button--accent .et_pb_button:hover,.dmf-button--accent a.et_pb_button:hover{background:linear-gradient(135deg,color-mix(in srgb,var(--gcid-dmf-accent,#941213) 92%,var(--gcid-dmf-foreground,#131b26)),color-mix(in srgb,var(--gcid-dmf-accent-deep,#893637) 92%,var(--gcid-dmf-foreground,#131b26)))!important;background-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 88%,var(--gcid-dmf-foreground,#131b26))!important;border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 84%,var(--gcid-dmf-foreground,#131b26))!important;box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-accent,#941213) 28%,transparent)!important}
-.dmf-button--secondary .et_pb_button,.dmf-button--secondary a.et_pb_button{color:var(--gcid-dmf-white,#fafafa)!important;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 10%,transparent)!important;background-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 10%,transparent)!important;border-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 34%,transparent)!important;box-shadow:none!important}
-.dmf-button--secondary .et_pb_button:hover,.dmf-button--secondary a.et_pb_button:hover{background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 18%,transparent)!important;background-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 18%,transparent)!important;border-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 42%,transparent)!important}
+.dmf-button--secondary .et_pb_button,.dmf-button--secondary a.et_pb_button{color:var(--gcid-dmf-foreground,#131b26)!important;background:var(--gcid-dmf-white,#fafafa)!important;background-color:var(--gcid-dmf-white,#fafafa)!important;border-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 88%,var(--gcid-dmf-primary,#2b5b5b))!important;box-shadow:0 .95rem 1.9rem color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 16%,transparent)!important}
+.dmf-button--secondary .et_pb_button:hover,.dmf-button--secondary a.et_pb_button:hover{color:var(--gcid-dmf-foreground,#131b26)!important;background:var(--gcid-dmf-card,#edeced)!important;background-color:var(--gcid-dmf-card,#edeced)!important;border-color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 70%,var(--gcid-dmf-primary,#2b5b5b))!important;box-shadow:0 1.05rem 2.05rem color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 20%,transparent)!important}
 .dmf-hero-scroll{display:flex;justify-content:center;padding-top:.75rem}
 .dmf-hero-scroll span{display:block;width:1.5rem;height:2.5rem;border:2px solid color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 30%,transparent);border-radius:999px;position:relative}
 .dmf-hero-scroll span::before{content:"";position:absolute;left:50%;top:.45rem;width:.38rem;height:.38rem;background:var(--gcid-dmf-primary,#2b5b5b);border-radius:999px;transform:translateX(-50%);animation:dmfHeroScroll 1.5s infinite}
@@ -3862,6 +3862,11 @@ HTML;
 		$replaced_contact = $this->replace_divi_section_by_label( $serialized, 'Contact Section', $this->build_contact_section() );
 		if ( is_string( $replaced_contact ) ) {
 			$serialized = $replaced_contact;
+		}
+
+		$replaced_hero = $this->replace_divi_section_by_label( $serialized, 'Home Hero Section', $this->build_home_hero_section() );
+		if ( is_string( $replaced_hero ) ) {
+			$serialized = $replaced_hero;
 		}
 
 		$serialized = $this->upsert_divi_block_in_container_by_label(
