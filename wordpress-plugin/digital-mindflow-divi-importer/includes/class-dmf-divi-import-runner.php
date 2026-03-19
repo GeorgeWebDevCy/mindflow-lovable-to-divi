@@ -2630,15 +2630,15 @@ HTML;
 				'items'       => [ 'LLM Ads (ChatGPT, Gemini, Perplexity)', 'Generative Engine Optimization (GEO)', 'CTV Ads & Shoppable Experiences', 'AI-Generated Creatives & Commercials' ],
 			],
 			[
-				'icon_type'   => 'image',
-				'icon'        => 'https://mindflowdigital.com/wp-content/uploads/2026/03/marketing.svg',
+				'icon_type'   => 'svg',
+				'icon'        => 'graduation-cap',
 				'title'       => 'Marketing Training',
 				'description' => 'Empower your team with hands-on workshops and frameworks to execute data-driven marketing campaigns independently.',
 				'items'       => [ 'Team Workshops & Strategy Sessions', 'SEO, PPC & Social Media Training', 'Analytics & Reporting Mastery', 'Custom Playbooks & SOPs' ],
 			],
 			[
-				'icon_type'   => 'image',
-				'icon'        => 'https://mindflowdigital.com/wp-content/uploads/2026/03/ai-training.svg',
+				'icon_type'   => 'svg',
+				'icon'        => 'bot',
 				'title'       => 'AI Training',
 				'description' => 'Equip your team with the skills to integrate AI tools into everyday workflows for productivity and competitive edge.',
 				'items'       => [ 'AI Tool Mastery (ChatGPT, Midjourney & more)', 'Prompt Engineering Workshops', 'Workflow Automation with AI', 'Custom AI Playbooks & Guidelines' ],
@@ -4090,6 +4090,7 @@ HTML;
 	private function decorate_home_card_markup( $admin_label, $markup ) {
 		$admin_label = (string) $admin_label;
 		$markup      = (string) $markup;
+		$service_card_inline_icons = $this->get_home_service_card_inline_icon_map();
 
 		if ( 'About Image' === $admin_label ) {
 			return $this->remove_about_image_decorative_square( $markup );
@@ -4097,6 +4098,10 @@ HTML;
 
 		if ( array_key_exists( $admin_label, $this->get_home_process_card_icon_map() ) ) {
 			return $this->decorate_home_process_card_markup( $admin_label, $markup );
+		}
+
+		if ( isset( $service_card_inline_icons[ $admin_label ] ) ) {
+			$markup = $this->replace_home_card_inline_icon_markup( $markup, $service_card_inline_icons[ $admin_label ] );
 		}
 
 		if ( in_array( $admin_label, $this->get_home_about_card_labels(), true ) || in_array( $admin_label, $this->get_home_service_card_labels(), true ) ) {
@@ -4181,6 +4186,13 @@ HTML;
 		);
 	}
 
+	private function get_home_service_card_inline_icon_map() {
+		return [
+			'Marketing Training Card' => 'graduation-cap',
+			'AI Training Card'        => 'bot',
+		];
+	}
+
 	private function get_home_featured_project_card_labels() {
 		return [
 			'Social Media Campaign Card',
@@ -4201,6 +4213,45 @@ HTML;
 		$markup = $this->add_class_to_first_tag( $markup, 'h3', 'dmf-home-hover-title' );
 
 		return $markup;
+	}
+
+	private function replace_home_card_inline_icon_markup( $markup, $icon ) {
+		$markup      = (string) $markup;
+		$icon_markup = $this->build_icon_markup( $icon );
+		$marker      = 'display:inline-flex;width:3rem;height:3rem';
+		$start       = strpos( $markup, $marker );
+
+		if ( false === $start ) {
+			return $markup;
+		}
+
+		$content_start = strpos( $markup, '>', $start );
+
+		if ( false === $content_start ) {
+			return $markup;
+		}
+
+		$content_end = false;
+		$end_markers = [
+			"</div>\n    <h3",
+			'</div>\n    <h3',
+			"</div>\n<h3",
+			'</div>\n<h3',
+		];
+
+		foreach ( $end_markers as $end_marker ) {
+			$content_end = strpos( $markup, $end_marker, $content_start );
+
+			if ( false !== $content_end ) {
+				break;
+			}
+		}
+
+		if ( false === $content_end ) {
+			return $markup;
+		}
+
+		return substr( $markup, 0, $content_start + 1 ) . $icon_markup . substr( $markup, $content_end );
 	}
 
 	private function decorate_home_featured_project_card_markup( $markup ) {
