@@ -3334,7 +3334,7 @@ HTML,
 .dmf-process-step-head,.dmf-process-step-head>.et_pb_module_inner{display:flex;align-items:center;justify-content:center;gap:.85rem;width:auto}
 .dmf-process-step-head>.et_pb_module{margin:0 !important;width:auto}
 .dmf-process-step .et_pb_text_inner{text-align:center}
-.dmf-process-step .dmf-card-title{font-size:clamp(1.35rem,calc(1.25rem + .55vw),1.8rem);line-height:1.15;max-width:14ch;margin:0 auto}
+.dmf-process-step .dmf-card-title{font-size:clamp(1.35rem,calc(1.25rem + .55vw),1.8rem);line-height:1.15;max-width:none;margin:0 auto}
 .dmf-process-step .dmf-card-copy{max-width:19rem;margin:0 auto;font-size:clamp(1rem,calc(.98rem + .16vw),1.08rem);line-height:1.72;text-align:center}
 .dmf-process-number{display:inline-flex;align-items:center;justify-content:center;min-width:4rem;width:4rem;height:4rem;border-radius:1.15rem;background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.18rem;font-weight:700;letter-spacing:-.02em;box-shadow:0 1.25rem 3rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 15%,transparent)}
 .dmf-process-icon-frame{width:2.95rem;height:2.95rem;border-radius:999px;box-shadow:none}
