@@ -866,19 +866,24 @@ class DMF_Divi_Import_Runner {
 	private function apply_portfolio_loop_template_to_page( WP_Post $page, $context, $dry_run ) {
 		$current_content = (string) $page->post_content;
 		$replacement     = $this->build_portfolio_loop_section( (string) $context );
+		$content         = $current_content;
 
-		if ( false !== strpos( $current_content, $replacement ) ) {
-			return 'unchanged';
+		if ( false === strpos( $current_content, $replacement ) ) {
+			$content = $this->replace_existing_portfolio_loop_markup(
+				$current_content,
+				(string) $context,
+				$replacement
+			);
+
+			if ( null === $content ) {
+				return 'missing-section';
+			}
 		}
 
-		$content = $this->replace_existing_portfolio_loop_markup(
-			$current_content,
-			(string) $context,
-			$replacement
-		);
+		$content = $this->apply_named_page_layout_fixes( $page, $content );
 
-		if ( null === $content ) {
-			return 'missing-section';
+		if ( $content === $current_content ) {
+			return 'unchanged';
 		}
 
 		if ( $dry_run ) {
@@ -924,6 +929,35 @@ class DMF_Divi_Import_Runner {
 			$content,
 			'Portfolio Projects Section',
 			$replacement
+		);
+	}
+
+	private function build_portfolio_hero_section() {
+		$markup = <<<'HTML'
+<div style="background:var(--gcid-dmf-primary, #2b5b5b);width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding:clamp(6rem, 10vw, 7.5rem) 1.5rem clamp(4rem, 8vw, 5.5rem);text-align:center">
+	<div style="max-width:64rem;margin:0 auto">
+		<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 74%, transparent);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">Our Work</div>
+		<h1 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2.5rem, 6vw, 4.25rem);font-weight:700;line-height:1.1;color:var(--gcid-dmf-white, #fafafa);margin:0 0 1.125rem 0">Recent <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Projects</span></h1>
+		<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(1.0575rem, calc(1.0575rem + 0.24vw), 1.2375rem);line-height:1.8;color:color-mix(in srgb, var(--gcid-dmf-white, #fafafa) 72%, transparent);max-width:42rem;margin:0 auto">Explore our portfolio of successful campaigns and projects. Each case study showcases our strategic approach and measurable results.</p>
+	</div>
+</div>
+HTML;
+
+		return $this->build_section_module(
+			'Portfolio Hero Section',
+			[
+				$this->build_row_module(
+					'Portfolio Hero Row',
+					[
+						$this->build_column_module(
+							'Portfolio Hero Column',
+							[
+								$this->build_text_module( 'Portfolio Hero', $markup ),
+							]
+						),
+					]
+				),
+			]
 		);
 	}
 
@@ -3835,12 +3869,33 @@ HTML;
 		return (int) $page->ID === $front_page_id || 'home' === sanitize_title( (string) $page->post_name );
 	}
 
+	private function is_portfolio_target_page( WP_Post $page ) {
+		$slug  = sanitize_title( (string) $page->post_name );
+		$title = sanitize_title( (string) $page->post_title );
+
+		return 'portfolio' === $slug || 'portfolio' === $title;
+	}
+
 	private function apply_named_page_layout_fixes( WP_Post $page, $content ) {
 		if ( $this->is_home_target_page( $page ) ) {
 			return $this->apply_home_page_layout_fixes( $content );
 		}
 
+		if ( $this->is_portfolio_target_page( $page ) ) {
+			return $this->apply_portfolio_page_layout_fixes( $content );
+		}
+
 		return (string) $content;
+	}
+
+	private function apply_portfolio_page_layout_fixes( $content ) {
+		$updated = $this->replace_divi_section_by_label(
+			(string) $content,
+			'Portfolio Hero Section',
+			$this->build_portfolio_hero_section()
+		);
+
+		return is_string( $updated ) ? $updated : (string) $content;
 	}
 
 	private function apply_home_page_layout_fixes( $content ) {
