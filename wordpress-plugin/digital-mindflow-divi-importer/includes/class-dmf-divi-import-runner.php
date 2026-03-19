@@ -3353,7 +3353,7 @@ HTML;
 		return <<<'HTML'
 <style id="dmf-footer-runtime-styles">
 .dmf-footer-runtime{display:none!important}
-.dmf-text-gradient{display:inline-block;background:linear-gradient(135deg,var(--gcid-dmf-primary,#2b5b5b),var(--gcid-dmf-accent,#941213));color:transparent;-webkit-background-clip:text;background-clip:text}
+.dmf-text-gradient{display:inline-block;color:var(--gcid-dmf-accent,#941213)}
 .dmf-footer-row,.dmf-footer-column{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}
 .dmf-footer-shell{width:min(80rem,calc(100% - 3rem));margin:0 auto;padding:4rem 0 2rem;display:flex;flex-direction:column;gap:3rem}
 .dmf-footer-columns{display:flex;flex-wrap:wrap;gap:2.5rem}
