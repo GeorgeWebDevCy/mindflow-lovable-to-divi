@@ -40,15 +40,15 @@
     [
       "gcid-dmf-primary",
       {
-        "color": "#131b26",
-        "label": "DMF Primary Surface",
+        "color": "#2b5b5b",
+        "label": "DMF Primary",
         "status": "active"
       }
     ],
     [
       "gcid-dmf-overlay",
       {
-        "color": "#2b5b5b",
+        "color": "#131b26",
         "label": "DMF Overlay",
         "status": "active"
       }
@@ -65,7 +65,7 @@
       "gcid-dmf-accent",
       {
         "color": "#941213",
-        "label": "DMF Accent",
+        "label": "DMF Secondary",
         "status": "active"
       }
     ],
@@ -73,7 +73,7 @@
       "gcid-dmf-accent-deep",
       {
         "color": "#893637",
-        "label": "DMF Accent Deep",
+        "label": "DMF Secondary Deep",
         "status": "active"
       }
     ],
