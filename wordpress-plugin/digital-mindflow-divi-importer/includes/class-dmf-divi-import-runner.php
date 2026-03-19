@@ -4515,7 +4515,19 @@ HTML;
 
 		if ( $dry_run ) {
 			$updated = array_merge( $updated, $this->normalize_divi_header_theme_options( true ) );
-			$portfolio_template = $this->upsert_portfolio_single_theme_template( true );
+			$portfolio_template = $this->upsert_portfolio_single_theme_template(
+				true,
+				[
+					'header' => [
+						'id'      => $layout_ids['header'],
+						'enabled' => ! empty( $template_export['layouts']['header']['enabled'] ),
+					],
+					'footer' => [
+						'id'      => $layout_ids['footer'],
+						'enabled' => ! empty( $template_export['layouts']['footer']['enabled'] ),
+					],
+				]
+			);
 			$updated            = array_merge( $updated, $portfolio_template['updated'] );
 
 			foreach (
@@ -4584,7 +4596,19 @@ HTML;
 
 		$this->attach_template_to_theme_builder_post( $theme_builder_id, (int) $template_id );
 
-		$portfolio_template = $this->upsert_portfolio_single_theme_template( false );
+		$portfolio_template = $this->upsert_portfolio_single_theme_template(
+			false,
+			[
+				'header' => [
+					'id'      => $layout_ids['header'],
+					'enabled' => ! empty( $template_export['layouts']['header']['enabled'] ),
+				],
+				'footer' => [
+					'id'      => $layout_ids['footer'],
+					'enabled' => ! empty( $template_export['layouts']['footer']['enabled'] ),
+				],
+			]
+		);
 		$updated            = array_merge( $updated, $portfolio_template['updated'] );
 		$updated            = array_merge(
 			$updated,
@@ -4610,7 +4634,7 @@ HTML;
 		return $updated;
 	}
 
-	private function upsert_portfolio_single_theme_template( $dry_run ) {
+	private function upsert_portfolio_single_theme_template( $dry_run, array $chrome_layouts = [] ) {
 		$existing_template       = $this->get_existing_portfolio_single_template();
 		$existing_body_layout_id = $existing_template
 			? (int) get_post_meta( $existing_template->ID, '_et_body_layout_id', true )
@@ -4622,9 +4646,18 @@ HTML;
 		);
 		$template_title          = 'Digital MindFlow Portfolio Single';
 		$template_id             = $existing_template ? (int) $existing_template->ID : 0;
+		$chrome_layouts          = $this->resolve_portfolio_single_chrome_layouts( $existing_template, $chrome_layouts );
 		$updated                 = [
 			sprintf( 'Portfolio single body layout #%d', $body_layout_id ),
 		];
+
+		if ( (int) $chrome_layouts['header']['id'] > 0 ) {
+			$updated[] = sprintf( 'Portfolio single header layout #%d', (int) $chrome_layouts['header']['id'] );
+		}
+
+		if ( (int) $chrome_layouts['footer']['id'] > 0 ) {
+			$updated[] = sprintf( 'Portfolio single footer layout #%d', (int) $chrome_layouts['footer']['id'] );
+		}
 
 		if ( $dry_run ) {
 			$updated[] = sprintf(
@@ -4657,18 +4690,12 @@ HTML;
 				'use_on'              => [ $this->get_portfolio_single_template_condition() ],
 				'exclude_from'        => [],
 				'layouts'             => [
-					'header' => [
-						'id'      => 0,
-						'enabled' => '1',
-					],
+					'header' => $chrome_layouts['header'],
 					'body'   => [
 						'id'      => $body_layout_id,
 						'enabled' => '1',
 					],
-					'footer' => [
-						'id'      => 0,
-						'enabled' => '1',
-					],
+					'footer' => $chrome_layouts['footer'],
 				],
 			],
 			true
@@ -4685,6 +4712,48 @@ HTML;
 			'template_id' => (int) $template_id,
 			'updated'     => $updated,
 		];
+	}
+
+	private function resolve_portfolio_single_chrome_layouts( $existing_template = null, array $preferred_layouts = [] ) {
+		$default_template = $this->get_existing_default_template();
+		$layouts          = [];
+
+		foreach ( [ 'header', 'footer' ] as $layout_type ) {
+			$layout_id = 0;
+			$enabled   = '1';
+
+			if ( ! empty( $preferred_layouts[ $layout_type ] ) && is_array( $preferred_layouts[ $layout_type ] ) ) {
+				$layout_id = (int) ( $preferred_layouts[ $layout_type ]['id'] ?? 0 );
+				$enabled   = ! empty( $preferred_layouts[ $layout_type ]['enabled'] ) ? '1' : '0';
+			}
+
+			if ( $layout_id <= 0 && $default_template instanceof WP_Post ) {
+				$layout_id = (int) get_post_meta( $default_template->ID, "_et_{$layout_type}_layout_id", true );
+				$enabled   = '1' === (string) get_post_meta( $default_template->ID, "_et_{$layout_type}_layout_enabled", true ) ? '1' : '0';
+			}
+
+			if ( $layout_id <= 0 && $existing_template instanceof WP_Post ) {
+				$layout_id = (int) get_post_meta( $existing_template->ID, "_et_{$layout_type}_layout_id", true );
+				$enabled   = '1' === (string) get_post_meta( $existing_template->ID, "_et_{$layout_type}_layout_enabled", true ) ? '1' : '0';
+			}
+
+			if ( $layout_id <= 0 ) {
+				$this->warn(
+					sprintf(
+						'Global %s layout is not available for explicit portfolio single template assignment.',
+						$layout_type
+					)
+				);
+				$enabled = '1';
+			}
+
+			$layouts[ $layout_type ] = [
+				'id'      => $layout_id,
+				'enabled' => $enabled,
+			];
+		}
+
+		return $layouts;
 	}
 
 	private function build_portfolio_single_body_layout_export() {
