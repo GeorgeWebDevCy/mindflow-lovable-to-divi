@@ -6435,6 +6435,15 @@ HTML;
 		min-height:0 !important;
 		padding:0 !important;
 	}
+	.dmf-global-header-shell,
+	.dmf-global-header-shell .dmf-global-header-row,
+	.dmf-global-header-shell .dmf-global-header-column,
+	.dmf-global-header-shell .dmf-global-header-menu,
+	.dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__wrap,
+	.dmf-global-header-shell .dmf-global-header-menu .et_mobile_nav_menu,
+	.dmf-global-header-shell .dmf-global-header-menu .mobile_nav{
+		overflow:visible !important;
+	}
 	.dmf-global-header-shell{
 		padding-top:.75rem !important;
 	}
@@ -6446,6 +6455,7 @@ HTML;
 		display:flex !important;
 		align-items:center !important;
 		margin-left:auto !important;
+		min-height:44px !important;
 		position:relative !important;
 		z-index:3 !important;
 	}
@@ -6459,6 +6469,14 @@ HTML;
 	}
 	.dmf-global-header-shell .dmf-global-header-menu .mobile_nav>.et_mobile_menu{
 		display:none !important;
+		position:absolute !important;
+		top:calc(100% + .85rem) !important;
+		right:0 !important;
+		left:auto !important;
+		margin-top:0 !important;
+		width:min(22rem,calc(100vw - 2rem)) !important;
+		max-width:calc(100vw - 2rem) !important;
+		z-index:1000 !important;
 	}
 	.dmf-global-header-shell .dmf-global-header-menu .mobile_nav.opened>.et_mobile_menu{
 		display:block !important;
