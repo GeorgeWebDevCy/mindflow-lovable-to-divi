@@ -6442,6 +6442,39 @@ HTML;
 		min-height:4.35rem !important;
 		padding:0 1rem !important;
 	}
+	.dmf-global-header-shell .dmf-global-header-menu .et_mobile_nav_menu{
+		display:flex !important;
+		align-items:center !important;
+		margin-left:auto !important;
+		position:relative !important;
+		z-index:3 !important;
+	}
+	.dmf-global-header-shell .dmf-global-header-menu .mobile_nav{
+		display:flex !important;
+		align-items:center !important;
+		cursor:pointer !important;
+		min-height:44px !important;
+		position:relative !important;
+		z-index:3 !important;
+	}
+	.dmf-global-header-shell .dmf-global-header-menu .mobile_menu_bar{
+		display:flex !important;
+		align-items:center !important;
+		justify-content:center !important;
+		min-width:44px !important;
+		min-height:44px !important;
+		padding:0 !important;
+		position:relative !important;
+		cursor:pointer !important;
+	}
+	.dmf-global-header-shell .dmf-global-header-menu .mobile_menu_bar:before{
+		display:block !important;
+		position:relative !important;
+		top:0 !important;
+		left:0 !important;
+		cursor:pointer !important;
+		pointer-events:none !important;
+	}
 }
 </style>
 <script id="dmf-header-runtime-script">
