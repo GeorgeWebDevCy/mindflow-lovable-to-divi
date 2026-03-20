@@ -6492,6 +6492,11 @@ HTML;
 	var threshold=12;
 	var observer=null;
 	var menuObserver=null;
+	var lastMobileToggleEvent={
+		nav:null,
+		time:0,
+		type:''
+	};
 	var headerStyles={
 		backgroundTop:'transparent',
 		backgroundScrolled:'transparent',
@@ -6567,8 +6572,62 @@ HTML;
 	function getMobileToggle(nav){
 		return nav ? nav.querySelector('.mobile_menu_bar') : null;
 	}
+	function getMobileNavContainer(target){
+		return target && target.closest ? target.closest('.dmf-global-header-menu .et_mobile_nav_menu') : null;
+	}
 	function getClosestMobileNav(target){
 		return target && target.closest ? target.closest(mobileNavSelector) : null;
+	}
+	function resolveMobileNav(target){
+		var nav=getClosestMobileNav(target);
+		if(nav){return nav;}
+		var container=getMobileNavContainer(target);
+		return container ? container.querySelector('.mobile_nav') : null;
+	}
+	function stopEvent(event){
+		if(!event){return;}
+		if('function'===typeof event.preventDefault){
+			event.preventDefault();
+		}
+		if('function'===typeof event.stopPropagation){
+			event.stopPropagation();
+		}
+		if('function'===typeof event.stopImmediatePropagation){
+			event.stopImmediatePropagation();
+		}
+		event.cancelBubble=true;
+	}
+	function isBurstToggleEventType(type){
+		return 'click'===type || 'pointerup'===type || 'touchend'===type;
+	}
+	function shouldIgnoreDuplicateMobileToggle(event,nav){
+		if(!event || !nav){
+			return false;
+		}
+		var type=event.type || '(unknown)';
+		if(!isBurstToggleEventType(type)){
+			return false;
+		}
+		var now=Date.now();
+		if(
+			lastMobileToggleEvent.nav===nav &&
+			isBurstToggleEventType(lastMobileToggleEvent.type) &&
+			(now-lastMobileToggleEvent.time)<450
+		){
+			debugLog('ignore duplicate mobile toggle burst', {
+				type:type,
+				lastType:lastMobileToggleEvent.type,
+				delta:now-lastMobileToggleEvent.time,
+				nav:describeNode(nav)
+			});
+			return true;
+		}
+		lastMobileToggleEvent={
+			nav:nav,
+			time:now,
+			type:type
+		};
+		return false;
 	}
 	function snapshotMobileMenus(){
 		return getMobileNavs().map(function(nav,index){
@@ -6697,6 +6756,10 @@ HTML;
 			});
 			return;
 		}
+		if(shouldIgnoreDuplicateMobileToggle(event,nav)){
+			stopEvent(event);
+			return;
+		}
 		debugLog('handleMobileToggle', {
 			type:event.type,
 			target:describeNode(event.target),
@@ -6704,12 +6767,7 @@ HTML;
 			nav:describeNode(nav),
 			beforeOpen:nav.classList.contains('opened')
 		});
-		event.preventDefault();
-		event.stopPropagation();
-		if(typeof event.stopImmediatePropagation==='function'){
-			event.stopImmediatePropagation();
-		}
-		event.cancelBubble=true;
+		stopEvent(event);
 		toggleMobileMenu(nav);
 	}
 	function bindMobileMenuFallback(nav){
@@ -6769,17 +6827,23 @@ HTML;
 		document.documentElement.setAttribute('data-dmf-mobile-delegated-bound','true');
 		function onDelegatedToggle(event){
 			var target=event.target;
+			var nav=resolveMobileNav(target);
+			if(!nav){return;}
+			var linkTarget=target && target.closest ? target.closest('.et_mobile_menu a') : null;
+			if(linkTarget){return;}
 			var toggle=target && target.closest ? target.closest('.dmf-global-header-menu .mobile_menu_bar') : null;
-			if(!toggle){return;}
-			var nav=getClosestMobileNav(toggle);
-			if(!nav){
-				debugLog('delegated toggle missing nav', { target:describeNode(target), toggle:describeNode(toggle) });
+			var clickedInsideMenu=target && target.closest ? target.closest('.dmf-global-header-menu .et_mobile_menu') : null;
+			var navContainer=getMobileNavContainer(target);
+			if(clickedInsideMenu && !toggle){return;}
+			if(!toggle && !navContainer){
+				debugLog('delegated toggle missing trigger', { target:describeNode(target), nav:describeNode(nav) });
 				return;
 			}
 			debugLog('delegated toggle event', {
 				type:event.type,
 				target:describeNode(target),
 				toggle:describeNode(toggle),
+				navContainer:describeNode(navContainer),
 				nav:describeNode(nav),
 				beforeOpen:nav.classList.contains('opened'),
 				beforeClosed:nav.classList.contains('closed')
@@ -6792,10 +6856,9 @@ HTML;
 		document.addEventListener('keydown',function(event){
 			if('Enter'!==event.key && ' '!==event.key){return;}
 			var target=event.target;
+			var nav=resolveMobileNav(target);
 			var toggle=target && target.closest ? target.closest('.dmf-global-header-menu .mobile_menu_bar') : null;
-			if(!toggle){return;}
-			var nav=getClosestMobileNav(toggle);
-			if(!nav){return;}
+			if(!toggle || !nav){return;}
 			debugLog('delegated keyboard toggle', {
 				key:event.key,
 				toggle:describeNode(toggle),
@@ -6820,7 +6883,7 @@ HTML;
 		document.addEventListener('click',function(event){
 			if(!isMobileViewport()){return;}
 			var target=event.target;
-			if(target && target.closest && target.closest('.dmf-global-header-menu .mobile_nav')){return;}
+			if(target && target.closest && target.closest('.dmf-global-header-menu .mobile_nav, .dmf-global-header-menu .et_mobile_nav_menu')){return;}
 			debugLog('dismiss mobile menus from outside click', { target:describeNode(target) });
 			closeMobileMenus();
 		},true);
