@@ -6276,7 +6276,6 @@ HTML;
 .dmf-global-header-shell .dmf-global-header-menu .et-menu-nav>ul>li>a,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,
 .dmf-global-header-shell .dmf-global-header-menu .et_mobile_menu a,
-.dmf-global-header-shell .dmf-global-header-menu .mobile_menu_bar:before,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__icon,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__search-button,
 .dmf-global-header-shell .dmf-global-header-menu .et_pb_menu__cart-button{
@@ -6300,10 +6299,32 @@ HTML;
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et-menu-nav>ul>li>a,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__menu>nav>ul>li>a,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_mobile_menu a,
-.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .mobile_menu_bar:before,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__icon,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__search-button,
 .dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .et_pb_menu__cart-button{
+	color:var(--gcid-dmf-muted,#486262) !important;
+	opacity:.9 !important;
+}
+.dmf-global-header-shell .dmf-global-header-menu .mobile_menu_bar:before{
+	color:var(--gcid-dmf-muted,#486262) !important;
+	font-family:ETmodules !important;
+	font-size:32px !important;
+	font-style:normal !important;
+	font-weight:400 !important;
+	font-feature-settings:normal !important;
+	font-variant:normal !important;
+	text-transform:none !important;
+	line-height:1 !important;
+	padding:0 !important;
+	opacity:.86 !important;
+	speak:none !important;
+	text-shadow:0 0 !important;
+	direction:ltr !important;
+	-webkit-font-smoothing:antialiased !important;
+	-moz-osx-font-smoothing:grayscale !important;
+	transition:color 220ms ease, opacity 220ms ease, background-color 220ms ease;
+}
+.dmf-global-header-shell.dmf-header-is-scrolled .dmf-global-header-menu .mobile_menu_bar:before{
 	color:var(--gcid-dmf-muted,#486262) !important;
 	opacity:.9 !important;
 }
