@@ -6567,6 +6567,9 @@ HTML;
 	function getMobileToggle(nav){
 		return nav ? nav.querySelector('.mobile_menu_bar') : null;
 	}
+	function getClosestMobileNav(target){
+		return target && target.closest ? target.closest(mobileNavSelector) : null;
+	}
 	function snapshotMobileMenus(){
 		return getMobileNavs().map(function(nav,index){
 			var menu=getDirectMobileMenu(nav);
@@ -6761,6 +6764,47 @@ HTML;
 			}
 		});
 	}
+	function bindDelegatedMobileMenuEvents(){
+		if(document.documentElement.getAttribute('data-dmf-mobile-delegated-bound')==='true'){return;}
+		document.documentElement.setAttribute('data-dmf-mobile-delegated-bound','true');
+		function onDelegatedToggle(event){
+			var target=event.target;
+			var toggle=target && target.closest ? target.closest('.dmf-global-header-menu .mobile_menu_bar') : null;
+			if(!toggle){return;}
+			var nav=getClosestMobileNav(toggle);
+			if(!nav){
+				debugLog('delegated toggle missing nav', { target:describeNode(target), toggle:describeNode(toggle) });
+				return;
+			}
+			debugLog('delegated toggle event', {
+				type:event.type,
+				target:describeNode(target),
+				toggle:describeNode(toggle),
+				nav:describeNode(nav),
+				beforeOpen:nav.classList.contains('opened'),
+				beforeClosed:nav.classList.contains('closed')
+			});
+			handleMobileToggle(event,nav);
+		}
+		document.addEventListener('click',onDelegatedToggle,true);
+		document.addEventListener('pointerup',onDelegatedToggle,true);
+		document.addEventListener('touchend',onDelegatedToggle,{passive:false,capture:true});
+		document.addEventListener('keydown',function(event){
+			if('Enter'!==event.key && ' '!==event.key){return;}
+			var target=event.target;
+			var toggle=target && target.closest ? target.closest('.dmf-global-header-menu .mobile_menu_bar') : null;
+			if(!toggle){return;}
+			var nav=getClosestMobileNav(toggle);
+			if(!nav){return;}
+			debugLog('delegated keyboard toggle', {
+				key:event.key,
+				toggle:describeNode(toggle),
+				nav:describeNode(nav)
+			});
+			handleMobileToggle(event,nav);
+		},true);
+		debugLog('delegated mobile menu listeners attached');
+	}
 	function bindMobileMenuMutationObserver(){
 		if(menuObserver || !window.MutationObserver){return;}
 		menuObserver=new MutationObserver(function(){
@@ -6843,6 +6887,7 @@ HTML;
 			width:window.innerWidth
 		});
 		bindMobileMenuDismiss();
+		bindDelegatedMobileMenuEvents();
 		bindMobileMenuMutationObserver();
 		bindMobileMenuFallbacks();
 		updateHeaders();
