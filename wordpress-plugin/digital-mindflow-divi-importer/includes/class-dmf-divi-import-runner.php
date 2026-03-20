@@ -2384,6 +2384,12 @@ HTML;
 				return '<svg ' . $common . '><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
 			case 'map-pin':
 				return '<svg ' . $common . '><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+			case 'facebook':
+				return '<svg ' . $common . '><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>';
+			case 'instagram':
+				return '<svg ' . $common . '><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37a4 4 0 1 1-1.37-1.37"></path><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line></svg>';
+			case 'linkedin':
+				return '<svg ' . $common . '><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>';
 			case 'graduation-cap':
 				return '<svg ' . $common . '><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path><path d="M22 10v6"></path><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path></svg>';
 			case 'bot':
@@ -3175,6 +3181,15 @@ HTML,
 
 	private function build_global_footer_section() {
 		$quick_links = '<div class="dmf-footer-links"><a href="/#about">About</a><a href="/#services">Services</a><a href="/#process">Process</a><a href="/#contact">Contact</a></div>';
+		$social_links = sprintf(
+			'<div class="dmf-footer-social"><a href="%1$s" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><span class="dmf-footer-social-icon">%2$s</span></a><a href="%3$s" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><span class="dmf-footer-social-icon">%4$s</span></a><a href="%5$s" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><span class="dmf-footer-social-icon">%6$s</span></a></div>',
+			esc_url( 'https://www.facebook.com/digital.mindflow' ),
+			$this->build_icon_markup( 'facebook' ),
+			esc_url( 'https://www.instagram.com/digital.mindflow/' ),
+			$this->build_icon_markup( 'instagram' ),
+			esc_url( 'https://linkedin.com/company/digital-mind-flow' ),
+			$this->build_icon_markup( 'linkedin' )
+		);
 		$contact_links = sprintf(
 			'<div class="dmf-footer-links dmf-footer-links--contact"><a href="mailto:info@mindflowdigital.com"><span class="dmf-footer-link-icon">%1$s</span><span>info@mindflowdigital.com</span></a><a href="tel:+35799882116"><span class="dmf-footer-link-icon">%2$s</span><span>+357 99 882116</span></a><span class="dmf-footer-static"><span class="dmf-footer-link-icon">%3$s</span><span>Paphos, Cyprus</span></span></div>',
 			$this->build_icon_markup( 'mail' ),
@@ -3203,6 +3218,7 @@ HTML,
 													[
 														$this->build_text_module( 'Footer Brand', '<div class="dmf-footer-brand">Digital<span class="dmf-text-gradient">MindFlow</span></div>', 'dmf-home-text' ),
 														$this->build_text_module( 'Footer Brand Copy', '<p class="dmf-footer-copy">A studio offering strategic, modern and effective digital marketing solutions for businesses that want to grow their online presence.</p>', 'dmf-home-text' ),
+														$this->build_text_module( 'Footer Social Links', $social_links, 'dmf-home-text' ),
 													],
 													'dmf-footer-brand-group'
 												),
@@ -3385,6 +3401,11 @@ HTML;
 .dmf-footer-links-group,.dmf-footer-contact-group{flex:1 1 14rem;min-width:min(100%,13rem);display:flex;flex-direction:column;gap:1rem}
 .dmf-footer-brand{font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.18rem,calc(1.14rem + .24vw),1.38rem);font-weight:700;color:var(--gcid-dmf-white,#fafafa)}
 .dmf-footer-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.84rem,calc(.82rem + .14vw),.93rem);line-height:1.8;color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 60%,transparent);margin:0;max-width:32rem}
+.dmf-footer-social{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;padding-top:.1rem}
+.dmf-footer-social a{display:inline-flex;align-items:center;justify-content:center;width:2.35rem;height:2.35rem;border:1px solid color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 14%,transparent);border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 4%,transparent);color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 76%,transparent);text-decoration:none;transition:transform .2s ease,background-color .2s ease,border-color .2s ease,color .2s ease}
+.dmf-footer-social a:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 40%,transparent);background:color-mix(in srgb,var(--gcid-dmf-accent,#941213) 14%,transparent);color:var(--gcid-dmf-white,#fafafa)}
+.dmf-footer-social-icon{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem}
+.dmf-footer-social-icon .dmf-inline-icon{width:1rem;height:1rem}
 .dmf-footer-heading{font-family:var(--gvid-dmf-heading-font);font-size:var(--gvid-dmf-text-sm);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 82%,transparent);margin:0}
 .dmf-footer-links{display:flex;flex-direction:column;gap:.8rem}
 .dmf-footer-links a,.dmf-footer-static{display:flex;align-items:center;gap:.6rem;font-family:var(--gvid-dmf-body-font);font-size:clamp(.84rem,calc(.82rem + .14vw),.93rem);color:color-mix(in srgb,var(--gcid-dmf-white,#fafafa) 62%,transparent);text-decoration:none}

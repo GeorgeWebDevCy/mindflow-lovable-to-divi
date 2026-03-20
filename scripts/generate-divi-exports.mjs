@@ -872,6 +872,40 @@ function gradientText(text) {
   })}">${escapeHtml(text)}</span>`;
 }
 
+const FOOTER_SOCIAL_LINKS = [
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/digital.mindflow",
+    icon: "facebook",
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/digital.mindflow/",
+    icon: "instagram",
+  },
+  {
+    label: "LinkedIn",
+    href: "https://linkedin.com/company/digital-mind-flow",
+    icon: "linkedin",
+  },
+];
+
+function footerSocialIconSvg(icon) {
+  const common =
+    'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+
+  switch (icon) {
+    case "facebook":
+      return `<svg ${common}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>`;
+    case "instagram":
+      return `<svg ${common}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37a4 4 0 1 1-1.37-1.37"></path><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line></svg>`;
+    case "linkedin":
+      return `<svg ${common}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>`;
+    default:
+      return `<svg ${common}><circle cx="12" cy="12" r="10"></circle></svg>`;
+  }
+}
+
 function kicker(text) {
   return `<div style="${styleString({
     "font-family": FONTS.body,
@@ -2394,6 +2428,35 @@ function buildFooterLayout() {
                       margin: "0",
                       "max-width": "32rem",
                     })}">A studio offering strategic, modern and effective digital marketing solutions for businesses that want to grow their online presence.</p>
+                    <div style="${styleString({
+                      display: "flex",
+                      "flex-wrap": "wrap",
+                      "align-items": "center",
+                      gap: "0.75rem",
+                      "padding-top": "0.125rem",
+                    })}">
+                      ${FOOTER_SOCIAL_LINKS.map(
+                        ({ label, href, icon }) =>
+                          `<a href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeAttr(label)}" style="${styleString({
+                            display: "inline-flex",
+                            "align-items": "center",
+                            "justify-content": "center",
+                            width: "2.35rem",
+                            height: "2.35rem",
+                            border: `1px solid ${rgba(COLORS.white, 0.14)}`,
+                            "border-radius": "999px",
+                            background: rgba(COLORS.white, 0.04),
+                            color: rgba(COLORS.white, 0.76),
+                            "text-decoration": "none",
+                          })}"><span style="${styleString({
+                            display: "inline-flex",
+                            "align-items": "center",
+                            "justify-content": "center",
+                            width: "1rem",
+                            height: "1rem",
+                          })}">${footerSocialIconSvg(icon)}</span></a>`
+                      ).join("")}
+                    </div>
                   </div>
                   <div>
                     <h4 style="${styleString({
