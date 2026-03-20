@@ -6508,9 +6508,36 @@ HTML;
 	var ctaLinkSelector='.dmf-global-header-menu .dmf-menu-cta>a,.dmf-global-header-menu li.dmf-menu-cta>a,.dmf-global-header-menu a.dmf-menu-cta';
 	var mobileNavSelector='.dmf-global-header-menu .mobile_nav';
 	var mobileMenuIdCounter=0;
+	var debugEnabled=false;
+	try{
+		debugEnabled=/(?:\?|&)dmfMenuDebug=1(?:&|$)/.test(window.location.search);
+		if(!debugEnabled && window.localStorage){
+			debugEnabled='1'===window.localStorage.getItem('dmfMenuDebug');
+		}
+	}catch(error){}
 	function setImportant(node,property,value){
 		if(!node){return;}
 		node.style.setProperty(property,value,'important');
+	}
+	function debugLog(){
+		if(!debugEnabled || !window.console || !console.log){return;}
+		var args=Array.prototype.slice.call(arguments);
+		args.unshift('[DMF Menu]');
+		console.log.apply(console,args);
+	}
+	function describeNode(node){
+		if(!node){return '(null)';}
+		var label=node.tagName ? node.tagName.toLowerCase() : String(node);
+		if(node.id){
+			label+='#'+node.id;
+		}
+		if(node.className && 'string'===typeof node.className){
+			var className=node.className.trim().replace(/\s+/g,'.');
+			if(className){
+				label+='.'+className;
+			}
+		}
+		return label;
 	}
 	function isMobileViewport(){
 		if(window.matchMedia){
@@ -6540,6 +6567,50 @@ HTML;
 	function getMobileToggle(nav){
 		return nav ? nav.querySelector('.mobile_menu_bar') : null;
 	}
+	function snapshotMobileMenus(){
+		return getMobileNavs().map(function(nav,index){
+			var menu=getDirectMobileMenu(nav);
+			var toggle=getMobileToggle(nav);
+			return {
+				index:index,
+				nav:describeNode(nav),
+				toggle:describeNode(toggle),
+				menu:describeNode(menu),
+				opened:!!(nav && nav.classList && nav.classList.contains('opened')),
+				menuDisplay:menu ? window.getComputedStyle(menu).display : null,
+				menuHidden:menu ? menu.hasAttribute('hidden') : null,
+				navAriaExpanded:nav ? nav.getAttribute('aria-expanded') : null,
+				toggleAriaExpanded:toggle ? toggle.getAttribute('aria-expanded') : null
+			};
+		});
+	}
+	window.__dmfMenuDebug={
+		enable:function(persist){
+			debugEnabled=true;
+			try{
+				if(false!==persist && window.localStorage){
+					window.localStorage.setItem('dmfMenuDebug','1');
+				}
+			}catch(error){}
+			debugLog('debug enabled', { viewport:isMobileViewport(), width:window.innerWidth, menus:snapshotMobileMenus() });
+		},
+		disable:function(){
+			debugEnabled=false;
+			try{
+				if(window.localStorage){
+					window.localStorage.removeItem('dmfMenuDebug');
+				}
+			}catch(error){}
+			if(window.console && console.log){
+				console.log('[DMF Menu] debug disabled');
+			}
+		},
+		inspect:function(){
+			var snapshot=snapshotMobileMenus();
+			debugLog('inspect', snapshot);
+			return snapshot;
+		}
+	};
 	function setExpandedState(node,isExpanded){
 		if(!node){return;}
 		node.setAttribute('aria-expanded',isExpanded ? 'true' : 'false');
@@ -6548,7 +6619,14 @@ HTML;
 		if(!nav){return null;}
 		var menu=getDirectMobileMenu(nav);
 		var toggle=getMobileToggle(nav);
-		if(!menu || !toggle){return null;}
+		if(!menu || !toggle){
+			debugLog('prepareMobileNav missing parts', {
+				nav:describeNode(nav),
+				menu:describeNode(menu),
+				toggle:describeNode(toggle)
+			});
+			return null;
+		}
 		if(!menu.id){
 			mobileMenuIdCounter+=1;
 			menu.id='dmf-mobile-menu-'+mobileMenuIdCounter;
@@ -6556,6 +6634,12 @@ HTML;
 		toggle.setAttribute('role','button');
 		toggle.setAttribute('tabindex','0');
 		toggle.setAttribute('aria-controls',menu.id);
+		debugLog('prepareMobileNav ready', {
+			nav:describeNode(nav),
+			toggle:describeNode(toggle),
+			menu:describeNode(menu),
+			open:nav.classList.contains('opened')
+		});
 		return {
 			menu:menu,
 			toggle:toggle
@@ -6577,10 +6661,18 @@ HTML;
 			menu.setAttribute('hidden','hidden');
 		}
 		menu.style.setProperty('display',isOpen ? 'block' : 'none','important');
+		debugLog('setMobileMenuState', {
+			nav:describeNode(nav),
+			menu:describeNode(menu),
+			isOpen:isOpen,
+			display:menu.style.getPropertyValue('display'),
+			hidden:menu.hasAttribute('hidden')
+		});
 	}
 	function closeMobileMenus(exceptNav){
 		getMobileNavs().forEach(function(nav){
 			if(exceptNav && nav===exceptNav){return;}
+			debugLog('closeMobileMenus closing', { nav:describeNode(nav), except:describeNode(exceptNav) });
 			setMobileMenuState(nav,false);
 		});
 	}
@@ -6588,11 +6680,26 @@ HTML;
 		if(!nav){return;}
 		prepareMobileNav(nav);
 		var shouldOpen=!nav.classList.contains('opened');
+		debugLog('toggleMobileMenu', { nav:describeNode(nav), shouldOpen:shouldOpen });
 		closeMobileMenus(shouldOpen ? nav : null);
 		setMobileMenuState(nav,shouldOpen);
 	}
 	function handleMobileToggle(event,nav){
-		if(!nav || !isMobileViewport()){return;}
+		if(!nav || !isMobileViewport()){
+			debugLog('handleMobileToggle ignored', {
+				type:event ? event.type : '(none)',
+				nav:describeNode(nav),
+				isMobileViewport:isMobileViewport()
+			});
+			return;
+		}
+		debugLog('handleMobileToggle', {
+			type:event.type,
+			target:describeNode(event.target),
+			currentTarget:describeNode(event.currentTarget),
+			nav:describeNode(nav),
+			beforeOpen:nav.classList.contains('opened')
+		});
 		event.preventDefault();
 		event.stopPropagation();
 		if(typeof event.stopImmediatePropagation==='function'){
@@ -6607,6 +6714,11 @@ HTML;
 		if(!prepared){return;}
 		var toggle=prepared.toggle;
 		nav.setAttribute('data-dmf-mobile-bound','true');
+		debugLog('bindMobileMenuFallback', {
+			nav:describeNode(nav),
+			toggle:describeNode(toggle),
+			menu:describeNode(prepared.menu)
+		});
 		setMobileMenuState(nav,false);
 		function onToggle(event){
 			handleMobileToggle(event,nav);
@@ -6615,6 +6727,11 @@ HTML;
 			var target=event.target;
 			var linkTarget=target && target.closest ? target.closest('.et_mobile_menu a') : null;
 			if(!linkTarget){return;}
+			debugLog('mobile menu link interaction', {
+				target:describeNode(target),
+				link:describeNode(linkTarget),
+				nav:describeNode(nav)
+			});
 			window.setTimeout(function(){
 				setMobileMenuState(nav,false);
 			},0);
@@ -6630,6 +6747,11 @@ HTML;
 		nav.addEventListener('click',onLinkInteraction,true);
 	}
 	function bindMobileMenuFallbacks(){
+		debugLog('bindMobileMenuFallbacks', {
+			count:getMobileNavs().length,
+			isMobileViewport:isMobileViewport(),
+			width:window.innerWidth
+		});
 		getMobileNavs().forEach(function(nav){
 			prepareMobileNav(nav);
 			bindMobileMenuFallback(nav);
@@ -6641,9 +6763,11 @@ HTML;
 	function bindMobileMenuMutationObserver(){
 		if(menuObserver || !window.MutationObserver){return;}
 		menuObserver=new MutationObserver(function(){
+			debugLog('menu mutation observer fired');
 			bindMobileMenuFallbacks();
 		});
 		menuObserver.observe(document.documentElement,{childList:true,subtree:true});
+		debugLog('menu mutation observer attached');
 	}
 	function bindMobileMenuDismiss(){
 		if(document.documentElement.getAttribute('data-dmf-mobile-dismiss-bound')==='true'){return;}
@@ -6652,10 +6776,12 @@ HTML;
 			if(!isMobileViewport()){return;}
 			var target=event.target;
 			if(target && target.closest && target.closest('.dmf-global-header-menu .mobile_nav')){return;}
+			debugLog('dismiss mobile menus from outside click', { target:describeNode(target) });
 			closeMobileMenus();
 		},true);
 		document.addEventListener('keydown',function(event){
 			if('Escape'!==event.key){return;}
+			debugLog('dismiss mobile menus from escape');
 			closeMobileMenus();
 		});
 	}
@@ -6710,6 +6836,11 @@ HTML;
 	function bind(){
 		if(initialized){return;}
 		initialized=true;
+		debugLog('bind runtime', {
+			readyState:document.readyState,
+			isMobileViewport:isMobileViewport(),
+			width:window.innerWidth
+		});
 		bindMobileMenuDismiss();
 		bindMobileMenuMutationObserver();
 		bindMobileMenuFallbacks();
@@ -6741,6 +6872,10 @@ HTML;
 		},220);
 	}
 	function init(){
+		debugLog('init runtime', {
+			headerCount:getHeaders().length,
+			readyState:document.readyState
+		});
 		if(getHeaders().length){
 			bind();
 			return;
