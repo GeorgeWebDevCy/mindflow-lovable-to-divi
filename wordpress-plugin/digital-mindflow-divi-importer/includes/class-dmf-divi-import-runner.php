@@ -6653,6 +6653,7 @@ HTML;
 		var toggle=prepared.toggle;
 		toggle.setAttribute('aria-label',isOpen ? 'Close menu' : 'Open menu');
 		nav.classList.toggle('opened',isOpen);
+		nav.classList.toggle('closed',!isOpen);
 		setExpandedState(nav,isOpen);
 		setExpandedState(toggle,isOpen);
 		if(isOpen){
