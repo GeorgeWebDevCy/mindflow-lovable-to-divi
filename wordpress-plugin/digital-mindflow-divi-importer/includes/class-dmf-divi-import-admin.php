@@ -20,6 +20,8 @@ class DMF_Divi_Import_Admin {
 
 	const PORTFOLIO_ENHANCEMENTS_ACTION = 'dmf_divi_importer_apply_portfolio_case_study_enhancements';
 
+	const SERVICES_SPLIT_ACTION = 'dmf_divi_importer_apply_services_page_split';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -34,6 +36,7 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::HEADER_DIAGNOSTIC_ACTION, [ __CLASS__, 'handle_capture_header_diagnostics' ] );
 		add_action( 'admin_post_' . self::CURRENT_SITE_ACTION, [ __CLASS__, 'handle_apply_current_site_exports' ] );
 		add_action( 'admin_post_' . self::PORTFOLIO_ENHANCEMENTS_ACTION, [ __CLASS__, 'handle_apply_portfolio_case_study_enhancements' ] );
+		add_action( 'admin_post_' . self::SERVICES_SPLIT_ACTION, [ __CLASS__, 'handle_apply_services_page_split' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 		add_action( 'acf/init', [ __CLASS__, 'register_portfolio_field_group' ] );
 	}
@@ -277,6 +280,57 @@ class DMF_Divi_Import_Admin {
 			DMF_Divi_Import_Logger::log(
 				'error',
 				'Portfolio case study enhancements action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_apply_services_page_split() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::SERVICES_SPLIT_ACTION );
+
+		$args = [
+			'dry_run'              => ! empty( $_POST['dry_run'] ),
+			'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
+			'home_slug'            => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin services page split submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Services page split applied.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_services_page_split( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Services page split dry run complete.'
+				: 'Services page split applied.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Services page split failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Services page split action failed.',
 				[
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
@@ -610,6 +664,48 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready || ! $acf_ready ); ?>>
 						Apply Portfolio Case Study Enhancements
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::SERVICES_SPLIT_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::SERVICES_SPLIT_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Services Page Split</h2>
+				<p>Move the full nine-card services grid onto a dedicated <code>Services</code> page, add the FluentForm section underneath it, keep only the first three service cards on the Home page, add a <code>Learn More</code> button below those cards, and sync the main WordPress navigation so <code>Services</code> points to the new page.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-services">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-services" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Options</th>
+							<td>
+								<label style="display:block; margin-bottom:8px;">
+									<input type="checkbox" name="create_missing_pages" value="1" checked>
+									Create the <code>Services</code> page automatically if it is missing
+								</label>
+								<label style="display:block;">
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Home page, Services page, and navigation changes without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
+						Apply Services Page Split
 					</button>
 				</p>
 			</form>

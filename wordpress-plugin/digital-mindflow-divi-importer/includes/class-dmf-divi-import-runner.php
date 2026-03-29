@@ -20,6 +20,11 @@ class DMF_Divi_Import_Runner {
 			'file'  => 'layout-home.json',
 		],
 		[
+			'label' => 'Services',
+			'slug'  => 'services',
+			'file'  => '__generated__:services',
+		],
+		[
 			'label' => 'Portfolio',
 			'slug'  => 'portfolio',
 			'file'  => 'layout-portfolio.json',
@@ -38,9 +43,9 @@ class DMF_Divi_Import_Runner {
 			'url'   => '/#about',
 		],
 		[
-			'type'  => 'custom',
+			'type'  => 'page',
 			'label' => 'Services',
-			'url'   => '/#services',
+			'slug'  => 'services',
 		],
 		[
 			'type'  => 'page',
@@ -74,7 +79,10 @@ class DMF_Divi_Import_Runner {
 	}
 
 	public function get_expected_export_files() {
-		$files = wp_list_pluck( $this->page_map, 'file' );
+		$files = array_filter(
+			wp_list_pluck( $this->page_map, 'file' ),
+			[ $this, 'is_static_export_file' ]
+		);
 		$files[] = 'layout-global-header.json';
 		$files[] = 'layout-global-footer.json';
 		$files[] = 'theme-builder-global-header-footer.json';
@@ -92,6 +100,12 @@ class DMF_Divi_Import_Runner {
 		}
 
 		return $missing;
+	}
+
+	private function is_static_export_file( $file ) {
+		$file = trim( (string) $file );
+
+		return '' !== $file && 0 !== strpos( $file, '__generated__:' );
 	}
 
 	public function get_current_site_exports_dir() {
@@ -120,6 +134,20 @@ class DMF_Divi_Import_Runner {
 
 	public function get_portfolio_fields_path() {
 		return wp_normalize_path( dirname( $this->exports_dir ) . '/acf/portfolio-fields.json' );
+	}
+
+	private function get_services_page_url() {
+		$page = $this->find_target_page( 'services', '', 'Services' );
+
+		if ( $page instanceof WP_Post ) {
+			$url = get_permalink( $page->ID );
+
+			if ( is_string( $url ) && '' !== trim( $url ) ) {
+				return $url;
+			}
+		}
+
+		return home_url( '/services/' );
 	}
 
 	public function is_divi_ready() {
@@ -251,7 +279,7 @@ class DMF_Divi_Import_Runner {
 					}
 				}
 
-				$export = $this->load_export_file( $this->exports_dir . '/' . $item['file'], 'et_builder' );
+				$export = $this->get_page_export( $item );
 				$this->import_global_data( $export, $dry_run );
 				$this->import_page_layout( $page, $export, $dry_run );
 
@@ -465,6 +493,111 @@ class DMF_Divi_Import_Runner {
 
 		$summary['warnings'] = $this->warnings;
 		$this->log( 'info', 'Portfolio case study enhancements completed.', $summary );
+
+		return $summary;
+	}
+
+	public function apply_services_page_split( array $args = [] ) {
+		$this->warnings = [];
+
+		$dry_run              = ! empty( $args['dry_run'] );
+		$create_missing_pages = ! empty( $args['create_missing_pages'] );
+		$home_slug            = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'Services page split started.',
+			[
+				'dry_run'              => $dry_run,
+				'create_missing_pages' => $create_missing_pages,
+				'home_slug'            => $home_slug,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 0 );
+		}
+
+		$summary = [
+			'dry_run'       => $dry_run,
+			'pages_updated' => [],
+			'pages_created' => [],
+			'pages_missing' => [],
+			'menu_updated'  => [],
+			'warnings'      => [],
+		];
+
+		$services_page             = $this->find_target_page( 'services', '', 'Services' );
+		$services_page_planned_dry = false;
+
+		if ( ! $services_page instanceof WP_Post && $create_missing_pages ) {
+			$summary['pages_created'][] = sprintf(
+				'Services (slug: services)%s',
+				$dry_run ? ' [dry run]' : ''
+			);
+
+			if ( $dry_run ) {
+				$services_page_planned_dry = true;
+			} else {
+				$services_page = $this->create_target_page(
+					[
+						'label' => 'Services',
+						'slug'  => 'services',
+					]
+				);
+			}
+		}
+
+		if ( $services_page instanceof WP_Post ) {
+			$this->import_page_layout( $services_page, $this->build_services_page_layout_export(), $dry_run );
+			$summary['pages_updated'][] = sprintf(
+				'Services (#%d)%s',
+				$services_page->ID,
+				$dry_run ? ' [dry run]' : ''
+			);
+		} elseif ( ! $services_page_planned_dry ) {
+			$summary['pages_missing'][] = 'Services';
+		}
+
+		$home_page = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+
+		if ( ! $home_page instanceof WP_Post ) {
+			$summary['pages_missing'][] = 'Home';
+		} else {
+			$home_update_state = $this->apply_home_services_section_refresh( $home_page, $dry_run );
+
+			if ( 'missing-section' === $home_update_state ) {
+				$this->warn(
+					sprintf(
+						'Could not locate the existing Services section on Home (#%d), so the three-card homepage version was not applied.',
+						$home_page->ID
+					)
+				);
+			} else {
+				$summary['pages_updated'][] = sprintf(
+					'Home (#%d)%s',
+					$home_page->ID,
+					'updated' === $home_update_state && $dry_run ? ' [dry run]' : ( 'unchanged' === $home_update_state ? ' already matches the homepage services split' : '' )
+				);
+			}
+		}
+
+		$summary['menu_updated'] = $this->sync_primary_menu( $home_slug, $dry_run, $create_missing_pages );
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Services page split completed.', $summary );
 
 		return $summary;
 	}
@@ -874,6 +1007,22 @@ class DMF_Divi_Import_Runner {
 		return null;
 	}
 
+	private function get_page_export( array $item ) {
+		$file = trim( (string) ( $item['file'] ?? '' ) );
+
+		if ( ! $this->is_static_export_file( $file ) ) {
+			$slug = sanitize_title( (string) ( $item['slug'] ?? '' ) );
+
+			if ( 'services' === $slug ) {
+				return $this->build_services_page_layout_export();
+			}
+
+			throw new RuntimeException( 'No generated page export is available for "' . (string) ( $item['label'] ?? $slug ) . '".' );
+		}
+
+		return $this->load_export_file( $this->exports_dir . '/' . $file, 'et_builder' );
+	}
+
 	private function target_slug( $slug, $home_slug = '' ) {
 		if ( '__front_page__' === $slug ) {
 			return $home_slug ? $home_slug : 'home';
@@ -1202,6 +1351,52 @@ class DMF_Divi_Import_Runner {
 		if ( is_wp_error( $result ) ) {
 			throw new RuntimeException(
 				'Failed to update portfolio loop on page #' . $page->ID . ': ' . $result->get_error_message()
+			);
+		}
+
+		$this->configure_divi_page_meta( (int) $page->ID );
+
+		return 'updated';
+	}
+
+	private function apply_home_services_section_refresh( WP_Post $page, $dry_run ) {
+		$current_content = (string) $page->post_content;
+		$replacement     = $this->build_services_section(
+			[
+				'card_limit'      => 3,
+				'show_learn_more' => true,
+			]
+		);
+
+		if ( false !== strpos( $current_content, $replacement ) ) {
+			return 'unchanged';
+		}
+
+		$content = $this->replace_divi_section_by_label( $current_content, 'Services Section', $replacement );
+
+		if ( ! is_string( $content ) ) {
+			return 'missing-section';
+		}
+
+		if ( $content === $current_content ) {
+			return 'unchanged';
+		}
+
+		if ( $dry_run ) {
+			return 'updated';
+		}
+
+		$result = wp_update_post(
+			[
+				'ID'           => $page->ID,
+				'post_content' => wp_slash( $content ),
+			],
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new RuntimeException(
+				'Failed to update Home page services section on page #' . $page->ID . ': ' . $result->get_error_message()
 			);
 		}
 
@@ -2989,10 +3184,20 @@ HTML;
 		];
 	}
 
-	private function build_services_section() {
-		$cards = [];
+	private function build_services_section( array $args = [] ) {
+		$card_limit      = isset( $args['card_limit'] ) ? max( 0, (int) $args['card_limit'] ) : 0;
+		$show_learn_more = ! empty( $args['show_learn_more'] );
+		$section_class   = trim( (string) ( $args['section_class'] ?? 'dmf-home-section dmf-home-section--muted dmf-services-section' ) );
+		$section_style   = ! empty( $args['section_style'] ) && is_array( $args['section_style'] ) ? $args['section_style'] : [];
+		$section_id      = array_key_exists( 'section_id', $args ) ? trim( (string) $args['section_id'] ) : 'services';
+		$cards           = [];
+		$cards_source    = $this->get_service_cards();
 
-		foreach ( $this->get_service_cards() as $index => $card ) {
+		if ( $card_limit > 0 ) {
+			$cards_source = array_slice( $cards_source, 0, $card_limit );
+		}
+
+		foreach ( $cards_source as $index => $card ) {
 			$icon_markup = 'svg' === $card['icon_type']
 				? $this->build_home_inline_icon_markup( $card['icon'] )
 				: $this->build_home_icon_markup( $card['icon'], $card['title'] );
@@ -3016,6 +3221,29 @@ HTML;
 			);
 		}
 
+		$shell_children = [
+			$this->build_text_module( 'Services Eyebrow', '<span class="dmf-section-eyebrow">What We Do</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
+			$this->build_text_module( 'Services Title', '<h2 class="dmf-section-title dmf-section-title--center">Our <span class="dmf-text-gradient">Services</span></h2>', 'dmf-home-text' ),
+			$this->build_text_module( 'Services Body', '<p class="dmf-section-body dmf-section-body--center">We offer a full suite of digital marketing services to help your business thrive in the digital landscape.</p>', 'dmf-home-text' ),
+			$this->build_group_module( 'Services Cards Container', $cards, 'dmf-flex-cards dmf-flex-cards--three dmf-services-cards' ),
+		];
+
+		if ( $show_learn_more ) {
+			$shell_children[] = $this->build_button_module(
+				'Services Learn More Button',
+				'Learn More',
+				$this->get_services_page_url(),
+				'center',
+				'dmf-button dmf-button--primary dmf-services-more-button'
+			);
+		}
+
+		$section_attributes = [];
+
+		if ( '' !== $section_id ) {
+			$section_attributes['id'] = $section_id;
+		}
+
 		return $this->build_section_module(
 			'Services Section',
 			[
@@ -3027,11 +3255,95 @@ HTML;
 							[
 								$this->build_group_module(
 									'Services Section Shell',
+									$shell_children,
+									'dmf-home-shell dmf-home-stack'
+								),
+							],
+							'4_4',
+							'dmf-home-shell-column'
+						),
+					],
+					'4_4',
+					'dmf-home-shell-row'
+				),
+			],
+			$section_class,
+			$section_style,
+			$section_attributes
+		);
+	}
+
+	private function build_services_page_layout_export() {
+		return [
+			'context'    => 'et_builder',
+			'data'       => [
+				'63005' => $this->build_services_page_layout_content(),
+			],
+			'images'     => [],
+			'thumbnails' => [],
+			'post_title' => 'Digital MindFlow Services',
+			'post_type'  => 'page',
+			'post_meta'  => [
+				[
+					'key'   => '_et_pb_use_builder',
+					'value' => 'on',
+				],
+				[
+					'key'   => '_et_pb_use_divi_5',
+					'value' => 'on',
+				],
+			],
+		];
+	}
+
+	private function build_services_page_layout_content() {
+		return implode(
+			"\n",
+			[
+				$this->build_code_module( 'Services Page Runtime', $this->build_home_runtime_markup(), 'dmf-home-runtime' ),
+				$this->build_services_section(
+					[
+						'section_class' => 'dmf-home-section dmf-home-section--muted dmf-services-section dmf-services-page-section',
+						'section_style' => [
+							'padding' => 'clamp(8rem, 12vw, 10rem) 0 clamp(4rem, 7vw, 5.5rem)',
+							'margin'  => '0',
+						],
+					]
+				),
+				$this->build_services_form_section(),
+			]
+		);
+	}
+
+	private function build_services_form_section() {
+		return $this->build_section_module(
+			'Services Form Section',
+			[
+				$this->build_row_module(
+					'Services Form Row',
+					[
+						$this->build_column_module(
+							'Services Form Column',
+							[
+								$this->build_group_module(
+									'Services Form Shell',
 									[
-										$this->build_text_module( 'Services Eyebrow', '<span class="dmf-section-eyebrow">What We Do</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
-										$this->build_text_module( 'Services Title', '<h2 class="dmf-section-title dmf-section-title--center">Our <span class="dmf-text-gradient">Services</span></h2>', 'dmf-home-text' ),
-										$this->build_text_module( 'Services Body', '<p class="dmf-section-body dmf-section-body--center">We offer a full suite of digital marketing services to help your business thrive in the digital landscape.</p>', 'dmf-home-text' ),
-										$this->build_group_module( 'Services Cards Container', $cards, 'dmf-flex-cards dmf-flex-cards--three dmf-services-cards' ),
+										$this->build_text_module( 'Services Form Eyebrow', '<span class="dmf-section-eyebrow">Let\'s Talk</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
+										$this->build_text_module( 'Services Form Title', '<h2 class="dmf-section-title dmf-section-title--center">Tell Us About <span class="dmf-text-gradient">Your Project</span></h2>', 'dmf-home-text' ),
+										$this->build_text_module( 'Services Form Body', '<p class="dmf-section-body dmf-section-body--center">Share what you need and we will recommend the right mix of services for your goals.</p>', 'dmf-home-text' ),
+										$this->build_group_module(
+											'Services Form Container',
+											[
+												$this->build_contact_form_markup(),
+											],
+											'dmf-home-stack',
+											[
+												'width'      => '100%',
+												'max-width'  => '48rem',
+												'margin'     => '0 auto',
+												'box-sizing' => 'border-box',
+											]
+										),
 									],
 									'dmf-home-shell dmf-home-stack'
 								),
@@ -3044,10 +3356,10 @@ HTML;
 					'dmf-home-shell-row'
 				),
 			],
-			'dmf-home-section dmf-home-section--muted dmf-services-section',
-			[],
+			'dmf-home-section dmf-home-section--light dmf-services-form-section',
 			[
-				'id' => 'services',
+				'padding' => '0 0 clamp(5rem, 8vw, 7rem)',
+				'margin'  => '0',
 			]
 		);
 	}
@@ -4268,7 +4580,12 @@ HTML;
 		$home_section_replacements = [
 			'Home Hero Section'       => $this->build_home_hero_section(),
 			'About Section'           => $this->build_about_section(),
-			'Services Section'        => $this->build_services_section(),
+			'Services Section'        => $this->build_services_section(
+				[
+					'card_limit'      => 3,
+					'show_learn_more' => true,
+				]
+			),
 			'Portfolio Projects Section' => $this->build_portfolio_loop_section( 'home' ),
 			'Process Section'         => $this->build_process_section(),
 			'Contact Section'         => $this->build_contact_section(),
