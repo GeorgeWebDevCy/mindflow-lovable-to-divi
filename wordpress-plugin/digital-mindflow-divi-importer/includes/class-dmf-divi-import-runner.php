@@ -150,6 +150,20 @@ class DMF_Divi_Import_Runner {
 		return home_url( '/services/' );
 	}
 
+	private function get_blog_page_url() {
+		$page = $this->find_target_page( 'blog', '', 'Blog' );
+
+		if ( $page instanceof WP_Post ) {
+			$url = get_permalink( $page->ID );
+
+			if ( is_string( $url ) && '' !== trim( $url ) ) {
+				return $url;
+			}
+		}
+
+		return home_url( '/blog/' );
+	}
+
 	public function is_divi_ready() {
 		return class_exists( PortabilityPost::class ) &&
 			class_exists( GlobalData::class ) &&
@@ -598,6 +612,120 @@ class DMF_Divi_Import_Runner {
 
 		$summary['warnings'] = $this->warnings;
 		$this->log( 'info', 'Services page split completed.', $summary );
+
+		return $summary;
+	}
+
+	public function apply_blog_page_setup( array $args = [] ) {
+		$this->warnings = [];
+
+		$dry_run              = ! empty( $args['dry_run'] );
+		$create_missing_pages = ! empty( $args['create_missing_pages'] );
+		$home_slug            = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'Blog page setup started.',
+			[
+				'dry_run'              => $dry_run,
+				'create_missing_pages' => $create_missing_pages,
+				'home_slug'            => $home_slug,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 0 );
+		}
+
+		$summary = [
+			'dry_run'       => $dry_run,
+			'pages_updated' => [],
+			'pages_created' => [],
+			'pages_missing' => [],
+			'theme_updated' => [],
+			'menu_updated'  => [],
+			'warnings'      => [],
+		];
+
+		$blog_page             = $this->find_target_page( 'blog', '', 'Blog' );
+		$blog_page_planned_dry = false;
+
+		if ( ! $blog_page instanceof WP_Post && $create_missing_pages ) {
+			$summary['pages_created'][] = sprintf(
+				'Blog (slug: blog)%s',
+				$dry_run ? ' [dry run]' : ''
+			);
+
+			if ( $dry_run ) {
+				$blog_page_planned_dry = true;
+			} else {
+				$blog_page = $this->create_target_page(
+					[
+						'label' => 'Blog',
+						'slug'  => 'blog',
+					]
+				);
+			}
+		}
+
+		if ( $blog_page instanceof WP_Post ) {
+			$this->import_page_layout( $blog_page, $this->build_blog_page_layout_export(), $dry_run );
+			$summary['pages_updated'][] = sprintf(
+				'Blog (#%d)%s',
+				$blog_page->ID,
+				$dry_run ? ' [dry run]' : ''
+			);
+		} elseif ( ! $blog_page_planned_dry ) {
+			$summary['pages_missing'][] = 'Blog';
+		}
+
+		$home_page = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+
+		if ( ! $home_page instanceof WP_Post ) {
+			$summary['pages_missing'][] = 'Home';
+		} else {
+			$home_update_state = $this->apply_home_blog_section_refresh( $home_page, $dry_run );
+
+			if ( 'missing-section' === $home_update_state ) {
+				$this->warn(
+					sprintf(
+						'Could not locate the Contact section on Home (#%d), so the Blog section was not inserted.',
+						$home_page->ID
+					)
+				);
+			} else {
+				$summary['pages_updated'][] = sprintf(
+					'Home (#%d)%s',
+					$home_page->ID,
+					'updated' === $home_update_state && $dry_run ? ' [dry run]' : ( 'unchanged' === $home_update_state ? ' already includes the Blog section' : '' )
+				);
+			}
+		}
+
+		$include_blog_navigation = $blog_page instanceof WP_Post || $blog_page_planned_dry;
+		$blog_template           = $this->upsert_blog_post_theme_template( $dry_run );
+		$footer_update           = $this->refresh_global_footer_layout( $dry_run, $include_blog_navigation );
+
+		$summary['theme_updated'] = array_merge(
+			$blog_template['updated'] ?? [],
+			$footer_update['updated'] ?? []
+		);
+		$summary['menu_updated'] = $this->sync_primary_menu( $home_slug, $dry_run, false, $include_blog_navigation );
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Blog page setup completed.', $summary );
 
 		return $summary;
 	}
@@ -1397,6 +1525,54 @@ class DMF_Divi_Import_Runner {
 		if ( is_wp_error( $result ) ) {
 			throw new RuntimeException(
 				'Failed to update Home page services section on page #' . $page->ID . ': ' . $result->get_error_message()
+			);
+		}
+
+		$this->configure_divi_page_meta( (int) $page->ID );
+
+		return 'updated';
+	}
+
+	private function apply_home_blog_section_refresh( WP_Post $page, $dry_run ) {
+		$current_content = (string) $page->post_content;
+		$replacement     = $this->build_blog_loop_section( 'home' );
+
+		if ( false !== strpos( $current_content, $replacement ) ) {
+			return 'unchanged';
+		}
+
+		$content = $this->upsert_divi_section_before_label(
+			$current_content,
+			'Contact Section',
+			'Blog Highlights Section',
+			$replacement
+		);
+
+		if ( ! is_string( $content ) ) {
+			return 'missing-section';
+		}
+
+		$content = $this->apply_named_page_layout_fixes( $page, $content );
+
+		if ( $content === $current_content ) {
+			return 'unchanged';
+		}
+
+		if ( $dry_run ) {
+			return 'updated';
+		}
+
+		$result = wp_update_post(
+			[
+				'ID'           => $page->ID,
+				'post_content' => wp_slash( $content ),
+			],
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new RuntimeException(
+				'Failed to update Home page blog section on page #' . $page->ID . ': ' . $result->get_error_message()
 			);
 		}
 
@@ -3365,6 +3541,438 @@ HTML;
 		);
 	}
 
+	private function has_blog_page() {
+		return $this->find_target_page( 'blog', '', 'Blog' ) instanceof WP_Post;
+	}
+
+	private function build_blog_page_layout_export() {
+		return [
+			'context'    => 'et_builder',
+			'data'       => [
+				'63006' => $this->build_blog_page_layout_content(),
+			],
+			'images'     => [],
+			'thumbnails' => [],
+			'post_title' => 'Digital MindFlow Blog',
+			'post_type'  => 'page',
+			'post_meta'  => [
+				[
+					'key'   => '_et_pb_use_builder',
+					'value' => 'on',
+				],
+				[
+					'key'   => '_et_pb_use_divi_5',
+					'value' => 'on',
+				],
+			],
+		];
+	}
+
+	private function build_blog_page_layout_content() {
+		return implode(
+			"\n",
+			[
+				$this->build_code_module( 'Blog Page Home Runtime', $this->build_home_runtime_markup(), 'dmf-home-runtime' ),
+				$this->build_blog_hero_section(),
+				$this->build_blog_loop_section( 'archive' ),
+			]
+		);
+	}
+
+	private function build_blog_hero_section() {
+		return $this->build_section_module(
+			'Blog Hero Section',
+			[
+				$this->build_row_module(
+					'Blog Hero Row',
+					[
+						$this->build_column_module(
+							'Blog Hero Column',
+							[
+								$this->build_group_module(
+									'Blog Hero Shell',
+									[
+										$this->build_text_module( 'Blog Hero Eyebrow', '<span class="dmf-section-eyebrow">Fresh Insights</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
+										$this->build_text_module( 'Blog Hero Title', '<h1 class="dmf-section-title dmf-section-title--center">Our <span class="dmf-text-gradient">Blog</span></h1>', 'dmf-home-text' ),
+										$this->build_text_module( 'Blog Hero Body', '<p class="dmf-section-body dmf-section-body--center">Read the latest published posts, practical marketing ideas, and updates from Digital MindFlow.</p>', 'dmf-home-text' ),
+									],
+									'dmf-home-shell dmf-home-stack'
+								),
+							],
+							'4_4',
+							'dmf-home-shell-column'
+						),
+					],
+					'4_4',
+					'dmf-home-shell-row'
+				),
+			],
+			'dmf-home-section dmf-home-section--light dmf-blog-hero-section',
+			[
+				'padding' => 'clamp(8rem, 12vw, 10rem) 0 clamp(2.5rem, 5vw, 3.5rem)',
+				'margin'  => '0',
+			]
+		);
+	}
+
+	private function build_blog_loop_section( $context ) {
+		$context       = 'home' === sanitize_key( (string) $context ) ? 'home' : 'archive';
+		$section_label = 'home' === $context ? 'Blog Highlights Section' : 'Blog Archive Section';
+		$section_class = 'home' === $context
+			? 'dmf-home-section dmf-home-section--muted dmf-blog-section dmf-blog-section--home'
+			: 'dmf-home-section dmf-home-section--light dmf-blog-section dmf-blog-section--archive';
+		$section_style = 'home' === $context
+			? []
+			: [
+				'padding' => 'clamp(1rem, 2vw, 1.5rem) 0 clamp(5rem, 8vw, 7rem)',
+				'margin'  => '0',
+			];
+		$children      = [
+			$this->build_code_module( 'Blog Loop Runtime', $this->build_blog_loop_runtime_markup(), 'dmf-blog-loop-runtime' ),
+		];
+
+		if ( 'home' === $context ) {
+			$children[] = $this->build_blog_intro_row( $context );
+		}
+
+		$children[] = $this->build_blog_loop_row( $context );
+
+		if ( 'home' === $context ) {
+			$children[] = $this->build_blog_archive_button_row();
+		}
+
+		return $this->build_section_module(
+			$section_label,
+			$children,
+			$section_class,
+			$section_style
+		);
+	}
+
+	private function build_blog_intro_row( $context ) {
+		return $this->build_row_module(
+			'Blog Intro Row',
+			[
+				$this->build_column_module(
+					'Blog Intro Column',
+					[
+						$this->build_text_module(
+							'Blog Intro Copy',
+							$this->build_blog_intro_markup( $context ),
+							'dmf-home-text'
+						),
+					],
+					'4_4',
+					'dmf-home-shell-column'
+				),
+			],
+			'4_4',
+			'dmf-home-shell-row'
+		);
+	}
+
+	private function build_blog_intro_markup( $context ) {
+		$context = 'home' === sanitize_key( (string) $context ) ? 'home' : 'archive';
+
+		if ( 'home' === $context ) {
+			return '<span class="dmf-section-eyebrow">Fresh Insights</span><h2 class="dmf-section-title">Our <span class="dmf-text-gradient">Blog</span></h2><p class="dmf-section-body">Published posts with practical ideas, campaign lessons, and smart digital marketing updates from the team.</p>';
+		}
+
+		return '<span class="dmf-section-eyebrow">Latest Posts</span><h2 class="dmf-section-title">Recent <span class="dmf-text-gradient">Articles</span></h2><p class="dmf-section-body">Browse the most recent posts from Digital MindFlow.</p>';
+	}
+
+	private function build_blog_loop_row( $context ) {
+		$context         = 'home' === sanitize_key( (string) $context ) ? 'home' : 'archive';
+		$loop_item_style = 'home' === $context
+			? [
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'flex'           => '1 1 20rem',
+				'min-width'      => '18rem',
+				'max-width'      => 'calc((100% - 3rem) / 3)',
+				'background'     => 'var(--gcid-dmf-background, #fafafa)',
+				'border'         => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius'  => '1.35rem',
+				'box-shadow'     => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent)',
+				'overflow'       => 'hidden',
+				'box-sizing'     => 'border-box',
+			]
+			: [
+				'display'        => 'flex',
+				'flex-direction' => 'column',
+				'flex'           => '1 1 calc((100% - 4rem) / 3)',
+				'min-width'      => '18rem',
+				'max-width'      => 'calc((100% - 4rem) / 3)',
+				'background'     => 'var(--gcid-dmf-background, #fafafa)',
+				'border'         => '0.0625rem solid var(--gcid-dmf-border, #a1a5a4)',
+				'border-radius'  => '1.35rem',
+				'box-shadow'     => '0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent)',
+				'overflow'       => 'hidden',
+				'box-sizing'     => 'border-box',
+			];
+		$container_style = [
+			'display'         => 'flex',
+			'flex-wrap'       => 'wrap',
+			'align-items'     => 'stretch',
+			'justify-content' => 'flex-start',
+			'gap'             => 'home' === $context ? '1.5rem' : '2rem',
+			'width'           => '100%',
+		];
+		$row_style       = 'home' === $context
+			? []
+			: [
+				'width'     => 'min(80rem, calc(100% - 3rem))',
+				'max-width' => '80rem',
+				'margin'    => '0 auto',
+			];
+
+		return $this->build_row_module(
+			'Blog Loop Row',
+			[
+				$this->build_column_module(
+					'Blog Loop Column',
+					[
+						$this->build_group_module(
+							'Blog Loop Container',
+							[
+								$this->build_loop_group_module(
+									'Blog Loop Group',
+									[
+										$this->build_blog_card_image_block(),
+										$this->build_blog_card_body_group(),
+									],
+									[
+										'queryType'          => 'post_types',
+										'subTypes'           => [ 'post' ],
+										'orderBy'            => 'date',
+										'order'              => 'descending',
+										'postPerPage'        => (string) $this->get_blog_loop_posts_per_page( $context ),
+										'postOffset'         => '0',
+										'excludeCurrentPost' => 'off',
+										'ignoreStickysPost'  => 'on',
+										'loopId'             => 'home' === $context ? 'dmfBlogHomeLoop' : 'dmfBlogArchiveLoop',
+									],
+									'dmf-blog-loop-item dmf-blog-loop-item--' . $context,
+									$loop_item_style
+								),
+							],
+							'dmf-blog-loop-container dmf-blog-loop-container--' . $context,
+							$container_style
+						),
+					],
+					'4_4'
+				),
+			],
+			'4_4',
+			'dmf-blog-loop-row dmf-blog-loop-row--' . $context,
+			$row_style
+		);
+	}
+
+	private function get_blog_loop_posts_per_page( $context ) {
+		return 'home' === sanitize_key( (string) $context ) ? 3 : 12;
+	}
+
+	private function build_blog_card_body_group() {
+		return $this->build_group_module(
+			'Blog Card Body',
+			[
+				$this->build_blog_card_title_block(),
+				$this->build_blog_card_excerpt_block(),
+				$this->build_blog_card_button_block(),
+			],
+			'dmf-blog-card__body'
+		);
+	}
+
+	private function build_blog_card_image_block() {
+		return $this->render_divi_block(
+			'image',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Blog Card Image',
+							],
+						],
+					],
+					'advanced'   => [
+						'spacing' => [
+							'desktop' => [
+								'value' => [
+									'showBottomSpace' => 'off',
+								],
+							],
+						],
+						'sizing'  => [
+							'desktop' => [
+								'value' => [
+									'forceFullwidth' => 'on',
+								],
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-blog-card__image',
+							]
+						),
+					],
+				],
+				'image'          => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => [
+								'src'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'alt'        => $this->build_dynamic_content_token(
+									'loop_post_featured_image_alt_text',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkUrl'    => $this->build_dynamic_content_token(
+									'loop_post_link',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkTarget' => 'off',
+							],
+						],
+					],
+					'advanced'     => [
+						'lightbox' => [
+							'desktop' => [
+								'value' => 'off',
+							],
+						],
+						'overlay'  => [
+							'desktop' => [
+								'value' => [
+									'use' => 'off',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_blog_card_title_block() {
+		return $this->build_text_module(
+			'Blog Card Title',
+			'<h3 class="dmf-blog-card__title"><a href="' . $this->build_dynamic_content_token(
+				'loop_post_link',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			) . '">' . $this->build_dynamic_content_token(
+				'loop_post_title',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			) . '</a></h3>',
+			'dmf-home-text'
+		);
+	}
+
+	private function build_blog_card_excerpt_block() {
+		return $this->build_text_module(
+			'Blog Card Excerpt',
+			'<p class="dmf-blog-card__excerpt">' . $this->build_dynamic_content_token(
+				'loop_post_excerpt',
+				[
+					'before' => '',
+					'after'  => '',
+					'words'  => 28,
+				]
+			) . '</p>',
+			'dmf-home-text'
+		);
+	}
+
+	private function build_blog_card_button_block() {
+		return $this->build_button_module(
+			'Blog Card Button',
+			'Read Post',
+			$this->build_dynamic_content_token(
+				'loop_post_link',
+				[
+					'before' => '',
+					'after'  => '',
+				]
+			),
+			'left',
+			'dmf-button dmf-button--accent dmf-blog-card__button'
+		);
+	}
+
+	private function build_blog_archive_button_row() {
+		return $this->build_row_module(
+			'Blog Archive Button Row',
+			[
+				$this->build_column_module(
+					'Blog Archive Button Column',
+					[
+						$this->build_button_module(
+							'Blog Archive Button',
+							'View All Posts',
+							$this->get_blog_page_url(),
+							'center',
+							'dmf-button dmf-button--primary'
+						),
+					],
+					'4_4'
+				),
+			],
+			'4_4',
+			'dmf-home-shell-row'
+		);
+	}
+
+	private function build_blog_loop_runtime_markup() {
+		return <<<'HTML'
+<style id="dmf-blog-loop-styles">
+.dmf-blog-loop-row,.dmf-blog-loop-row>.et_pb_column{width:100%!important;max-width:none!important}
+.dmf-blog-loop-container{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;justify-content:flex-start!important;width:100%!important}
+.dmf-blog-loop-container>.entry{display:none!important}
+.dmf-blog-loop-item,.dmf-blog-loop-item>.et_pb_module_inner{display:flex!important;flex-direction:column!important;height:100%!important}
+.dmf-blog-loop-item{min-width:0!important}
+.dmf-blog-card__image,.dmf-blog-card__image>.et_pb_module_inner{line-height:0!important}
+.dmf-blog-card__image img{display:block!important;width:100%!important;height:100%!important;min-height:15rem!important;aspect-ratio:16/10!important;object-fit:cover!important}
+.dmf-blog-card__body,.dmf-blog-card__body>.et_pb_module_inner{display:flex!important;flex-direction:column!important;gap:1rem!important;flex:1 1 auto!important;height:100%!important}
+.dmf-blog-card__body>.et_pb_module{margin:0!important}
+.dmf-blog-card__title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.18rem,calc(1.1rem + .35vw),1.5rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+.dmf-blog-card__title a{color:inherit!important;text-decoration:none!important}
+.dmf-blog-card__title a:hover{color:var(--gcid-dmf-primary,#2b5b5b)!important}
+.dmf-blog-card__excerpt{margin:0!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.94rem,calc(.92rem + .12vw),1rem)!important;line-height:1.8!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-blog-card__button{margin-top:auto!important}
+@media (max-width:980px){
+.dmf-blog-loop-row{width:min(80rem,calc(100% - 2rem))!important;margin:0 auto!important}
+.dmf-blog-loop-item--home,.dmf-blog-loop-item--archive{flex-basis:calc((100% - 1rem) / 2)!important;max-width:calc((100% - 1rem) / 2)!important}
+}
+@media (max-width:767px){
+.dmf-blog-loop-item--home,.dmf-blog-loop-item--archive{flex-basis:100%!important;max-width:100%!important}
+.dmf-blog-card__image img{min-height:13rem!important}
+}
+</style>
+HTML;
+	}
+
 	private function get_process_steps() {
 		return [
 			[
@@ -3793,8 +4401,18 @@ HTML,
 		);
 	}
 
-	private function build_global_footer_section() {
-		$quick_links = '<div class="dmf-footer-links"><a href="/#about">About</a><a href="/#services">Services</a><a href="/#process">Process</a><a href="/#contact">Contact</a></div>';
+	private function build_global_footer_section( $include_blog = false ) {
+		$quick_links_items = [
+			'<a href="/#about">About</a>',
+			'<a href="/#services">Services</a>',
+			'<a href="/#process">Process</a>',
+		];
+
+		if ( $include_blog || $this->has_blog_page() ) {
+			$quick_links_items[] = '<a href="' . esc_url( $this->get_blog_page_url() ) . '">Blog</a>';
+		}
+
+		$quick_links      = '<div class="dmf-footer-links">' . implode( '', $quick_links_items ) . '<a href="/#contact">Contact</a></div>';
 		$social_links = sprintf(
 			'<div class="dmf-footer-social"><a href="%1$s" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><span class="dmf-footer-social-icon">%2$s</span></a><a href="%3$s" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><span class="dmf-footer-social-icon">%4$s</span></a><a href="%5$s" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><span class="dmf-footer-social-icon">%6$s</span></a></div>',
 			esc_url( 'https://www.facebook.com/digital.mindflow' ),
@@ -4489,6 +5107,34 @@ HTML;
 		return substr( $content, 0, $end ) . (string) $block_markup . substr( $content, $end );
 	}
 
+	private function inject_divi_section_before_label( $content, $target_label, $section_markup ) {
+		$content     = (string) $content;
+		$label_token = '"adminLabel":{"desktop":{"value":"' . (string) $target_label . '"}}';
+		$label_pos   = strpos( $content, $label_token );
+
+		if ( false === $label_pos ) {
+			return null;
+		}
+
+		$start = strrpos( substr( $content, 0, $label_pos ), '<!-- wp:divi/section ' );
+
+		if ( false === $start ) {
+			return null;
+		}
+
+		return substr( $content, 0, $start ) . (string) $section_markup . substr( $content, $start );
+	}
+
+	private function upsert_divi_section_before_label( $content, $target_label, $section_label, $section_markup ) {
+		$replaced = $this->replace_divi_section_by_label( $content, $section_label, $section_markup );
+
+		if ( is_string( $replaced ) ) {
+			return $replaced;
+		}
+
+		return $this->inject_divi_section_before_label( $content, $target_label, $section_markup );
+	}
+
 	private function upsert_divi_block_in_container_by_label( $content, $container_label, $container_block_name, $block_label, $block_markup ) {
 		$replaced = $this->replace_divi_block_by_label( $content, $block_label, $block_markup );
 
@@ -4607,6 +5253,19 @@ HTML;
 			'Home Card Hover Runtime Row',
 			$this->build_home_card_hover_runtime_row_markup()
 		);
+
+		if ( $this->has_blog_page() ) {
+			$blog_section = $this->upsert_divi_section_before_label(
+				$serialized,
+				'Contact Section',
+				'Blog Highlights Section',
+				$this->build_blog_loop_section( 'home' )
+			);
+
+			if ( is_string( $blog_section ) ) {
+				$serialized = $blog_section;
+			}
+		}
 
 		$removed = $this->replace_divi_block_by_label( $serialized, 'Featured Projects CTA Row', '' );
 
@@ -5254,6 +5913,64 @@ HTML;
 HTML;
 	}
 
+	private function build_global_footer_layout_export( $include_blog = false ) {
+		return [
+			'context'    => 'et_builder',
+			'data'       => [
+				'64001' => $this->build_global_footer_section( $include_blog ),
+			],
+			'images'     => [],
+			'thumbnails' => [],
+			'post_title' => 'Digital MindFlow Global Footer',
+			'post_type'  => 'et_footer_layout',
+			'post_meta'  => [
+				[
+					'key'   => '_et_pb_use_builder',
+					'value' => 'on',
+				],
+				[
+					'key'   => '_et_pb_use_divi_5',
+					'value' => 'on',
+				],
+			],
+		];
+	}
+
+	private function refresh_global_footer_layout( $dry_run, $include_blog = false ) {
+		$default_template = $this->get_existing_default_template();
+
+		if ( ! $default_template instanceof WP_Post ) {
+			$this->warn( 'Could not refresh the global footer because the default Theme Builder template was not found.' );
+
+			return [
+				'updated' => [],
+			];
+		}
+
+		$existing_footer_layout_id = (int) get_post_meta( $default_template->ID, '_et_footer_layout_id', true );
+		$footer_layout_id          = $this->upsert_theme_builder_layout(
+			$this->build_global_footer_layout_export( $include_blog ),
+			$existing_footer_layout_id,
+			$dry_run
+		);
+		$updated                   = [
+			sprintf( 'Global footer layout #%d', $footer_layout_id ),
+		];
+
+		if ( $dry_run ) {
+			return [
+				'updated' => $updated,
+			];
+		}
+
+		update_post_meta( $default_template->ID, '_et_footer_layout_id', $footer_layout_id );
+		update_post_meta( $default_template->ID, '_et_footer_layout_enabled', '1' );
+
+		return [
+			'updated' => $updated,
+		];
+	}
+
 	private function apply_global_footer_layout_fix( $content ) {
 		$replacement = $this->build_global_footer_section();
 		$updated     = $this->replace_divi_section_by_label( (string) $content, 'Global Footer Section', $replacement );
@@ -5327,6 +6044,24 @@ HTML;
 				]
 			);
 			$updated            = array_merge( $updated, $portfolio_template['updated'] );
+			$blog_template      = null;
+
+			if ( $this->get_existing_blog_post_template() instanceof WP_Post ) {
+				$blog_template = $this->upsert_blog_post_theme_template(
+					true,
+					[
+						'header' => [
+							'id'      => $layout_ids['header'],
+							'enabled' => ! empty( $template_export['layouts']['header']['enabled'] ),
+						],
+						'footer' => [
+							'id'      => $layout_ids['footer'],
+							'enabled' => ! empty( $template_export['layouts']['footer']['enabled'] ),
+						],
+					]
+				);
+				$updated       = array_merge( $updated, $blog_template['updated'] );
+			}
 
 			foreach (
 				$this->find_templates_with_body_overrides(
@@ -5334,6 +6069,7 @@ HTML;
 						[
 							$default_template ? (int) $default_template->ID : 0,
 							(int) ( $portfolio_template['template_id'] ?? 0 ),
+							(int) ( $blog_template['template_id'] ?? 0 ),
 						]
 					)
 				) as $template
@@ -5408,6 +6144,24 @@ HTML;
 			]
 		);
 		$updated            = array_merge( $updated, $portfolio_template['updated'] );
+		$blog_template      = null;
+
+		if ( $this->get_existing_blog_post_template() instanceof WP_Post ) {
+			$blog_template = $this->upsert_blog_post_theme_template(
+				false,
+				[
+					'header' => [
+						'id'      => $layout_ids['header'],
+						'enabled' => ! empty( $template_export['layouts']['header']['enabled'] ),
+					],
+					'footer' => [
+						'id'      => $layout_ids['footer'],
+						'enabled' => ! empty( $template_export['layouts']['footer']['enabled'] ),
+					],
+				]
+			);
+			$updated       = array_merge( $updated, $blog_template['updated'] );
+		}
 		$updated            = array_merge(
 			$updated,
 			$this->neutralize_other_theme_builder_body_overrides(
@@ -5415,6 +6169,7 @@ HTML;
 					[
 						(int) $template_id,
 						(int) ( $portfolio_template['template_id'] ?? 0 ),
+						(int) ( $blog_template['template_id'] ?? 0 ),
 					]
 				)
 			)
@@ -5552,6 +6307,318 @@ HTML;
 		}
 
 		return $layouts;
+	}
+
+	private function upsert_blog_post_theme_template( $dry_run, array $chrome_layouts = [] ) {
+		$existing_template       = $this->get_existing_blog_post_template();
+		$existing_body_layout_id = $existing_template
+			? (int) get_post_meta( $existing_template->ID, '_et_body_layout_id', true )
+			: 0;
+		$body_layout_id          = $this->upsert_theme_builder_layout(
+			$this->build_blog_single_body_layout_export(),
+			$existing_body_layout_id,
+			$dry_run
+		);
+		$template_title          = 'Digital MindFlow Blog Single';
+		$template_id             = $existing_template ? (int) $existing_template->ID : 0;
+		$chrome_layouts          = $this->resolve_portfolio_single_chrome_layouts( $existing_template, $chrome_layouts );
+		$updated                 = [
+			sprintf( 'Blog single body layout #%d', $body_layout_id ),
+		];
+
+		if ( (int) $chrome_layouts['header']['id'] > 0 ) {
+			$updated[] = sprintf( 'Blog single header layout #%d', (int) $chrome_layouts['header']['id'] );
+		}
+
+		if ( (int) $chrome_layouts['footer']['id'] > 0 ) {
+			$updated[] = sprintf( 'Blog single footer layout #%d', (int) $chrome_layouts['footer']['id'] );
+		}
+
+		if ( $dry_run ) {
+			$updated[] = sprintf(
+				'Blog single Theme Builder template #%d',
+				$template_id > 0 ? $template_id : 999997
+			);
+
+			return [
+				'template_id' => $template_id > 0 ? $template_id : 999997,
+				'updated'     => $updated,
+			];
+		}
+
+		$theme_builder_id = function_exists( 'et_theme_builder_get_theme_builder_post_id' )
+			? (int) et_theme_builder_get_theme_builder_post_id( true, true )
+			: 0;
+
+		if ( $theme_builder_id <= 0 ) {
+			throw new RuntimeException( 'Unable to resolve the Divi Theme Builder post.' );
+		}
+
+		$template_id = et_theme_builder_store_template(
+			$theme_builder_id,
+			[
+				'id'                  => $template_id,
+				'title'               => $template_title,
+				'autogenerated_title' => '0',
+				'default'             => '0',
+				'enabled'             => '1',
+				'use_on'              => [ $this->get_blog_post_template_condition() ],
+				'exclude_from'        => [],
+				'layouts'             => [
+					'header' => $chrome_layouts['header'],
+					'body'   => [
+						'id'      => $body_layout_id,
+						'enabled' => '1',
+					],
+					'footer' => $chrome_layouts['footer'],
+				],
+			],
+			true
+		);
+
+		if ( ! $template_id ) {
+			throw new RuntimeException( 'Blog single Theme Builder template could not be saved.' );
+		}
+
+		$this->attach_template_to_theme_builder_post( $theme_builder_id, (int) $template_id );
+		$updated[] = sprintf( 'Blog single Theme Builder template #%d', $template_id );
+
+		return [
+			'template_id' => (int) $template_id,
+			'updated'     => $updated,
+		];
+	}
+
+	private function build_blog_single_body_layout_export() {
+		return [
+			'context'       => 'et_builder',
+			'data'          => [
+				'62004' => $this->build_blog_single_body_layout_content(),
+			],
+			'images'        => [],
+			'thumbnails'    => [],
+			'post_title'    => 'Digital MindFlow Blog Single Body',
+			'post_type'     => 'et_body_layout',
+			'theme_builder' => [
+				'is_global' => false,
+			],
+			'post_meta'     => [
+				[
+					'key'   => '_et_pb_use_builder',
+					'value' => 'on',
+				],
+				[
+					'key'   => '_et_pb_use_divi_5',
+					'value' => 'on',
+				],
+			],
+		];
+	}
+
+	private function build_blog_single_body_layout_content() {
+		return implode(
+			"\n",
+			[
+				$this->build_code_module( 'Blog Single Styles', $this->build_blog_single_styles_markup(), 'dmf-blog-single__styles' ),
+				$this->build_section_module(
+					'Blog Single Hero Section',
+					[
+						$this->build_row_module(
+							'Blog Single Hero Row',
+							[
+								$this->build_column_module(
+									'Blog Single Hero Column',
+									[
+										$this->build_group_module(
+											'Blog Single Hero Copy',
+											[
+												$this->build_text_module( 'Blog Single Back Link', '<a class="dmf-blog-single__back-link" href="' . esc_url( $this->get_blog_page_url() ) . '">Back to Blog</a>', 'dmf-home-text' ),
+												$this->build_blog_post_title_module(),
+											],
+											'dmf-blog-single__hero-copy'
+										),
+									],
+									'4_4'
+								),
+							],
+							'4_4',
+							'dmf-blog-single__hero-row'
+						),
+					],
+					'dmf-blog-single__hero-section',
+					[
+						'background' => 'var(--gcid-dmf-card, #edeced)',
+						'padding'    => 'clamp(8rem, 12vw, 10rem) 0 clamp(2.5rem, 5vw, 3.5rem)',
+						'margin'     => '0',
+					]
+				),
+				$this->build_section_module(
+					'Blog Single Content Section',
+					[
+						$this->build_row_module(
+							'Blog Single Content Row',
+							[
+								$this->build_column_module(
+									'Blog Single Content Column',
+									[
+										$this->build_blog_post_content_module(),
+									],
+									'4_4'
+								),
+							],
+							'4_4',
+							'dmf-blog-single__content-row'
+						),
+					],
+					'dmf-blog-single__content-section',
+					[
+						'background' => 'var(--gcid-dmf-background, #fafafa)',
+						'padding'    => 'clamp(2rem, 4vw, 3rem) 0 clamp(5rem, 8vw, 7rem)',
+						'margin'     => '0',
+					]
+				),
+			]
+		);
+	}
+
+	private function build_blog_post_title_module() {
+		return $this->render_divi_block(
+			'post-title',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Blog Single Post Title',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-blog-single__post-title',
+							]
+						),
+					],
+				],
+				'title'          => [
+					'advanced' => [
+						'showTitle' => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+					],
+				],
+				'meta'           => [
+					'advanced' => [
+						'showMeta'          => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'showAuthor'        => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'showDate'          => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'dateFormat'        => [
+							'desktop' => [
+								'value' => 'M j, Y',
+							],
+						],
+						'showCategories'    => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'showCommentsCount' => [
+							'desktop' => [
+								'value' => 'off',
+							],
+						],
+					],
+				],
+				'featuredImage'  => [
+					'advanced' => [
+						'enabled'        => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'forceFullwidth' => [
+							'desktop' => [
+								'value' => 'on',
+							],
+						],
+						'placement'      => [
+							'desktop' => [
+								'value' => 'below',
+							],
+						],
+					],
+				],
+			]
+		);
+	}
+
+	private function build_blog_post_content_module() {
+		return $this->render_divi_block(
+			'post-content',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => 'Blog Single Post Content',
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => 'dmf-blog-single__post-content',
+							]
+						),
+					],
+				],
+			]
+		);
+	}
+
+	private function build_blog_single_styles_markup() {
+		return <<<'HTML'
+<style id="dmf-blog-single-styles">
+.dmf-blog-single__hero-row,.dmf-blog-single__content-row{width:min(72rem,calc(100% - 3rem))!important;max-width:none!important;margin:0 auto!important}
+.dmf-blog-single__hero-copy,.dmf-blog-single__hero-copy>.et_pb_module_inner{display:flex!important;flex-direction:column!important;gap:1rem!important}
+.dmf-blog-single__hero-copy>.et_pb_module{margin:0!important}
+.dmf-blog-single__back-link{display:inline-flex!important;align-items:center!important;gap:.45rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;font-weight:600!important;line-height:1.4!important;color:var(--gcid-dmf-primary,#2b5b5b)!important;text-decoration:none!important}
+.dmf-blog-single__back-link:hover{opacity:1!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+.dmf-blog-single__post-title{margin:0!important}
+.dmf-blog-single__post-title .entry-title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2.7rem,5vw,4.4rem)!important;font-weight:700!important;line-height:1.06!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+.dmf-blog-single__post-title .et_pb_title_meta_container,.dmf-blog-single__post-title .et_pb_title_meta_container a{font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.7!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-blog-single__post-title .et_pb_title_featured_container{margin-top:1.75rem!important}
+.dmf-blog-single__post-title .et_pb_title_featured_container img{display:block!important;width:100%!important;height:auto!important;max-height:32rem!important;object-fit:cover!important;border-radius:1.5rem!important}
+.dmf-blog-single__post-content,.dmf-blog-single__post-content .et_pb_module_inner{font-family:var(--gvid-dmf-body-font)!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-blog-single__post-content p,.dmf-blog-single__post-content li{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(1rem,calc(.98rem + .16vw),1.08rem)!important;line-height:1.9!important;color:var(--gcid-dmf-muted,#486262)!important}
+.dmf-blog-single__post-content h1,.dmf-blog-single__post-content h2,.dmf-blog-single__post-content h3,.dmf-blog-single__post-content h4,.dmf-blog-single__post-content h5,.dmf-blog-single__post-content h6{font-family:var(--gvid-dmf-heading-font)!important;color:var(--gcid-dmf-foreground,#131b26)!important;line-height:1.2!important}
+.dmf-blog-single__post-content a{color:var(--gcid-dmf-primary,#2b5b5b)!important}
+.dmf-blog-single__post-content img{border-radius:1.25rem!important}
+.dmf-blog-single__post-content blockquote{margin:2rem 0!important;padding-left:1.25rem!important;border-left:4px solid var(--gcid-dmf-accent,#941213)!important;color:var(--gcid-dmf-foreground,#131b26)!important}
+@media (max-width:767px){
+.dmf-blog-single__hero-row,.dmf-blog-single__content-row{width:min(72rem,calc(100% - 2rem))!important}
+.dmf-blog-single__post-title .entry-title{font-size:clamp(2.25rem,9vw,3rem)!important}
+.dmf-blog-single__post-title .et_pb_title_featured_container img{max-height:none!important}
+}
+</style>
+HTML;
 	}
 
 	private function build_portfolio_single_body_layout_export() {
@@ -8116,19 +9183,42 @@ HTML;
 		return $updated;
 	}
 
-	private function sync_primary_menu( $home_slug, $dry_run, $create_missing_pages = false ) {
-		$location  = 'primary-menu';
-		$menu_name = 'Digital MindFlow Primary Navigation';
-		$menu      = wp_get_nav_menu_object( $menu_name );
-		$menu_id   = $menu ? (int) $menu->term_id : 0;
-		$items     = [];
+	private function sync_primary_menu( $home_slug, $dry_run, $create_missing_pages = false, $include_blog = false ) {
+		$location       = 'primary-menu';
+		$menu_name      = 'Digital MindFlow Primary Navigation';
+		$menu           = wp_get_nav_menu_object( $menu_name );
+		$menu_id        = $menu ? (int) $menu->term_id : 0;
+		$items          = [];
+		$menu_blueprint = $this->menu_blueprint;
 
 		$registered_menus = get_registered_nav_menus();
 		if ( ! isset( $registered_menus[ $location ] ) ) {
 			$this->warn( "Theme location '{$location}' is not registered on this install." );
 		}
 
-		foreach ( $this->menu_blueprint as $index => $item ) {
+		if ( $include_blog || $this->has_blog_page() ) {
+			$blog_item      = [
+				'type'  => 'page',
+				'label' => 'Blog',
+				'slug'  => 'blog',
+			];
+			$contact_index  = null;
+
+			foreach ( $menu_blueprint as $index => $item ) {
+				if ( 'Contact' === (string) ( $item['label'] ?? '' ) ) {
+					$contact_index = $index;
+					break;
+				}
+			}
+
+			if ( null === $contact_index ) {
+				$menu_blueprint[] = $blog_item;
+			} else {
+				array_splice( $menu_blueprint, $contact_index, 0, [ $blog_item ] );
+			}
+		}
+
+		foreach ( $menu_blueprint as $index => $item ) {
 			if ( 'page' === ( $item['type'] ?? '' ) ) {
 				$page = $this->find_target_page(
 					(string) ( $item['slug'] ?? '' ),
@@ -8370,8 +9460,42 @@ HTML;
 		return null;
 	}
 
+	private function get_existing_blog_post_template() {
+		if ( ! defined( 'ET_THEME_BUILDER_TEMPLATE_POST_TYPE' ) ) {
+			return null;
+		}
+
+		$templates = get_posts(
+			[
+				'post_type'      => ET_THEME_BUILDER_TEMPLATE_POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			]
+		);
+
+		foreach ( $templates as $template ) {
+			if ( ! $template instanceof WP_Post ) {
+				continue;
+			}
+
+			$use_on = get_post_meta( $template->ID, '_et_use_on', false );
+
+			if ( is_array( $use_on ) && in_array( $this->get_blog_post_template_condition(), $use_on, true ) ) {
+				return $template;
+			}
+		}
+
+		return null;
+	}
+
 	private function get_portfolio_single_template_condition() {
 		return 'singular:post_type:portfolio:all';
+	}
+
+	private function get_blog_post_template_condition() {
+		return 'singular:post_type:post:all';
 	}
 
 	private function attach_template_to_theme_builder_post( $theme_builder_id, $template_id ) {

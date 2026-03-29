@@ -22,6 +22,8 @@ class DMF_Divi_Import_Admin {
 
 	const SERVICES_SPLIT_ACTION = 'dmf_divi_importer_apply_services_page_split';
 
+	const BLOG_ACTION = 'dmf_divi_importer_apply_blog_page_setup';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -37,6 +39,7 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::CURRENT_SITE_ACTION, [ __CLASS__, 'handle_apply_current_site_exports' ] );
 		add_action( 'admin_post_' . self::PORTFOLIO_ENHANCEMENTS_ACTION, [ __CLASS__, 'handle_apply_portfolio_case_study_enhancements' ] );
 		add_action( 'admin_post_' . self::SERVICES_SPLIT_ACTION, [ __CLASS__, 'handle_apply_services_page_split' ] );
+		add_action( 'admin_post_' . self::BLOG_ACTION, [ __CLASS__, 'handle_apply_blog_page_setup' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 		add_action( 'acf/init', [ __CLASS__, 'register_portfolio_field_group' ] );
 	}
@@ -346,6 +349,57 @@ class DMF_Divi_Import_Admin {
 		exit;
 	}
 
+	public static function handle_apply_blog_page_setup() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::BLOG_ACTION );
+
+		$args = [
+			'dry_run'              => ! empty( $_POST['dry_run'] ),
+			'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
+			'home_slug'            => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin blog page setup submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Blog page setup applied.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_blog_page_setup( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Blog page setup dry run complete.'
+				: 'Blog page setup applied.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Blog page setup failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Blog page setup action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
 	public static function handle_clear_log() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
@@ -480,7 +534,7 @@ class DMF_Divi_Import_Admin {
 		?>
 		<div class="wrap">
 			<h1>Digital MindFlow Divi Importer</h1>
-			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops, can reapply the current live Home plus global Theme Builder snapshot bundled in the plugin, and keeps a persistent log for troubleshooting.</p>
+			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, can add the dedicated Blog page plus homepage Blog section, updates the global Theme Builder header and footer, creates Theme Builder body templates for single <code>portfolio</code> items and single blog posts, creates the primary WordPress menu used by the Divi 5 menu block, can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops, can reapply the current live Home plus global Theme Builder snapshot bundled in the plugin, and keeps a persistent log for troubleshooting.</p>
 
 			<?php self::render_notice( $notice ); ?>
 
@@ -711,6 +765,48 @@ class DMF_Divi_Import_Admin {
 			</form>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::BLOG_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::BLOG_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Blog Page Setup</h2>
+				<p>Create or update the dedicated <code>Blog</code> page, add the dynamic <code>Our Blog</code> section under <code>Process</code> on the Home page, build the Theme Builder body template for all single blog posts, and sync the Blog link into the main navigation and footer before <code>Contact</code>.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-blog">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-blog" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Options</th>
+							<td>
+								<label style="display:block; margin-bottom:8px;">
+									<input type="checkbox" name="create_missing_pages" value="1" checked>
+									Create the <code>Blog</code> page automatically if it is missing
+								</label>
+								<label style="display:block;">
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Blog page, Home page, Theme Builder, footer, and navigation changes without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
+						Apply Blog Page Setup
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
 				<?php wp_nonce_field( self::FIX_ACTION ); ?>
 				<input type="hidden" name="action" value="<?php echo esc_attr( self::FIX_ACTION ); ?>">
 
@@ -786,10 +882,12 @@ class DMF_Divi_Import_Admin {
 					<li>Finds pages by slug first, then falls back to exact page-title matching.</li>
 					<li>Can create any missing pages automatically before importing their layouts.</li>
 					<li>Reimports only the bundled Home and Portfolio Divi layouts onto the existing pages with the expected slugs.</li>
+					<li>Can create or refresh a dedicated Blog page plus the dynamic <code>Our Blog</code> section on the Home page under <code>Process</code>.</li>
 					<li>Can replace the static Home and Portfolio portfolio sections with native Divi 5 loop-builder content from the Portfolio post type.</li>
 					<li>Updates the default global Theme Builder template using the bundled header and footer export.</li>
 					<li>Can reapply the bundled current-site snapshot for the live Home page plus the default global Theme Builder header/footer.</li>
 					<li>Creates or updates a dedicated Theme Builder body template for all single <code>portfolio</code> posts.</li>
+					<li>Creates or updates a dedicated Theme Builder body template for all single blog posts.</li>
 					<li>Creates or replaces a WordPress menu named <code>Digital MindFlow Primary Navigation</code> and assigns it to <code>primary-menu</code>.</li>
 					<li>Reimports the shared Divi 5 global variables and color tokens used by the layouts.</li>
 				</ul>
