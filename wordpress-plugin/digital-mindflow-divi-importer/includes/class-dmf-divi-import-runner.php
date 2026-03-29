@@ -3967,6 +3967,7 @@ HTML;
 .dmf-blog-loop-shell--archive,.dmf-blog-loop-shell--archive>.et_pb_module_inner{max-width:72rem!important}
 .dmf-blog-loop-shell--archive{margin:0 auto!important}
 .dmf-blog-loop-container{display:grid!important;align-items:stretch!important;width:100%!important}
+.dmf-blog-loop-container>.et_pb_module_inner{display:contents!important}
 .dmf-blog-loop-container--home{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1.5rem!important}
 .dmf-blog-loop-container--archive{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2rem!important}
 .dmf-blog-loop-container>.entry{display:none!important}
