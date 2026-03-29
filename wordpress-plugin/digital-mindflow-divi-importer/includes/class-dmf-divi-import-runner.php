@@ -3229,12 +3229,13 @@ HTML;
 		];
 
 		if ( $show_learn_more ) {
-			$shell_children[] = $this->build_button_module(
+			$shell_children[] = $this->build_text_module(
 				'Services Learn More Button',
-				'Learn More',
-				$this->get_services_page_url(),
-				'center',
-				'dmf-button dmf-button--primary dmf-services-more-button'
+				sprintf(
+					'<div class="dmf-home-actions"><a class="dmf-hero-action dmf-hero-action--primary" href="%1$s">Learn More</a></div>',
+					esc_url( $this->get_services_page_url() )
+				),
+				'dmf-home-text dmf-services-more-button'
 			);
 		}
 
@@ -3358,7 +3359,7 @@ HTML;
 			],
 			'dmf-home-section dmf-home-section--light dmf-services-form-section',
 			[
-				'padding' => '0 0 clamp(5rem, 8vw, 7rem)',
+				'padding' => 'clamp(1.75rem, 4vw, 3rem) 0 clamp(5rem, 8vw, 7rem)',
 				'margin'  => '0',
 			]
 		);
