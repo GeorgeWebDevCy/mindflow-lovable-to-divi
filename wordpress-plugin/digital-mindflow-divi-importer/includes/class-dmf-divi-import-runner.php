@@ -94,6 +94,30 @@ class DMF_Divi_Import_Runner {
 		return $missing;
 	}
 
+	public function get_current_site_exports_dir() {
+		return $this->exports_dir . '/current-site';
+	}
+
+	public function get_current_site_expected_export_files() {
+		return [
+			'layout-home.json',
+			'theme-builder-global-header-footer.json',
+		];
+	}
+
+	public function get_current_site_missing_export_files() {
+		$missing     = [];
+		$exports_dir = $this->get_current_site_exports_dir();
+
+		foreach ( $this->get_current_site_expected_export_files() as $file ) {
+			if ( ! file_exists( $exports_dir . '/' . $file ) ) {
+				$missing[] = $file;
+			}
+		}
+
+		return $missing;
+	}
+
 	public function is_divi_ready() {
 		return class_exists( PortabilityPost::class ) &&
 			class_exists( GlobalData::class ) &&
@@ -225,6 +249,114 @@ class DMF_Divi_Import_Runner {
 
 		$summary['warnings'] = $this->warnings;
 		$this->log( 'info', 'Import run completed.', $summary );
+
+		return $summary;
+	}
+
+	public function apply_current_site_exports( array $args = [] ) {
+		$this->warnings = [];
+
+		$exports_dir          = $this->get_current_site_exports_dir();
+		$dry_run              = ! empty( $args['dry_run'] );
+		$create_missing_pages = ! empty( $args['create_missing_pages'] );
+		$home_slug            = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'Current site export refresh started.',
+			[
+				'dry_run'              => $dry_run,
+				'create_missing_pages' => $create_missing_pages,
+				'home_slug'            => $home_slug,
+				'exports_dir'          => $exports_dir,
+			]
+		);
+
+		if ( ! is_dir( $exports_dir ) ) {
+			$this->log( 'error', 'Current site export directory not found.', [ 'exports_dir' => $exports_dir ] );
+			throw new RuntimeException( 'Current site export directory not found.' );
+		}
+
+		$missing_files = $this->get_current_site_missing_export_files();
+		if ( ! empty( $missing_files ) ) {
+			$this->log( 'error', 'Current site export files are missing.', [ 'missing_files' => $missing_files ] );
+			throw new RuntimeException(
+				'Current site export files are missing: ' . implode( ', ', $missing_files )
+			);
+		}
+
+		if ( ! $this->is_divi_ready() ) {
+			$this->log( 'error', 'Divi 5 portability classes are not loaded.' );
+			throw new RuntimeException( 'Divi 5 portability classes are not loaded. Activate Divi before running the importer.' );
+		}
+
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'admin' );
+		}
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 0 );
+		}
+
+		$summary   = [
+			'dry_run'                 => $dry_run,
+			'pages_updated'           => [],
+			'pages_created'           => [],
+			'pages_missing'           => [],
+			'portfolio_loops_updated' => [],
+			'portfolio_loops_missing' => [],
+			'theme_updated'           => [],
+			'menu_updated'            => [],
+			'warnings'                => [],
+		];
+		$page_item = [
+			'label' => 'Home',
+			'slug'  => '__front_page__',
+			'file'  => 'layout-home.json',
+		];
+		$page      = $this->find_target_page( $page_item['slug'], $home_slug, $page_item['label'] );
+
+		if ( ! $page ) {
+			if ( $create_missing_pages ) {
+				$summary['pages_created'][] = sprintf(
+					'%s (slug: %s)%s',
+					$page_item['label'],
+					$this->target_slug( $page_item['slug'], $home_slug ),
+					$dry_run ? ' [dry run]' : ''
+				);
+
+				if ( ! $dry_run ) {
+					$page = $this->create_target_page( $page_item, $home_slug );
+				}
+			}
+
+			if ( ! $page ) {
+				$summary['pages_missing'][] = $page_item['label'];
+			}
+		}
+
+		if ( $page instanceof WP_Post ) {
+			$page_export = $this->load_export_file( $exports_dir . '/' . $page_item['file'], 'et_builder' );
+			$this->import_global_data( $page_export, $dry_run );
+			$this->import_page_layout( $page, $page_export, $dry_run );
+
+			$summary['pages_updated'][] = sprintf( '%s (#%d)', $page_item['label'], $page->ID );
+		}
+
+		$theme_export = $this->load_export_file(
+			$exports_dir . '/theme-builder-global-header-footer.json',
+			'et_theme_builder'
+		);
+
+		$this->import_global_data( $theme_export, $dry_run );
+		$summary['theme_updated'] = $this->import_global_theme_template( $theme_export, $dry_run );
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Current site export refresh completed.', $summary );
 
 		return $summary;
 	}

@@ -16,6 +16,8 @@ class DMF_Divi_Import_Admin {
 
 	const HEADER_DIAGNOSTIC_ACTION = 'dmf_divi_importer_capture_header_diagnostics';
 
+	const CURRENT_SITE_ACTION = 'dmf_divi_importer_apply_current_site_exports';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -28,6 +30,7 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::FIX_ACTION, [ __CLASS__, 'handle_fix_portfolio_loops' ] );
 		add_action( 'admin_post_' . self::PORTFOLIO_BODY_ACTION, [ __CLASS__, 'handle_refresh_portfolio_body' ] );
 		add_action( 'admin_post_' . self::HEADER_DIAGNOSTIC_ACTION, [ __CLASS__, 'handle_capture_header_diagnostics' ] );
+		add_action( 'admin_post_' . self::CURRENT_SITE_ACTION, [ __CLASS__, 'handle_apply_current_site_exports' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 	}
 
@@ -186,6 +189,56 @@ class DMF_Divi_Import_Admin {
 		exit;
 	}
 
+	public static function handle_apply_current_site_exports() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::CURRENT_SITE_ACTION );
+		$args = [
+			'dry_run'              => ! empty( $_POST['dry_run'] ),
+			'create_missing_pages' => ! empty( $_POST['create_missing_pages'] ),
+			'home_slug'            => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin current site export refresh submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Current site snapshot applied.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_current_site_exports( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Current site snapshot dry run complete.'
+				: 'Current site snapshot applied.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Current site snapshot failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Current site export refresh failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
 	public static function handle_clear_log() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
@@ -289,18 +342,19 @@ class DMF_Divi_Import_Admin {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'dmf-divi-importer' ) );
 		}
 
-		$runner        = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
-		$notice        = get_transient( self::notice_key() );
-		$missing_files = $runner->get_missing_export_files();
-		$divi_ready    = $runner->is_divi_ready();
-		$log_entries   = DMF_Divi_Import_Logger::get_entries( 100 );
-		$log_count     = DMF_Divi_Import_Logger::count();
+		$runner                = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$notice                = get_transient( self::notice_key() );
+		$missing_files         = $runner->get_missing_export_files();
+		$current_missing_files = $runner->get_current_site_missing_export_files();
+		$divi_ready            = $runner->is_divi_ready();
+		$log_entries           = DMF_Divi_Import_Logger::get_entries( 100 );
+		$log_count             = DMF_Divi_Import_Logger::count();
 
 		delete_transient( self::notice_key() );
 		?>
 		<div class="wrap">
 			<h1>Digital MindFlow Divi Importer</h1>
-			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops, and keeps a persistent log for troubleshooting.</p>
+			<p>This tool imports the bundled Divi 5 Home and Portfolio layouts, updates the global Theme Builder header and footer, creates a single Theme Builder body template for <code>portfolio</code> items, creates the primary WordPress menu used by the Divi 5 menu block, can switch the Home and Portfolio portfolio sections over to native Divi 5 Portfolio post type loops, can reapply the current live Home plus global Theme Builder snapshot bundled in the plugin, and keeps a persistent log for troubleshooting.</p>
 
 			<?php self::render_notice( $notice ); ?>
 
@@ -316,14 +370,28 @@ class DMF_Divi_Import_Admin {
 						<strong><?php echo empty( $missing_files ) ? 'complete' : 'missing files'; ?></strong>
 					</li>
 					<li>
+						Current site snapshot files:
+						<strong><?php echo empty( $current_missing_files ) ? 'complete' : 'missing files'; ?></strong>
+					</li>
+					<li>
 						Export path:
 						<code><?php echo esc_html( $runner->get_exports_dir() ); ?></code>
+					</li>
+					<li>
+						Current snapshot path:
+						<code><?php echo esc_html( $runner->get_current_site_exports_dir() ); ?></code>
 					</li>
 				</ul>
 
 				<?php if ( ! empty( $missing_files ) ) : ?>
 					<div class="notice notice-error inline">
 						<p><strong>Missing export files:</strong> <?php echo esc_html( implode( ', ', $missing_files ) ); ?></p>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $current_missing_files ) ) : ?>
+					<div class="notice notice-error inline">
+						<p><strong>Missing current snapshot files:</strong> <?php echo esc_html( implode( ', ', $current_missing_files ) ); ?></p>
 					</div>
 				<?php endif; ?>
 
@@ -389,6 +457,48 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-primary" <?php disabled( ! empty( $missing_files ) || ! $divi_ready ); ?>>
 						Run Import
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::CURRENT_SITE_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::CURRENT_SITE_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Current Site Snapshot</h2>
+				<p>Reimport only the currently working Home layout plus the currently working default global Theme Builder header/footer snapshot bundled in <code>exports/current-site</code>. This does not touch the Portfolio page layout or the WordPress menu.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-current">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-current" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Options</th>
+							<td>
+								<label style="display:block; margin-bottom:8px;">
+									<input type="checkbox" name="create_missing_pages" value="1" checked>
+									Create the Home page automatically if it is missing
+								</label>
+								<label style="display:block;">
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Home page and Theme Builder updates without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! empty( $current_missing_files ) || ! $divi_ready ); ?>>
+						Apply Current Site Snapshot
 					</button>
 				</p>
 			</form>
@@ -471,6 +581,7 @@ class DMF_Divi_Import_Admin {
 					<li>Reimports only the bundled Home and Portfolio Divi layouts onto the existing pages with the expected slugs.</li>
 					<li>Can replace the static Home and Portfolio portfolio sections with native Divi 5 loop-builder content from the Portfolio post type.</li>
 					<li>Updates the default global Theme Builder template using the bundled header and footer export.</li>
+					<li>Can reapply the bundled current-site snapshot for the live Home page plus the default global Theme Builder header/footer.</li>
 					<li>Creates or updates a dedicated Theme Builder body template for all single <code>portfolio</code> posts.</li>
 					<li>Creates or replaces a WordPress menu named <code>Digital MindFlow Primary Navigation</code> and assigns it to <code>primary-menu</code>.</li>
 					<li>Reimports the shared Divi 5 global variables and color tokens used by the layouts.</li>
