@@ -1535,14 +1535,20 @@ class DMF_Divi_Import_Runner {
 
 	private function apply_home_blog_section_refresh( WP_Post $page, $dry_run ) {
 		$current_content = (string) $page->post_content;
+		$content         = $current_content;
 		$replacement     = $this->build_blog_loop_section( 'home' );
+		$about_section   = $this->replace_divi_section_by_label(
+			$content,
+			'About Section',
+			$this->build_about_section()
+		);
 
-		if ( false !== strpos( $current_content, $replacement ) ) {
-			return 'unchanged';
+		if ( is_string( $about_section ) ) {
+			$content = $about_section;
 		}
 
 		$content = $this->upsert_divi_section_before_label(
-			$current_content,
+			$content,
 			'Contact Section',
 			'Blog Highlights Section',
 			$replacement
@@ -1551,8 +1557,6 @@ class DMF_Divi_Import_Runner {
 		if ( ! is_string( $content ) ) {
 			return 'missing-section';
 		}
-
-		$content = $this->apply_named_page_layout_fixes( $page, $content );
 
 		if ( $content === $current_content ) {
 			return 'unchanged';
@@ -3208,6 +3212,20 @@ HTML;
 																			'desktop' => [
 																				'value' => [
 																					'showBottomSpace' => 'off',
+																					'padding'         => [
+																						'top'            => '250px',
+																						'syncVertical'   => 'off',
+																						'syncHorizontal' => 'off',
+																					],
+																				],
+																			],
+																			'tablet'  => [
+																				'value' => [
+																					'padding' => [
+																						'top'            => '0px',
+																						'syncVertical'   => 'off',
+																						'syncHorizontal' => 'off',
+																					],
 																				],
 																			],
 																		],
@@ -3285,7 +3303,9 @@ HTML;
 				),
 			],
 			'dmf-home-section dmf-home-section--light dmf-about-section',
-			[],
+			[
+				'padding' => '0 0 clamp(5rem, 8vw, 7rem)',
+			],
 			[
 				'id' => 'about',
 			]
@@ -3656,10 +3676,16 @@ HTML;
 				$this->build_column_module(
 					'Blog Intro Column',
 					[
-						$this->build_text_module(
-							'Blog Intro Copy',
-							$this->build_blog_intro_markup( $context ),
-							'dmf-home-text'
+						$this->build_group_module(
+							'Blog Intro Shell',
+							[
+								$this->build_text_module(
+									'Blog Intro Copy',
+									$this->build_blog_intro_markup( $context ),
+									'dmf-home-text dmf-blog-intro-copy dmf-section-header--center'
+								),
+							],
+							'dmf-home-shell dmf-home-stack dmf-blog-intro-shell'
 						),
 					],
 					'4_4',
@@ -3718,14 +3744,6 @@ HTML;
 			'gap'             => 'home' === $context ? '1.5rem' : '2rem',
 			'width'           => '100%',
 		];
-		$row_style       = 'home' === $context
-			? []
-			: [
-				'width'     => 'min(80rem, calc(100% - 3rem))',
-				'max-width' => '80rem',
-				'margin'    => '0 auto',
-			];
-
 		return $this->build_row_module(
 			'Blog Loop Row',
 			[
@@ -3733,39 +3751,45 @@ HTML;
 					'Blog Loop Column',
 					[
 						$this->build_group_module(
-							'Blog Loop Container',
+							'Blog Loop Shell',
 							[
-								$this->build_loop_group_module(
-									'Blog Loop Group',
+								$this->build_group_module(
+									'Blog Loop Container',
 									[
-										$this->build_blog_card_image_block(),
-										$this->build_blog_card_body_group(),
+										$this->build_loop_group_module(
+											'Blog Loop Group',
+											[
+												$this->build_blog_card_image_block(),
+												$this->build_blog_card_body_group(),
+											],
+											[
+												'queryType'          => 'post_types',
+												'subTypes'           => [ 'post' ],
+												'orderBy'            => 'date',
+												'order'              => 'descending',
+												'postPerPage'        => (string) $this->get_blog_loop_posts_per_page( $context ),
+												'postOffset'         => '0',
+												'excludeCurrentPost' => 'off',
+												'ignoreStickysPost'  => 'on',
+												'loopId'             => 'home' === $context ? 'dmfBlogHomeLoop' : 'dmfBlogArchiveLoop',
+											],
+											'dmf-blog-loop-item dmf-blog-loop-item--' . $context,
+											$loop_item_style
+										),
 									],
-									[
-										'queryType'          => 'post_types',
-										'subTypes'           => [ 'post' ],
-										'orderBy'            => 'date',
-										'order'              => 'descending',
-										'postPerPage'        => (string) $this->get_blog_loop_posts_per_page( $context ),
-										'postOffset'         => '0',
-										'excludeCurrentPost' => 'off',
-										'ignoreStickysPost'  => 'on',
-										'loopId'             => 'home' === $context ? 'dmfBlogHomeLoop' : 'dmfBlogArchiveLoop',
-									],
-									'dmf-blog-loop-item dmf-blog-loop-item--' . $context,
-									$loop_item_style
+									'dmf-blog-loop-container dmf-blog-loop-container--' . $context,
+									$container_style
 								),
 							],
-							'dmf-blog-loop-container dmf-blog-loop-container--' . $context,
-							$container_style
+							'dmf-home-shell dmf-blog-loop-shell dmf-blog-loop-shell--' . $context
 						),
 					],
-					'4_4'
+					'4_4',
+					'dmf-home-shell-column'
 				),
 			],
 			'4_4',
-			'dmf-blog-loop-row dmf-blog-loop-row--' . $context,
-			$row_style
+			'dmf-home-shell-row dmf-blog-loop-row dmf-blog-loop-row--' . $context
 		);
 	}
 
@@ -3906,18 +3930,16 @@ HTML;
 	}
 
 	private function build_blog_card_button_block() {
-		return $this->build_button_module(
+		return $this->build_text_module(
 			'Blog Card Button',
-			'Read Post',
-			$this->build_dynamic_content_token(
+			'<div class="dmf-home-actions dmf-blog-card__actions"><a class="dmf-hero-action dmf-hero-action--primary" href="' . $this->build_dynamic_content_token(
 				'loop_post_link',
 				[
 					'before' => '',
 					'after'  => '',
 				]
-			),
-			'left',
-			'dmf-button dmf-button--accent dmf-blog-card__button'
+			) . '">Read Post</a></div>',
+			'dmf-home-text dmf-blog-card__button'
 		);
 	}
 
@@ -3928,15 +3950,23 @@ HTML;
 				$this->build_column_module(
 					'Blog Archive Button Column',
 					[
-						$this->build_button_module(
-							'Blog Archive Button',
-							'View All Posts',
-							$this->get_blog_page_url(),
-							'center',
-							'dmf-button dmf-button--primary'
+						$this->build_group_module(
+							'Blog Archive Button Shell',
+							[
+								$this->build_text_module(
+									'Blog Archive Button',
+									sprintf(
+										'<div class="dmf-home-actions dmf-blog-archive-cta"><a class="dmf-hero-action dmf-hero-action--primary" href="%1$s">View All Posts</a></div>',
+										esc_url( $this->get_blog_page_url() )
+									),
+									'dmf-home-text'
+								),
+							],
+							'dmf-home-shell dmf-home-stack dmf-blog-archive-cta-shell'
 						),
 					],
-					'4_4'
+					'4_4',
+					'dmf-home-shell-column'
 				),
 			],
 			'4_4',
@@ -3947,22 +3977,27 @@ HTML;
 	private function build_blog_loop_runtime_markup() {
 		return <<<'HTML'
 <style id="dmf-blog-loop-styles">
-.dmf-blog-loop-row,.dmf-blog-loop-row>.et_pb_column{width:100%!important;max-width:none!important}
+.dmf-blog-loop-row--home,.dmf-blog-loop-row--home>.et_pb_column{width:100%!important;max-width:none!important}
+.dmf-blog-loop-row--archive,.dmf-blog-loop-row--archive>.et_pb_column{width:100%!important;max-width:none!important}
+.dmf-blog-loop-shell,.dmf-blog-loop-shell>.et_pb_module_inner{width:100%!important}
+.dmf-blog-loop-shell--archive,.dmf-blog-loop-shell--archive>.et_pb_module_inner{max-width:72rem!important}
+.dmf-blog-loop-shell--archive{margin:0 auto!important}
 .dmf-blog-loop-container{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;justify-content:flex-start!important;width:100%!important}
 .dmf-blog-loop-container>.entry{display:none!important}
 .dmf-blog-loop-item,.dmf-blog-loop-item>.et_pb_module_inner{display:flex!important;flex-direction:column!important;height:100%!important}
 .dmf-blog-loop-item{min-width:0!important}
 .dmf-blog-card__image,.dmf-blog-card__image>.et_pb_module_inner{line-height:0!important}
 .dmf-blog-card__image img{display:block!important;width:100%!important;height:100%!important;min-height:15rem!important;aspect-ratio:16/10!important;object-fit:cover!important}
-.dmf-blog-card__body,.dmf-blog-card__body>.et_pb_module_inner{display:flex!important;flex-direction:column!important;gap:1rem!important;flex:1 1 auto!important;height:100%!important}
+.dmf-blog-card__body,.dmf-blog-card__body>.et_pb_module_inner{display:flex!important;flex-direction:column!important;gap:1rem!important;flex:1 1 auto!important;height:100%!important;padding:1.35rem 1.35rem 1.5rem!important;box-sizing:border-box!important}
 .dmf-blog-card__body>.et_pb_module{margin:0!important}
 .dmf-blog-card__title{margin:0!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(1.18rem,calc(1.1rem + .35vw),1.5rem)!important;font-weight:700!important;line-height:1.25!important;color:var(--gcid-dmf-foreground,#131b26)!important}
 .dmf-blog-card__title a{color:inherit!important;text-decoration:none!important}
 .dmf-blog-card__title a:hover{color:var(--gcid-dmf-primary,#2b5b5b)!important}
 .dmf-blog-card__excerpt{margin:0!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.94rem,calc(.92rem + .12vw),1rem)!important;line-height:1.8!important;color:var(--gcid-dmf-muted,#486262)!important}
-.dmf-blog-card__button{margin-top:auto!important}
+.dmf-blog-card__button,.dmf-blog-card__button>.et_pb_module_inner{margin-top:auto!important}
+.dmf-blog-card__actions,.dmf-blog-archive-cta{justify-content:center!important}
 @media (max-width:980px){
-.dmf-blog-loop-row{width:min(80rem,calc(100% - 2rem))!important;margin:0 auto!important}
+.dmf-blog-loop-shell--archive,.dmf-blog-loop-shell--archive>.et_pb_module_inner{max-width:100%!important}
 .dmf-blog-loop-item--home,.dmf-blog-loop-item--archive{flex-basis:calc((100% - 1rem) / 2)!important;max-width:calc((100% - 1rem) / 2)!important}
 }
 @media (max-width:767px){
