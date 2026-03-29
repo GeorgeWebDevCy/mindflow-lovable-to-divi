@@ -118,11 +118,50 @@ class DMF_Divi_Import_Runner {
 		return $missing;
 	}
 
+	public function get_portfolio_fields_path() {
+		return wp_normalize_path( dirname( $this->exports_dir ) . '/acf/portfolio-fields.json' );
+	}
+
 	public function is_divi_ready() {
 		return class_exists( PortabilityPost::class ) &&
 			class_exists( GlobalData::class ) &&
 			function_exists( 'et_theme_builder_store_template' ) &&
 			function_exists( 'et_theme_builder_insert_layout' );
+	}
+
+	public function is_acf_ready() {
+		return function_exists( 'acf_add_local_field_group' );
+	}
+
+	public function ensure_portfolio_field_groups_registered( array $args = [] ) {
+		if ( ! $this->is_acf_ready() ) {
+			return [];
+		}
+
+		$definitions = $this->load_portfolio_field_group_definitions();
+		$registered  = [];
+
+		foreach ( $definitions as $field_group ) {
+			if ( ! is_array( $field_group ) || empty( $field_group['key'] ) ) {
+				continue;
+			}
+
+			acf_add_local_field_group( $field_group );
+			$registered[] = (string) ( $field_group['title'] ?? $field_group['key'] );
+		}
+
+		if ( ! empty( $args['log'] ) && ! empty( $registered ) ) {
+			$this->log(
+				'info',
+				'Portfolio ACF field groups registered from plugin.',
+				[
+					'groups' => $registered,
+					'path'   => $this->get_portfolio_fields_path(),
+				]
+			);
+		}
+
+		return $registered;
 	}
 
 	public function run( array $args = [] ) {
@@ -357,6 +396,75 @@ class DMF_Divi_Import_Runner {
 
 		$summary['warnings'] = $this->warnings;
 		$this->log( 'info', 'Current site export refresh completed.', $summary );
+
+		return $summary;
+	}
+
+	public function apply_portfolio_case_study_enhancements( array $args = [] ) {
+		$this->warnings = [];
+		$dry_run        = ! empty( $args['dry_run'] );
+		$this->log(
+			'info',
+			'Portfolio case study enhancements started.',
+			[
+				'dry_run' => $dry_run,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		$summary = [
+			'dry_run'                 => $dry_run,
+			'acf_updated'             => [],
+			'portfolio_loops_updated' => [],
+			'portfolio_loops_missing' => [],
+			'theme_updated'           => [],
+		];
+
+		if ( ! $this->is_acf_ready() ) {
+			$this->warn( 'Advanced Custom Fields is not active, so the bundled portfolio field group could not be registered from the plugin.' );
+		} else {
+			$registered_groups = $this->ensure_portfolio_field_groups_registered(
+				[
+					'log' => true,
+				]
+			);
+
+			if ( empty( $registered_groups ) ) {
+				$this->warn(
+					sprintf(
+						'Could not load the bundled portfolio field group definition at %s.',
+						$this->get_portfolio_fields_path()
+					)
+				);
+			} else {
+				$summary['acf_updated'] = array_map(
+					static function ( $group_title ) {
+						return sprintf( '%s (loaded from plugin)', (string) $group_title );
+					},
+					$registered_groups
+				);
+			}
+		}
+
+		$portfolio_fix_summary               = $this->apply_portfolio_loop_fix(
+			[
+				'dry_run' => $dry_run,
+				'targets' => [ 'portfolio' ],
+			]
+		);
+		$summary['portfolio_loops_updated'] = $portfolio_fix_summary['updated'];
+		$summary['portfolio_loops_missing'] = $portfolio_fix_summary['missing'];
+		$summary['theme_updated']           = $this->upsert_portfolio_single_theme_template( $dry_run )['updated'] ?? [];
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Portfolio case study enhancements completed.', $summary );
 
 		return $summary;
 	}
@@ -926,6 +1034,32 @@ class DMF_Divi_Import_Runner {
 				'context' => 'portfolio',
 			],
 		];
+		$requested_targets = [];
+
+		if ( ! empty( $args['targets'] ) && is_array( $args['targets'] ) ) {
+			$requested_targets = array_values(
+				array_filter(
+					array_map(
+						static function ( $target ) {
+							return sanitize_key( (string) $target );
+						},
+						$args['targets']
+					)
+				)
+			);
+		}
+
+		if ( ! empty( $requested_targets ) ) {
+			$targets = array_values(
+				array_filter(
+					$targets,
+					static function ( $target ) use ( $requested_targets ) {
+						return in_array( sanitize_key( (string) $target['context'] ), $requested_targets, true ) ||
+							in_array( sanitize_key( (string) $target['label'] ), $requested_targets, true );
+					}
+				)
+			);
+		}
 
 		foreach ( $targets as $target ) {
 			$page = $this->find_target_page( $target['slug'], $home_slug, $target['label'] );
@@ -993,6 +1127,41 @@ class DMF_Divi_Import_Runner {
 		}
 
 		return $summary;
+	}
+
+	private function load_portfolio_field_group_definitions() {
+		$path = $this->get_portfolio_fields_path();
+
+		if ( ! file_exists( $path ) ) {
+			return [];
+		}
+
+		$json = file_get_contents( $path );
+
+		if ( false === $json || '' === trim( $json ) ) {
+			return [];
+		}
+
+		$decoded = json_decode( $json, true );
+
+		if ( JSON_ERROR_NONE !== json_last_error() ) {
+			throw new RuntimeException(
+				sprintf(
+					'The bundled portfolio field group file could not be decoded: %s',
+					json_last_error_msg()
+				)
+			);
+		}
+
+		if ( ! is_array( $decoded ) ) {
+			return [];
+		}
+
+		if ( isset( $decoded['key'] ) ) {
+			return [ $decoded ];
+		}
+
+		return $decoded;
 	}
 
 	private function apply_portfolio_loop_template_to_page( WP_Post $page, $context, $dry_run ) {
@@ -3572,8 +3741,8 @@ HTML;
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:2rem!important;align-items:stretch!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{display:flex!important;flex-direction:column!important;align-self:stretch!important;flex:1 1 calc((100% - 2rem)/2)!important;min-width:0!important;max-width:none!important;padding:1rem!important;background:var(--gcid-dmf-card,#edeced)!important;border:0.0625rem solid var(--gcid-dmf-border,#a1a5a4)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 8%,transparent)!important;transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item:hover{transform:translateY(-.35rem)!important;box-shadow:0 1.4rem 2.8rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 12%,transparent)!important;border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 24%,var(--gcid-dmf-border,#a1a5a4))!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{position:relative!important;display:flex!important;flex:1 1 auto!important;margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important;overflow:hidden!important;border-radius:calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0!important}
-.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{position:relative!important;display:flex!important;flex:1 1 auto!important;height:auto!important;min-height:clamp(26rem,38vw,47.5rem)!important;overflow:hidden!important;border-radius:0!important;background:var(--gcid-dmf-primary,#2b5b5b)!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{position:relative!important;display:flex!important;flex:0 0 auto!important;margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important;overflow:hidden!important;border-radius:calc(var(--gvid-dmf-radius-lg) - 0.0625rem) calc(var(--gvid-dmf-radius-lg) - 0.0625rem) 0 0!important}
+.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{position:relative!important;display:flex!important;flex:1 1 auto!important;height:auto!important;min-height:0!important;aspect-ratio:16/10!important;overflow:hidden!important;border-radius:0!important;background:var(--gcid-dmf-primary,#2b5b5b)!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image .et_pb_image_wrap,.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image picture{display:block!important;width:100%!important;height:100%!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;transition:transform .45s ease!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 8%,transparent) 0%,color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 44%,transparent) 100%);opacity:0;transition:opacity .28s ease;z-index:1}
@@ -3605,8 +3774,8 @@ HTML;
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-anchor{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:.55rem!important;padding:.95rem 1.55rem!important;border-radius:var(--gvid-dmf-radius-md)!important;border:0.0625rem solid color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 78%,var(--gcid-dmf-foreground,#131b26))!important;background:var(--gcid-dmf-primary,#2b5b5b)!important;color:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 25%,transparent)!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-base)!important;font-weight:700!important;line-height:1.1!important;text-decoration:none!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-arrow{display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:1rem!important;line-height:1!important}
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-anchor:hover{opacity:1!important;transform:translateY(-1px)!important}
-@media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{height:28rem!important;min-height:28rem!important}}
-@media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{height:20rem!important;min-height:20rem!important}}
+@media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{aspect-ratio:16/10!important}}
+@media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{aspect-ratio:16/10!important}}
 </style>
 HTML;
 	}
@@ -5210,21 +5379,26 @@ HTML;
 								$this->build_group_module(
 									'Portfolio Single Content Stack',
 									[
-										$this->build_portfolio_single_copy_section(
+										$this->build_portfolio_single_feature_section(
 											'Portfolio Single Overview Section',
 											'dmf-portfolio-single__section dmf-portfolio-single__section--overview',
 											'Project',
 											'Overview',
-											'project_overview'
+											'project_overview',
+											'project_overview_image',
+											'right'
 										),
-										$this->build_portfolio_single_copy_section(
+										$this->build_portfolio_single_feature_section(
 											'Portfolio Single Challenge Section',
 											'dmf-portfolio-single__section dmf-portfolio-single__section--challenge',
 											'The',
 											'Challenge',
-											'project_challenge'
+											'project_challenge',
+											'project_challenge_image',
+											'left'
 										),
 										$this->build_portfolio_single_approach_section(),
+										$this->build_portfolio_single_gallery_section(),
 										$this->build_portfolio_single_results_section(),
 										$this->build_portfolio_single_quote_block(),
 									],
@@ -5239,7 +5413,7 @@ HTML;
 					'dmf-portfolio-single__content-row',
 					[
 						'width'      => '100%',
-						'max-width'  => '62rem',
+						'max-width'  => '70rem',
 						'margin'     => '0 auto',
 						'padding'    => 'clamp(3rem, 6vw, 4.75rem) 1.5rem clamp(4rem, 8vw, 5.5rem)',
 						'box-sizing' => 'border-box',
@@ -5492,6 +5666,68 @@ HTML;
 		);
 	}
 
+	private function build_portfolio_single_feature_section( $admin_label, $class, $lead, $accent, $meta_key, $image_meta_key, $image_position = 'right' ) {
+		$image_position_class = 'left' === sanitize_key( (string) $image_position )
+			? 'dmf-portfolio-single__feature-grid dmf-portfolio-single__feature-grid--image-left'
+			: 'dmf-portfolio-single__feature-grid dmf-portfolio-single__feature-grid--image-right';
+
+		return $this->build_group_module(
+			(string) $admin_label,
+			[
+				$this->build_group_module(
+					$admin_label . ' Layout',
+					[
+						$this->build_group_module(
+							$admin_label . ' Copy',
+							[
+								$this->build_portfolio_single_section_heading_block(
+									$admin_label . ' Heading',
+									(string) $lead,
+									(string) $accent
+								),
+								$this->build_portfolio_single_body_block(
+									$admin_label . ' Body',
+									(string) $meta_key
+								),
+							],
+							'dmf-portfolio-single__feature-copy'
+						),
+						$this->build_group_module(
+							$admin_label . ' Media',
+							[
+								$this->build_portfolio_single_meta_image_block(
+									$admin_label . ' Image',
+									(string) $image_meta_key,
+									'dmf-portfolio-single__image dmf-portfolio-single__image--feature'
+								),
+							],
+							'dmf-portfolio-single__feature-media'
+						),
+					],
+					$image_position_class
+				),
+			],
+			(string) $class
+		);
+	}
+
+	private function build_portfolio_single_gallery_section() {
+		return $this->build_group_module(
+			'Portfolio Single Project Gallery Section',
+			[
+				$this->build_portfolio_single_section_heading_block( 'Portfolio Single Project Gallery Heading', 'Project', 'Gallery' ),
+				$this->build_group_module(
+					'Portfolio Single Project Gallery Grid',
+					[
+						$this->build_portfolio_single_gallery_item_block(),
+					],
+					'dmf-portfolio-single__gallery-grid'
+				),
+			],
+			'dmf-portfolio-single__section dmf-portfolio-single__section--gallery'
+		);
+	}
+
 	private function build_portfolio_single_approach_section() {
 		return $this->build_group_module(
 			'Portfolio Single Approach Section',
@@ -5728,6 +5964,116 @@ HTML;
 		);
 	}
 
+	private function build_portfolio_single_gallery_item_block() {
+		return $this->build_loop_group_module(
+			'Portfolio Single Gallery Item',
+			[
+				$this->build_portfolio_single_meta_image_block(
+					'Portfolio Single Gallery Image',
+					'gallery_image',
+					'dmf-portfolio-single__image dmf-portfolio-single__image--gallery',
+					true
+				),
+			],
+			[
+				'queryType'          => 'repeater_project_gallery',
+				'orderBy'            => 'date',
+				'order'              => 'ascending',
+				'postPerPage'        => '12',
+				'postOffset'         => '0',
+				'excludeCurrentPost' => 'off',
+				'ignoreStickysPost'  => 'on',
+				'loopId'             => 'dmfPortfolioSingleGallery',
+			],
+			'dmf-portfolio-single__gallery-item'
+		);
+	}
+
+	private function build_portfolio_single_meta_image_block( $admin_label, $meta_key, $class = 'dmf-portfolio-single__image', $is_repeater = false ) {
+		$src_token = $is_repeater
+			? $this->build_portfolio_single_repeater_token( 'project_gallery', (string) $meta_key )
+			: $this->build_portfolio_single_current_meta_token( (string) $meta_key );
+
+		return $this->render_divi_block(
+			'image',
+			[
+				'builderVersion' => 0.7,
+				'module'         => [
+					'meta'       => [
+						'adminLabel' => [
+							'desktop' => [
+								'value' => (string) $admin_label,
+							],
+						],
+					],
+					'advanced'   => [
+						'spacing' => [
+							'desktop' => [
+								'value' => [
+									'showBottomSpace' => 'off',
+								],
+							],
+						],
+						'sizing'  => [
+							'desktop' => [
+								'value' => [
+									'forceFullwidth' => 'on',
+								],
+							],
+						],
+					],
+					'decoration' => [
+						'attributes' => $this->build_custom_attributes(
+							[
+								'class' => (string) $class,
+								'style' => $this->build_inline_style(
+									[
+										'width'         => '100%',
+										'overflow'      => 'hidden',
+										'border-radius' => '1.75rem',
+										'box-shadow'    => '0 1.25rem 3rem color-mix(in srgb, var(--gcid-dmf-foreground, #131b26) 10%, transparent)',
+									]
+								),
+							]
+						),
+					],
+				],
+				'image'          => [
+					'innerContent' => [
+						'desktop' => [
+							'value' => [
+								'src'        => $src_token,
+								'alt'        => $this->build_dynamic_content_token(
+									'post_title',
+									[
+										'before' => '',
+										'after'  => '',
+									]
+								),
+								'linkUrl'    => '',
+								'linkTarget' => 'off',
+							],
+						],
+					],
+					'advanced'     => [
+						'lightbox' => [
+							'desktop' => [
+								'value' => 'off',
+							],
+						],
+						'overlay'  => [
+							'desktop' => [
+								'value' => [
+									'use' => 'off',
+								],
+							],
+						],
+					],
+				],
+			]
+		);
+	}
+
 	private function build_portfolio_single_current_meta_token( $meta_key, array $settings = [] ) {
 		$meta_key = sanitize_key( (string) $meta_key );
 
@@ -5862,7 +6208,7 @@ HTML;
 .dmf-portfolio-single__metric-card,.dmf-portfolio-single__result-card{text-align:center!important}
 .dmf-portfolio-single__metric-value{font-family:var(--gvid-dmf-heading-font)!important;font-size:clamp(2rem,3vw,2.8rem)!important;font-weight:700!important;line-height:1.05!important;color:var(--gcid-dmf-primary,#2b5b5b)!important}
 .dmf-portfolio-single__metric-label{margin-top:.35rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:var(--gvid-dmf-text-sm)!important;line-height:1.45!important;color:var(--gcid-dmf-muted,#486262)!important}
-.dmf-portfolio-single__metrics-grid>.entry,.dmf-portfolio-single__approach-list>.entry,.dmf-portfolio-single__results-grid>.entry{display:none!important}
+.dmf-portfolio-single__metrics-grid>.entry,.dmf-portfolio-single__approach-list>.entry,.dmf-portfolio-single__gallery-grid>.entry,.dmf-portfolio-single__results-grid>.entry{display:none!important}
 .dmf-portfolio-single__metrics-section:has(.dmf-portfolio-single__metrics-grid:empty),.dmf-portfolio-single__metrics-section:has(.dmf-portfolio-single__metrics-grid>.entry:only-child){display:none!important}
 .dmf-portfolio-single__content-stack{display:flex!important;flex-direction:column!important;gap:3rem!important}
 .dmf-portfolio-single__section{display:flex!important;flex-direction:column!important;gap:1rem!important}
@@ -5870,11 +6216,26 @@ HTML;
 .dmf-portfolio-single__section-title span{color:var(--gcid-dmf-primary,#2b5b5b)!important}
 .dmf-portfolio-single__body{font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.98rem,calc(.98rem + .18vw),1.08rem)!important;line-height:1.9!important;color:var(--gcid-dmf-muted,#486262)!important;white-space:pre-line!important}
 .dmf-portfolio-single__section--overview:has(.dmf-portfolio-single__body:empty),.dmf-portfolio-single__section--challenge:has(.dmf-portfolio-single__body:empty){display:none!important}
+.dmf-portfolio-single__feature-grid{display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)!important;align-items:center!important;gap:clamp(1.5rem,4vw,4rem)!important}
+.dmf-portfolio-single__feature-copy{display:flex!important;flex-direction:column!important;gap:1rem!important}
+.dmf-portfolio-single__feature-media{display:flex!important;align-items:center!important}
+.dmf-portfolio-single__feature-media .dmf-portfolio-single__image,.dmf-portfolio-single__gallery-item .dmf-portfolio-single__image{width:100%!important}
+.dmf-portfolio-single__feature-grid--image-left .dmf-portfolio-single__feature-copy{order:2!important}
+.dmf-portfolio-single__feature-grid--image-left .dmf-portfolio-single__feature-media{order:1!important}
+.dmf-portfolio-single__feature-grid:has(.dmf-portfolio-single__feature-media img[src=""]){grid-template-columns:1fr!important}
+.dmf-portfolio-single__feature-grid:has(.dmf-portfolio-single__feature-media img[src=""]) .dmf-portfolio-single__feature-media{display:none!important}
+.dmf-portfolio-single__image--feature img{min-height:clamp(18rem,28vw,25rem)!important;max-height:none!important}
 .dmf-portfolio-single__approach-list{display:flex!important;flex-direction:column!important;gap:1rem!important;counter-reset:dmf-approach!important}
 .dmf-portfolio-single__approach-item{counter-increment:dmf-approach!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:start!important;gap:1rem!important}
 .dmf-portfolio-single__approach-item::before{content:counter(dmf-approach)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:2rem!important;height:2rem!important;border-radius:999px!important;background:var(--gcid-dmf-primary,#2b5b5b)!important;color:var(--gcid-dmf-white,#fafafa)!important;font-family:var(--gvid-dmf-heading-font)!important;font-size:.92rem!important;font-weight:700!important;line-height:1!important}
 .dmf-portfolio-single__approach-copy{padding-top:.15rem!important;font-family:var(--gvid-dmf-body-font)!important;font-size:clamp(.98rem,calc(.98rem + .12vw),1.04rem)!important;line-height:1.8!important;color:var(--gcid-dmf-muted,#486262)!important;white-space:pre-line!important}
 .dmf-portfolio-single__section--approach:has(.dmf-portfolio-single__approach-list:empty),.dmf-portfolio-single__section--approach:has(.dmf-portfolio-single__approach-list>.entry:only-child){display:none!important}
+.dmf-portfolio-single__gallery-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1rem!important}
+.dmf-portfolio-single__section--gallery .dmf-portfolio-single__section-title-wrap{text-align:center!important}
+.dmf-portfolio-single__gallery-item{display:flex!important}
+.dmf-portfolio-single__gallery-item:has(img[src=""]){display:none!important}
+.dmf-portfolio-single__image--gallery img{min-height:14rem!important;max-height:none!important;aspect-ratio:16/10!important}
+.dmf-portfolio-single__section--gallery:has(.dmf-portfolio-single__gallery-grid:empty),.dmf-portfolio-single__section--gallery:has(.dmf-portfolio-single__gallery-grid>.entry:only-child){display:none!important}
 .dmf-portfolio-single__body--results-intro:empty{display:none!important}
 .dmf-portfolio-single__results-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1rem!important}
 .dmf-portfolio-single__result-card{padding:1.55rem 1.2rem!important;border:1px solid color-mix(in srgb,var(--gcid-dmf-border,#a1a5a4) 45%,transparent)!important;border-radius:1.25rem!important;background:var(--gcid-dmf-white,#fafafa)!important;box-shadow:0 1rem 2.5rem color-mix(in srgb,var(--gcid-dmf-foreground,#131b26) 6%,transparent)!important}
@@ -5903,12 +6264,13 @@ HTML;
 .dmf-portfolio-single__hero-row{padding-top:clamp(7rem,16vw,8.5rem)!important}
 .dmf-portfolio-single__image img{min-height:20rem!important;max-height:none!important}
 .dmf-portfolio-single__metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.dmf-portfolio-single__feature-grid{grid-template-columns:1fr!important}
 .dmf-portfolio-single__bottom-row{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:1.5rem!important}
 .dmf-portfolio-single__cta-wrap{justify-content:flex-start!important}
 }
 @media (max-width:767px){
 .dmf-portfolio-single__hero-row,.dmf-portfolio-single__metrics-row,.dmf-portfolio-single__content-row,.dmf-portfolio-single__bottom-row{padding-left:1rem!important;padding-right:1rem!important}
-.dmf-portfolio-single__metrics-grid,.dmf-portfolio-single__results-grid{grid-template-columns:1fr!important}
+.dmf-portfolio-single__metrics-grid,.dmf-portfolio-single__gallery-grid,.dmf-portfolio-single__results-grid{grid-template-columns:1fr!important}
 .dmf-portfolio-single__quote-box{padding:1.5rem!important}
 .dmf-portfolio-single__image img{min-height:17rem!important;border-radius:1.25rem!important}
 }

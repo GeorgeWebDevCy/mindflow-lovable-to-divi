@@ -18,6 +18,8 @@ class DMF_Divi_Import_Admin {
 
 	const CURRENT_SITE_ACTION = 'dmf_divi_importer_apply_current_site_exports';
 
+	const PORTFOLIO_ENHANCEMENTS_ACTION = 'dmf_divi_importer_apply_portfolio_case_study_enhancements';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -31,7 +33,9 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::PORTFOLIO_BODY_ACTION, [ __CLASS__, 'handle_refresh_portfolio_body' ] );
 		add_action( 'admin_post_' . self::HEADER_DIAGNOSTIC_ACTION, [ __CLASS__, 'handle_capture_header_diagnostics' ] );
 		add_action( 'admin_post_' . self::CURRENT_SITE_ACTION, [ __CLASS__, 'handle_apply_current_site_exports' ] );
+		add_action( 'admin_post_' . self::PORTFOLIO_ENHANCEMENTS_ACTION, [ __CLASS__, 'handle_apply_portfolio_case_study_enhancements' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
+		add_action( 'acf/init', [ __CLASS__, 'register_portfolio_field_group' ] );
 	}
 
 	public static function register_page() {
@@ -239,6 +243,55 @@ class DMF_Divi_Import_Admin {
 		exit;
 	}
 
+	public static function handle_apply_portfolio_case_study_enhancements() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::PORTFOLIO_ENHANCEMENTS_ACTION );
+
+		$args = [
+			'dry_run' => ! empty( $_POST['dry_run'] ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin portfolio case study enhancements submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Portfolio case study enhancements applied.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_portfolio_case_study_enhancements( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Portfolio case study enhancements dry run complete.'
+				: 'Portfolio case study enhancements applied.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Portfolio case study enhancements failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Portfolio case study enhancements action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
 	public static function handle_clear_log() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
@@ -259,6 +312,24 @@ class DMF_Divi_Import_Admin {
 
 		wp_safe_redirect( self::page_url() );
 		exit;
+	}
+
+	public static function register_portfolio_field_group() {
+		try {
+			$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+			$runner->ensure_portfolio_field_groups_registered();
+		} catch ( Throwable $error ) {
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Portfolio ACF field group registration failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
 	}
 
 	public static function handle_capture_header_diagnostics() {
@@ -347,6 +418,7 @@ class DMF_Divi_Import_Admin {
 		$missing_files         = $runner->get_missing_export_files();
 		$current_missing_files = $runner->get_current_site_missing_export_files();
 		$divi_ready            = $runner->is_divi_ready();
+		$acf_ready             = $runner->is_acf_ready();
 		$log_entries           = DMF_Divi_Import_Logger::get_entries( 100 );
 		$log_count             = DMF_Divi_Import_Logger::count();
 
@@ -368,6 +440,10 @@ class DMF_Divi_Import_Admin {
 					<li>
 						Bundled export files:
 						<strong><?php echo empty( $missing_files ) ? 'complete' : 'missing files'; ?></strong>
+					</li>
+					<li>
+						ACF field registration:
+						<strong><?php echo $acf_ready ? 'ready' : 'not ready'; ?></strong>
 					</li>
 					<li>
 						Current site snapshot files:
@@ -398,6 +474,12 @@ class DMF_Divi_Import_Admin {
 				<?php if ( ! $divi_ready ) : ?>
 					<div class="notice notice-error inline">
 						<p>Activate Divi before running this importer.</p>
+					</div>
+				<?php endif; ?>
+
+				<?php if ( ! $acf_ready ) : ?>
+					<div class="notice notice-error inline">
+						<p>Activate Advanced Custom Fields before applying the portfolio case study enhancements.</p>
 					</div>
 				<?php endif; ?>
 			</div>
@@ -499,6 +581,35 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-secondary" <?php disabled( ! empty( $current_missing_files ) || ! $divi_ready ); ?>>
 						Apply Current Site Snapshot
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::PORTFOLIO_ENHANCEMENTS_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::PORTFOLIO_ENHANCEMENTS_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Portfolio Case Study Enhancements</h2>
+				<p>Apply only the next portfolio-specific changes: landscape Portfolio page card images, the refreshed single <code>portfolio</code> body layout with overview/challenge image sections plus a project gallery, and the bundled ACF field definition for those new image fields.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">Safety</th>
+							<td>
+								<label>
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Portfolio page and Theme Builder changes without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready || ! $acf_ready ); ?>>
+						Apply Portfolio Case Study Enhancements
 					</button>
 				</p>
 			</form>
@@ -619,6 +730,7 @@ class DMF_Divi_Import_Admin {
 			'pages_updated'           => 'Updated pages',
 			'pages_created'           => 'Created pages',
 			'pages_missing'           => 'Missing pages',
+			'acf_updated'             => 'ACF field groups',
 			'portfolio_loops_updated' => 'Portfolio loop pages',
 			'portfolio_loops_missing' => 'Portfolio loop pages missing',
 			'theme_updated'           => 'Theme Builder',
