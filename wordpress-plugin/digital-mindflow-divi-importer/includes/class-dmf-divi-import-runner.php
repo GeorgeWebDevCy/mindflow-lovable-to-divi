@@ -3212,20 +3212,6 @@ HTML;
 																			'desktop' => [
 																				'value' => [
 																					'showBottomSpace' => 'off',
-																					'padding'         => [
-																						'top'            => '250px',
-																						'syncVertical'   => 'off',
-																						'syncHorizontal' => 'off',
-																					],
-																				],
-																			],
-																			'tablet'  => [
-																				'value' => [
-																					'padding' => [
-																						'top'            => '0px',
-																						'syncVertical'   => 'off',
-																						'syncHorizontal' => 'off',
-																					],
 																				],
 																			],
 																		],
@@ -3274,24 +3260,24 @@ HTML;
 															]
 														),
 													],
-													'dmf-home-media'
+													'dmf-home-media dmf-about-media'
 												),
 												$this->build_group_module(
 													'About Copy Group',
 													[
-														$this->build_text_module( 'About Eyebrow', '<span class="dmf-section-eyebrow">About Us</span>', 'dmf-home-text' ),
+														$this->build_text_module( 'About Eyebrow', '<span class="dmf-section-eyebrow">About Us</span>', 'dmf-home-text dmf-about-eyebrow' ),
 														$this->build_text_module( 'About Title', '<h2 class="dmf-section-title">We Are <span class="dmf-text-gradient">Digital MindFlow</span></h2>', 'dmf-home-text' ),
 														$this->build_text_module( 'About Copy Intro', '<p class="dmf-section-body">A studio offering digital marketing services, specializing in consultation, social media, email marketing, website design and Google Ads for businesses, brands and individuals.</p>', 'dmf-home-text' ),
 														$this->build_text_module( 'About Copy Body', '<p class="dmf-section-body">We are professional, passionate, and strongly committed to what we do. With our experience, we aim to help our clients achieve their goals taking into account individual requirements and unique demands.</p>', 'dmf-home-text' ),
 													],
-													'dmf-home-copy'
+													'dmf-home-copy dmf-about-copy'
 												),
 											],
-											'dmf-home-split'
+											'dmf-home-split dmf-about-split'
 										),
-										$this->build_group_module( 'About Values Container', $value_cards, 'dmf-flex-cards dmf-flex-cards--three dmf-values-cards' ),
+										$this->build_group_module( 'About Values Container', $value_cards, 'dmf-flex-cards dmf-flex-cards--three dmf-values-cards dmf-about-values' ),
 									],
-									'dmf-home-shell'
+									'dmf-home-shell dmf-about-shell'
 								),
 							],
 							'4_4',
@@ -3303,9 +3289,7 @@ HTML;
 				),
 			],
 			'dmf-home-section dmf-home-section--light dmf-about-section',
-			[
-				'padding' => '0 0 clamp(5rem, 8vw, 7rem)',
-			],
+			[],
 			[
 				'id' => 'about',
 			]
@@ -3982,10 +3966,12 @@ HTML;
 .dmf-blog-loop-shell,.dmf-blog-loop-shell>.et_pb_module_inner{width:100%!important}
 .dmf-blog-loop-shell--archive,.dmf-blog-loop-shell--archive>.et_pb_module_inner{max-width:72rem!important}
 .dmf-blog-loop-shell--archive{margin:0 auto!important}
-.dmf-blog-loop-container{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;justify-content:flex-start!important;width:100%!important}
+.dmf-blog-loop-container{display:grid!important;align-items:stretch!important;width:100%!important}
+.dmf-blog-loop-container--home{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1.5rem!important}
+.dmf-blog-loop-container--archive{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2rem!important}
 .dmf-blog-loop-container>.entry{display:none!important}
 .dmf-blog-loop-item,.dmf-blog-loop-item>.et_pb_module_inner{display:flex!important;flex-direction:column!important;height:100%!important}
-.dmf-blog-loop-item{min-width:0!important}
+.dmf-blog-loop-item{min-width:0!important;width:100%!important;max-width:none!important;flex:none!important;align-self:stretch!important}
 .dmf-blog-card__image,.dmf-blog-card__image>.et_pb_module_inner{line-height:0!important}
 .dmf-blog-card__image img{display:block!important;width:100%!important;height:100%!important;min-height:15rem!important;aspect-ratio:16/10!important;object-fit:cover!important}
 .dmf-blog-card__body,.dmf-blog-card__body>.et_pb_module_inner{display:flex!important;flex-direction:column!important;gap:1rem!important;flex:1 1 auto!important;height:100%!important;padding:1.35rem 1.35rem 1.5rem!important;box-sizing:border-box!important}
@@ -3998,10 +3984,10 @@ HTML;
 .dmf-blog-card__actions,.dmf-blog-archive-cta{justify-content:center!important}
 @media (max-width:980px){
 .dmf-blog-loop-shell--archive,.dmf-blog-loop-shell--archive>.et_pb_module_inner{max-width:100%!important}
-.dmf-blog-loop-item--home,.dmf-blog-loop-item--archive{flex-basis:calc((100% - 1rem) / 2)!important;max-width:calc((100% - 1rem) / 2)!important}
+.dmf-blog-loop-container--home,.dmf-blog-loop-container--archive{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 @media (max-width:767px){
-.dmf-blog-loop-item--home,.dmf-blog-loop-item--archive{flex-basis:100%!important;max-width:100%!important}
+.dmf-blog-loop-container--home,.dmf-blog-loop-container--archive{grid-template-columns:minmax(0,1fr)!important}
 .dmf-blog-card__image img{min-height:13rem!important}
 }
 </style>
@@ -4570,7 +4556,15 @@ HTML,
 .dmf-home-split{display:flex;flex-wrap:wrap;align-items:center;gap:clamp(2rem,4vw,4rem)}
 .dmf-home-media{flex:1 1 22rem;min-width:min(100%,19rem)}
 .dmf-home-copy{flex:1 1 24rem;min-width:min(100%,19rem);display:flex;flex-direction:column;gap:1rem}
-.dmf-about-image img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:1.5rem;box-shadow:0 1.5rem 3.5rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 14%,transparent)}
+.dmf-about-shell{gap:clamp(2.75rem,5vw,4.25rem)}
+.dmf-about-split{align-items:center;justify-content:space-between;gap:clamp(2.5rem,5vw,4rem)}
+.dmf-about-media{flex:1 1 32rem;min-width:min(100%,22rem)}
+.dmf-about-copy{flex:1 1 28rem;min-width:min(100%,20rem);max-width:38rem}
+.dmf-about-copy .dmf-section-body{max-width:34rem}
+.dmf-about-values{margin-top:clamp(.5rem,1.5vw,1rem)}
+.dmf-about-eyebrow .dmf-section-eyebrow{color:var(--gcid-dmf-accent,#941213)}
+.dmf-about-image,.dmf-about-image>.et_pb_module_inner{width:100%!important}
+.dmf-about-image img{display:block;width:min(100%,40rem);margin:0 auto;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:1.5rem;box-shadow:0 1.5rem 3.5rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 14%,transparent)}
 .dmf-home-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:1rem;margin-top:.25rem}
 .dmf-hero-action{display:inline-flex;align-items:center;justify-content:center;min-height:2.8rem;padding:.78rem 1.2rem;border:1px solid transparent;border-radius:.62rem;font-family:var(--gvid-dmf-body-font);font-size:.92rem;font-weight:700;line-height:1;letter-spacing:.01em;text-decoration:none;white-space:nowrap;box-sizing:border-box;transition:transform .2s ease,background-color .2s ease,border-color .2s ease,box-shadow .2s ease,color .2s ease}
 .dmf-hero-action:hover{transform:translateY(-1px)}
