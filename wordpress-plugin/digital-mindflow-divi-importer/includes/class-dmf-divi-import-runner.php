@@ -3337,140 +3337,83 @@ HTML;
 	}
 
 	private function build_about_section() {
-		$value_cards = [];
-
-		foreach ( $this->get_about_value_cards() as $index => $card ) {
-			$value_cards[] = $this->build_group_module(
-				sprintf( 'About Value Card %d', $index + 1 ),
-				[
-					$this->build_text_module(
-						sprintf( 'About Value Icon %d', $index + 1 ),
-						$this->build_home_icon_markup( $card['icon'], $card['title'] ),
-						'dmf-card-icon'
-					),
-					$this->build_text_module( sprintf( 'About Value Title %d', $index + 1 ), '<h3 class="dmf-card-title">' . esc_html( $card['title'] ) . '</h3>', 'dmf-home-text' ),
-					$this->build_text_module( sprintf( 'About Value Copy %d', $index + 1 ), '<p class="dmf-card-copy">' . esc_html( $card['text'] ) . '</p>', 'dmf-home-text' ),
-				],
-				'dmf-lift-card'
-			);
-		}
-
 		return $this->build_section_module(
 			'About Section',
 			[
-				$this->build_code_module( 'About Section Runtime', $this->build_about_section_runtime_markup(), 'dmf-about-section-runtime' ),
 				$this->build_row_module(
-					'About Layout Row',
+					'About Intro Row',
 					[
 						$this->build_column_module(
-							'About Layout Column',
+							'About Image Column',
 							[
-								$this->build_group_module(
-									'About Section Shell',
-									[
-										$this->build_group_module(
-											'About Split Layout',
-											[
-												$this->build_group_module(
-													'About Image Group',
-													[
-														$this->render_divi_block(
-															'image',
-															[
-																'builderVersion' => 0.7,
-																'module'         => [
-																	'meta'       => [
-																		'adminLabel' => [
-																			'desktop' => [
-																				'value' => 'About Image',
-																			],
-																		],
-																	],
-																	'advanced'   => [
-																		'spacing' => [
-																			'desktop' => [
-																				'value' => [
-																					'showBottomSpace' => 'off',
-																				],
-																			],
-																		],
-																		'sizing'  => [
-																			'desktop' => [
-																				'value' => [
-																					'forceFullwidth' => 'on',
-																				],
-																			],
-																		],
-																	],
-																	'decoration' => [
-																		'attributes' => $this->build_custom_attributes(
-																			[
-																				'class' => 'dmf-about-image',
-																			]
-																		),
-																	],
-																],
-																'image'          => [
-																	'innerContent' => [
-																		'desktop' => [
-																			'value' => [
-																				'src'        => 'https://mindflowdigital.com/wp-content/uploads/2026/02/about-creative.jpg',
-																				'alt'        => 'Digital MindFlow creative concept',
-																				'linkUrl'    => '',
-																				'linkTarget' => 'off',
-																			],
-																		],
-																	],
-																	'advanced'     => [
-																		'lightbox' => [
-																			'desktop' => [
-																				'value' => 'off',
-																			],
-																		],
-																		'overlay'  => [
-																			'desktop' => [
-																				'value' => [
-																					'use' => 'off',
-																				],
-																			],
-																		],
-																	],
-																],
-															]
-														),
-													],
-													'dmf-home-media dmf-about-media'
-												),
-												$this->build_group_module(
-													'About Copy Group',
-													[
-														$this->build_text_module( 'About Eyebrow', '<span class="dmf-section-eyebrow">About Us</span>', 'dmf-home-text dmf-about-eyebrow' ),
-														$this->build_text_module( 'About Title', '<h2 class="dmf-section-title">We Are <span class="dmf-text-gradient">Digital MindFlow</span></h2>', 'dmf-home-text' ),
-														$this->build_text_module( 'About Copy Intro', '<p class="dmf-section-body">A studio offering digital marketing services, specializing in consultation, social media, email marketing, website design and Google Ads for businesses, brands and individuals.</p>', 'dmf-home-text' ),
-														$this->build_text_module( 'About Copy Body', '<p class="dmf-section-body">We are professional, passionate, and strongly committed to what we do. With our experience, we aim to help our clients achieve their goals taking into account individual requirements and unique demands.</p>', 'dmf-home-text' ),
-													],
-													'dmf-home-copy dmf-about-copy'
-												),
-											],
-											'dmf-home-split dmf-about-split'
-										),
-										$this->build_group_module( 'About Values Container', $value_cards, 'dmf-flex-cards dmf-flex-cards--three dmf-values-cards dmf-about-values' ),
-									],
-									'dmf-home-shell dmf-about-shell'
+								$this->build_text_module(
+									'About Image',
+									'<div id="about" style="position:relative;padding:0.5rem 1rem 0.5rem 0">'
+									. '<img src="https://mindflowdigital.com/wp-content/uploads/2026/02/about-creative.jpg" alt="Digital MindFlow creative concept" style="display:block;width:100%;height:auto;object-fit:cover;border-radius:1.5rem;box-shadow:0 1.5rem 3.5rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 14%, transparent)">'
+									. '</div>'
 								),
 							],
-							'4_4',
-							'dmf-home-shell-column'
+							'1_2'
+						),
+						$this->build_column_module(
+							'About Copy Column',
+							[
+								$this->build_text_module(
+									'About Copy',
+									'<div style="padding:0.625rem 0">'
+									. '<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-primary, #2b5b5b);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">About Us</div>'
+									. '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0">We Are <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Digital MindFlow</span></h2>'
+									. '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 0 1rem 0">A studio offering digital marketing services, specializing in consultation, social media, email marketing, website design and Google Ads for businesses, brands and individuals.</p>'
+									. '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.95rem, calc(0.95rem + 0.18vw), 1.06rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0">We are professional, passionate, and strongly committed to what we do. With our experience, we aim to help our clients achieve their goals taking into account individual requirements and unique demands.</p>'
+									. '</div>'
+								),
+							],
+							'1_2'
 						),
 					],
-					'4_4',
-					'dmf-home-shell-row'
+					'1_2,1_2'
 				),
+				$this->build_row_module(
+					'About Values Row',
+					[
+						$this->build_column_module(
+							'About Value Column 1',
+							[
+								$this->build_text_module(
+									'Our Mission Card',
+									'<div style="background:var(--gcid-dmf-card, #edeced);border:0.0625rem solid var(--gcid-dmf-border, #a1a5a4);border-radius:var(--gvid-dmf-radius-lg);padding:2rem;box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent);height:100%"><div style="text-align:center"><div style="display:inline-flex;width:3.5rem;height:3.5rem;align-items:center;justify-content:center;border-radius:var(--gvid-dmf-radius-md);background:color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 14%, transparent);color:var(--gcid-dmf-primary, #2b5b5b);font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.0575rem, calc(1.0575rem + 0.24vw), 1.2375rem);font-weight:700;margin-bottom:var(--gvid-dmf-space-md)"><img src="https://mindflowdigital.com/wp-content/uploads/2026/02/mission.svg" alt="Our Mission" style="width:1.5rem;height:1.5rem;display:block;object-fit:contain"></div><h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.175rem, calc(1.175rem + 0.24vw), 1.375rem);font-weight:600;line-height:1.25;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.75rem 0">Our Mission</h3><p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8312rem, calc(0.8312rem + 0.18vw), 0.9275rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0">To develop trusted business partnerships by providing the highest level of digital marketing services that contribute to our client&#39;s growth, success, and the community&#39;s development.</p></div></div>'
+								),
+							],
+							'1_3'
+						),
+						$this->build_column_module(
+							'About Value Column 2',
+							[
+								$this->build_text_module(
+									'Our Vision Card',
+									'<div style="background:var(--gcid-dmf-card, #edeced);border:0.0625rem solid var(--gcid-dmf-border, #a1a5a4);border-radius:var(--gvid-dmf-radius-lg);padding:2rem;box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent);height:100%"><div style="text-align:center"><div style="display:inline-flex;width:3.5rem;height:3.5rem;align-items:center;justify-content:center;border-radius:var(--gvid-dmf-radius-md);background:color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 14%, transparent);color:var(--gcid-dmf-primary, #2b5b5b);font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.0575rem, calc(1.0575rem + 0.24vw), 1.2375rem);font-weight:700;margin-bottom:var(--gvid-dmf-space-md)"><img src="https://mindflowdigital.com/wp-content/uploads/2026/02/vision.svg" alt="Our Vision" style="width:1.5rem;height:1.5rem;display:block;object-fit:contain"></div><h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.175rem, calc(1.175rem + 0.24vw), 1.375rem);font-weight:600;line-height:1.25;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.75rem 0">Our Vision</h3><p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8312rem, calc(0.8312rem + 0.18vw), 0.9275rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0">Our team consists of highly skilled professionals who are passionate about what they do. We believe that if you communicate with people right, you can gain excellence.</p></div></div>'
+								),
+							],
+							'1_3'
+						),
+						$this->build_column_module(
+							'About Value Column 3',
+							[
+								$this->build_text_module(
+									'Our Approach Card',
+									'<div style="background:var(--gcid-dmf-card, #edeced);border:0.0625rem solid var(--gcid-dmf-border, #a1a5a4);border-radius:var(--gvid-dmf-radius-lg);padding:2rem;box-shadow:0 1rem 2.25rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 8%, transparent);height:100%"><div style="text-align:center"><div style="display:inline-flex;width:3.5rem;height:3.5rem;align-items:center;justify-content:center;border-radius:var(--gvid-dmf-radius-md);background:color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 14%, transparent);color:var(--gcid-dmf-primary, #2b5b5b);font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.0575rem, calc(1.0575rem + 0.24vw), 1.2375rem);font-weight:700;margin-bottom:var(--gvid-dmf-space-md)"><img src="https://mindflowdigital.com/wp-content/uploads/2026/02/approach.svg" alt="Our Approach" style="width:1.5rem;height:1.5rem;display:block;object-fit:contain"></div><h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.175rem, calc(1.175rem + 0.24vw), 1.375rem);font-weight:600;line-height:1.25;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.75rem 0">Our Approach</h3><p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.8312rem, calc(0.8312rem + 0.18vw), 0.9275rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0">Through creative and customized strategy, we meet your business expectations. We use the latest tools, trends, and the appropriate platforms for your brand to achieve the best results.</p></div></div>'
+								),
+							],
+							'1_3'
+						),
+					],
+					'1_3,1_3,1_3'
+				)
 			],
-			'dmf-home-section dmf-home-section--light dmf-about-section',
+			'',
 			[],
 			[
-				'id' => 'about',
+				'id' => 'about'
 			]
 		);
 	}
