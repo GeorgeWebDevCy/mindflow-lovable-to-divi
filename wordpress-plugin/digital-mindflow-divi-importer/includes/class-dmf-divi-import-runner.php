@@ -922,6 +922,7 @@ class DMF_Divi_Import_Runner {
 			}
 
 			$content = $this->apply_home_mobile_single_column_legacy_row_fix( $content );
+			$content = $this->apply_home_mobile_single_column_html_fallback( $content );
 			$content = $this->ensure_home_mobile_single_column_style_block( $content );
 
 			foreach ( $section_results as $label => $state ) {
@@ -1079,6 +1080,26 @@ class DMF_Divi_Import_Runner {
 		}
 
 		return $block . "\n" . $content;
+	}
+
+	private function apply_home_mobile_single_column_html_fallback( $content ) {
+		$content = (string) $content;
+
+		$replacements = [
+			'/class="et_pb_row_31 et_pb_row et_flex_row(?![^"]*dmf-mobile-single-column)([^"]*)"/' => 'class="et_pb_row_31 et_pb_row et_flex_row dmf-mobile-single-column$1"',
+			'/class="et_pb_row_32 et_pb_row et_flex_row(?![^"]*dmf-mobile-single-column)([^"]*)"/' => 'class="et_pb_row_32 et_pb_row et_flex_row dmf-mobile-single-column$1"',
+			'/class="et_pb_row_37 et_pb_row et_flex_row(?![^"]*dmf-mobile-single-column)([^"]*)"/' => 'class="et_pb_row_37 et_pb_row et_flex_row dmf-mobile-single-column$1"',
+		];
+
+		foreach ( $replacements as $pattern => $replacement ) {
+			$updated = preg_replace( $pattern, $replacement, $content, 1 );
+
+			if ( is_string( $updated ) && $updated !== $content ) {
+				$content = $updated;
+			}
+		}
+
+		return $content;
 	}
 
 	private function build_home_mobile_single_column_code_block() {
@@ -3591,7 +3612,7 @@ HTML;
 									'About Copy',
 									'<div style="padding:0.625rem 0">'
 									. '<div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-primary, #2b5b5b);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">About Us</div>'
-									. '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0">We Are <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Digital MindFlow</span></h2>'
+									. '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0">We Are <span style="display:inline-block;color:#275151">Digital MindFlow</span></h2>'
 									. '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0 0 1rem 0">A studio offering digital marketing services, specializing in consultation, social media, email marketing, website design and Google Ads for businesses, brands and individuals.</p>'
 									. '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.95rem, calc(0.95rem + 0.18vw), 1.06rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);margin:0">We are professional, passionate, and strongly committed to what we do. With our experience, we aim to help our clients achieve their goals taking into account individual requirements and unique demands.</p>'
 									. '</div>'
@@ -4411,7 +4432,7 @@ HTML;
 							'Process Header Column',
 							[
 								$this->build_text_module( 'Process Eyebrow', '<div style="text-align:center;padding:0.875rem 0 0.5rem"><div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-primary, #2b5b5b);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">How We Work</div></div>' ),
-								$this->build_text_module( 'Process Title', '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0;text-align:center">Our <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Process</span></h2>' ),
+								$this->build_text_module( 'Process Title', '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0;text-align:center">Our <span style="display:inline-block;color:#275151">Process</span></h2>' ),
 								$this->build_text_module( 'Process Body', '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);max-width:42.5rem;margin:0 auto;text-align:center">A simple, proven three-step approach to driving real results for your business.</p>' ),
 							],
 							'4_4'
