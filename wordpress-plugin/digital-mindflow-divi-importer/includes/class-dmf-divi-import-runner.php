@@ -730,6 +730,136 @@ class DMF_Divi_Import_Runner {
 		return $summary;
 	}
 
+	public function apply_home_about_two_column_fix( array $args = [] ) {
+		$this->warnings = [];
+
+		$dry_run   = ! empty( $args['dry_run'] );
+		$home_slug = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'About two-column fix started.',
+			[
+				'dry_run'   => $dry_run,
+				'home_slug' => $home_slug,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		$summary = [
+			'dry_run'       => $dry_run,
+			'pages_updated' => [],
+			'pages_missing' => [],
+			'warnings'      => [],
+		];
+
+		$home_page = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+
+		if ( ! $home_page instanceof WP_Post ) {
+			$summary['pages_missing'][] = 'Home';
+		} else {
+			$home_update_state = $this->apply_home_section_refresh(
+				$home_page,
+				$dry_run,
+				'About Section',
+				$this->build_about_section(),
+				'About section'
+			);
+
+			if ( 'missing-section' === $home_update_state ) {
+				$this->warn(
+					sprintf(
+						'Could not locate the existing About section on Home (#%d), so the two-column desktop fix was not applied.',
+						$home_page->ID
+					)
+				);
+			} else {
+				$summary['pages_updated'][] = sprintf(
+					'Home (#%d)%s',
+					$home_page->ID,
+					'updated' === $home_update_state && $dry_run ? ' [dry run]' : ( 'unchanged' === $home_update_state ? ' already matches the about section fix' : '' )
+				);
+			}
+		}
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'About two-column fix completed.', $summary );
+
+		return $summary;
+	}
+
+	public function apply_home_process_icon_alignment_fix( array $args = [] ) {
+		$this->warnings = [];
+
+		$dry_run   = ! empty( $args['dry_run'] );
+		$home_slug = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'Process icon alignment fix started.',
+			[
+				'dry_run'   => $dry_run,
+				'home_slug' => $home_slug,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		$summary = [
+			'dry_run'       => $dry_run,
+			'pages_updated' => [],
+			'pages_missing' => [],
+			'warnings'      => [],
+		];
+
+		$home_page = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+
+		if ( ! $home_page instanceof WP_Post ) {
+			$summary['pages_missing'][] = 'Home';
+		} else {
+			$home_update_state = $this->apply_home_section_refresh(
+				$home_page,
+				$dry_run,
+				'Process Section',
+				$this->build_process_section(),
+				'Process section'
+			);
+
+			if ( 'missing-section' === $home_update_state ) {
+				$this->warn(
+					sprintf(
+						'Could not locate the existing Process section on Home (#%d), so the icon alignment fix was not applied.',
+						$home_page->ID
+					)
+				);
+			} else {
+				$summary['pages_updated'][] = sprintf(
+					'Home (#%d)%s',
+					$home_page->ID,
+					'updated' === $home_update_state && $dry_run ? ' [dry run]' : ( 'unchanged' === $home_update_state ? ' already matches the process section fix' : '' )
+				);
+			}
+		}
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Process icon alignment fix completed.', $summary );
+
+		return $summary;
+	}
+
 	public function fix_portfolio_loops( array $args = [] ) {
 		$this->warnings = [];
 		$this->log(
@@ -1525,6 +1655,54 @@ class DMF_Divi_Import_Runner {
 		if ( is_wp_error( $result ) ) {
 			throw new RuntimeException(
 				'Failed to update Home page services section on page #' . $page->ID . ': ' . $result->get_error_message()
+			);
+		}
+
+		$this->configure_divi_page_meta( (int) $page->ID );
+
+		return 'updated';
+	}
+
+	private function apply_home_section_refresh( WP_Post $page, $dry_run, $section_label, $replacement, $section_name ) {
+		$current_content = (string) $page->post_content;
+		$replacement     = (string) $replacement;
+		$section_label   = (string) $section_label;
+		$section_name    = (string) $section_name;
+
+		if ( false !== strpos( $current_content, $replacement ) ) {
+			return 'unchanged';
+		}
+
+		$content = $this->replace_divi_section_by_label( $current_content, $section_label, $replacement );
+
+		if ( ! is_string( $content ) ) {
+			return 'missing-section';
+		}
+
+		if ( $content === $current_content ) {
+			return 'unchanged';
+		}
+
+		if ( $dry_run ) {
+			return 'updated';
+		}
+
+		$result = wp_update_post(
+			[
+				'ID'           => $page->ID,
+				'post_content' => wp_slash( $content ),
+			],
+			true
+		);
+
+		if ( is_wp_error( $result ) ) {
+			throw new RuntimeException(
+				sprintf(
+					'Failed to update %1$s on page #%2$d: %3$s',
+					$section_name,
+					$page->ID,
+					$result->get_error_message()
+				)
 			);
 		}
 
@@ -3180,6 +3358,7 @@ HTML;
 		return $this->build_section_module(
 			'About Section',
 			[
+				$this->build_code_module( 'About Section Runtime', $this->build_about_section_runtime_markup(), 'dmf-about-section-runtime' ),
 				$this->build_row_module(
 					'About Layout Row',
 					[
@@ -4043,6 +4222,7 @@ HTML;
 		return $this->build_section_module(
 			'Process Section',
 			[
+				$this->build_code_module( 'Process Section Runtime', $this->build_process_section_runtime_markup(), 'dmf-process-section-runtime' ),
 				$this->build_row_module(
 					'Process Layout Row',
 					[
@@ -4737,6 +4917,76 @@ HTML;
 .dmf-portfolio-loop-shell--portfolio .dmf-portfolio-archive-cta-anchor:hover{opacity:1!important;transform:translateY(-1px)!important}
 @media (max-width: 980px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:calc((100% - 1.5rem)/2)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{aspect-ratio:16/10!important}}
 @media (max-width: 767px){.dmf-portfolio-loop-shell--home .dmf-portfolio-loop-item{flex-basis:100%!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-container{gap:1.5rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-loop-item{padding:1rem!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-media{margin:-1rem -1rem 0!important;width:calc(100% + 2rem)!important}.dmf-portfolio-loop-shell--portfolio .dmf-portfolio-card-image{aspect-ratio:16/10!important}}
+</style>
+HTML;
+	}
+
+	private function build_about_section_runtime_markup() {
+		return <<<'HTML'
+<style id="dmf-about-section-runtime-styles">
+.dmf-about-section-runtime{display:none!important}
+.dmf-about-section{padding:clamp(5rem,8vw,7rem) 0;background:var(--gcid-dmf-background,#fafafa)}
+.dmf-about-section .dmf-home-shell-row{width:100%!important;max-width:100%!important;margin:0!important;padding:0 1.5rem!important;box-sizing:border-box}
+.dmf-about-section .dmf-home-shell-column{padding:0!important;margin:0 auto!important}
+.dmf-about-section .dmf-home-shell{width:100%;max-width:80rem;margin:0 auto;display:flex;flex-direction:column;gap:clamp(2.5rem,5vw,4rem)}
+.dmf-about-shell{gap:clamp(2.75rem,5vw,4.25rem)}
+.dmf-about-split{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:clamp(2.5rem,5vw,4rem)}
+.dmf-about-media{flex:1 1 32rem;min-width:0}
+.dmf-about-copy{flex:1 1 28rem;min-width:0;max-width:38rem;display:flex;flex-direction:column;gap:1rem}
+.dmf-about-copy .dmf-section-body{max-width:34rem}
+.dmf-about-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem;margin-top:clamp(.5rem,1.5vw,1rem)}
+.dmf-about-values>.et_pb_module_inner{display:contents}
+.dmf-about-eyebrow .dmf-section-eyebrow{color:var(--gcid-dmf-accent,#941213)}
+.dmf-section-eyebrow{display:block;width:fit-content;max-width:100%;margin:0;font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gcid-dmf-primary,#2b5b5b);text-align:left}
+.dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem,4.5vw,3.5rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground,#131b26);margin:0}
+.dmf-section-body,.dmf-card-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.98rem,calc(.96rem + .25vw),1.16rem);line-height:1.8;color:var(--gcid-dmf-muted,#486262);margin:0;max-width:46rem}
+.dmf-about-image,.dmf-about-image>.et_pb_module_inner{width:100%!important}
+.dmf-about-image img{display:block;width:min(100%,40rem);margin:0 auto;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:1.5rem;box-shadow:0 1.5rem 3.5rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 14%,transparent)}
+.dmf-lift-card{display:flex;flex-direction:column;gap:1rem;width:100%;height:100%;padding:2rem;border:1px solid var(--gcid-dmf-border,#a1a5a4);border-radius:1.35rem;background:var(--gcid-dmf-card,#edeced);box-shadow:0 1rem 2.25rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 8%,transparent);transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.dmf-lift-card>.et_pb_module_inner{display:flex;flex-direction:column;flex:1 1 auto;height:100%}
+.dmf-lift-card:hover{transform:translateY(-8px);border-color:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 34%,transparent);box-shadow:0 1.35rem 2.8rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 16%,transparent)}
+.dmf-card-icon{line-height:0}
+.dmf-card-icon-frame{display:inline-flex;align-items:center;justify-content:center;width:3.25rem;height:3.25rem;border-radius:1rem;background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 12%,transparent);color:var(--gcid-dmf-primary,#2b5b5b);transition:background-color .28s ease,color .28s ease,filter .28s ease}
+.dmf-card-icon-media{display:block;width:1.45rem;height:1.45rem;object-fit:contain;transition:filter .28s ease}
+.dmf-lift-card:hover .dmf-card-icon-frame{background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa)}
+.dmf-lift-card:hover .dmf-card-icon-media{filter:brightness(0) invert(1)}
+.dmf-card-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.12rem,calc(1.1rem + .28vw),1.38rem);font-weight:600;line-height:1.25;color:var(--gcid-dmf-foreground,#131b26);margin:0}
+@media (max-width: 980px){.dmf-about-split{flex-wrap:wrap}.dmf-about-media,.dmf-about-copy{flex-basis:100%;max-width:none}.dmf-about-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width: 767px){.dmf-about-section .dmf-home-shell-row{padding:0 1rem!important}.dmf-about-values{grid-template-columns:minmax(0,1fr)}}
+</style>
+HTML;
+	}
+
+	private function build_process_section_runtime_markup() {
+		return <<<'HTML'
+<style id="dmf-process-section-runtime-styles">
+.dmf-process-section-runtime{display:none!important}
+.dmf-process-section{padding:clamp(5rem,8vw,7rem) 0;background:var(--gcid-dmf-background,#fafafa)}
+.dmf-process-section .dmf-home-shell-row{width:100%!important;max-width:100%!important;margin:0!important;padding:0 1.5rem!important;box-sizing:border-box}
+.dmf-process-section .dmf-home-shell-column{padding:0!important;margin:0 auto!important}
+.dmf-process-section .dmf-home-shell{width:100%;max-width:80rem;margin:0 auto;display:flex;flex-direction:column;gap:clamp(2.5rem,5vw,4rem)}
+.dmf-process-section .dmf-home-stack{align-items:stretch}
+.dmf-section-eyebrow{display:block;width:fit-content;max-width:100%;margin:0;font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gcid-dmf-primary,#2b5b5b);text-align:left}
+.dmf-section-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem,4.5vw,3.5rem);font-weight:700;line-height:1.12;color:var(--gcid-dmf-foreground,#131b26);margin:0}
+.dmf-section-body,.dmf-card-copy{font-family:var(--gvid-dmf-body-font);font-size:clamp(.98rem,calc(.96rem + .25vw),1.16rem);line-height:1.8;color:var(--gcid-dmf-muted,#486262);margin:0;max-width:46rem}
+.dmf-section-header--center,.dmf-section-title--center,.dmf-section-body--center{text-align:center}
+.dmf-section-header--center .et_pb_text_inner,.dmf-section-title--center .et_pb_text_inner,.dmf-section-body--center .et_pb_text_inner{text-align:center!important}
+.dmf-section-header--center .dmf-section-eyebrow{margin-left:auto;margin-right:auto;text-align:center}
+.dmf-section-body--center{margin-left:auto!important;margin-right:auto!important}
+.dmf-process-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));position:relative;align-items:start;gap:clamp(2rem,4vw,3.25rem);margin-top:clamp(.5rem,1vw,.9rem)}
+.dmf-process-steps>.et_pb_module_inner{display:contents}
+.dmf-process-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:1rem;padding:clamp(.25rem,.75vw,.5rem) 0;width:100%;height:100%}
+.dmf-process-step>.et_pb_module_inner{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1rem;flex:1 1 auto;width:100%;height:100%}
+.dmf-process-step>.et_pb_module_inner>.et_pb_module{margin:0!important;width:100%}
+.dmf-process-step-head,.dmf-process-step-head>.et_pb_module_inner{display:flex;align-items:center;justify-content:center;gap:.85rem;width:auto}
+.dmf-process-step-head>.et_pb_module{margin:0!important;width:auto}
+.dmf-process-step .et_pb_text_inner{text-align:center}
+.dmf-process-step .dmf-card-title{font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.35rem,calc(1.25rem + .55vw),1.8rem);font-weight:600;line-height:1.15;max-width:none;margin:0 auto;color:var(--gcid-dmf-foreground,#131b26)}
+.dmf-process-step .dmf-card-copy{max-width:19rem;margin:0 auto;font-size:clamp(1rem,calc(.98rem + .16vw),1.08rem);line-height:1.72;text-align:center}
+.dmf-process-number{display:inline-flex;align-items:center;justify-content:center;min-width:4rem;width:4rem;height:4rem;border-radius:1.15rem;background:var(--gcid-dmf-primary,#2b5b5b);color:var(--gcid-dmf-white,#fafafa);font-family:var(--gvid-dmf-heading-font);font-size:1.18rem;font-weight:700;letter-spacing:-.02em;box-shadow:0 1.25rem 3rem color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 15%,transparent)}
+.dmf-process-icon-frame{display:inline-flex;align-items:center;justify-content:center;width:2.95rem;height:2.95rem;border-radius:999px;background:color-mix(in srgb,var(--gcid-dmf-primary,#2b5b5b) 12%,transparent);color:var(--gcid-dmf-primary,#2b5b5b);box-shadow:none}
+@media (max-width: 980px){.dmf-process-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:2.25rem 1.75rem}.dmf-process-step .dmf-card-copy{max-width:20rem}}
+@media (max-width: 767px){.dmf-process-section .dmf-home-shell-row{padding:0 1rem!important}.dmf-process-steps{grid-template-columns:minmax(0,1fr);gap:2rem}.dmf-process-step>.et_pb_module_inner{gap:.9rem}.dmf-process-step-head,.dmf-process-step-head>.et_pb_module_inner{gap:.7rem}.dmf-process-number{width:3.65rem;min-width:3.65rem;height:3.65rem}.dmf-process-icon-frame{width:2.7rem;height:2.7rem}.dmf-process-step .dmf-card-copy{max-width:24rem}}
 </style>
 HTML;
 	}

@@ -24,6 +24,10 @@ class DMF_Divi_Import_Admin {
 
 	const BLOG_ACTION = 'dmf_divi_importer_apply_blog_page_setup';
 
+	const ABOUT_TWO_COLUMN_ACTION = 'dmf_divi_importer_apply_about_two_column_fix';
+
+	const PROCESS_ICON_ALIGNMENT_ACTION = 'dmf_divi_importer_apply_process_icon_alignment_fix';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -40,6 +44,8 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::PORTFOLIO_ENHANCEMENTS_ACTION, [ __CLASS__, 'handle_apply_portfolio_case_study_enhancements' ] );
 		add_action( 'admin_post_' . self::SERVICES_SPLIT_ACTION, [ __CLASS__, 'handle_apply_services_page_split' ] );
 		add_action( 'admin_post_' . self::BLOG_ACTION, [ __CLASS__, 'handle_apply_blog_page_setup' ] );
+		add_action( 'admin_post_' . self::ABOUT_TWO_COLUMN_ACTION, [ __CLASS__, 'handle_apply_about_two_column_fix' ] );
+		add_action( 'admin_post_' . self::PROCESS_ICON_ALIGNMENT_ACTION, [ __CLASS__, 'handle_apply_process_icon_alignment_fix' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 		add_action( 'acf/init', [ __CLASS__, 'register_portfolio_field_group' ] );
 	}
@@ -385,6 +391,106 @@ class DMF_Divi_Import_Admin {
 			DMF_Divi_Import_Logger::log(
 				'error',
 				'Blog page setup action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_apply_about_two_column_fix() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::ABOUT_TWO_COLUMN_ACTION );
+
+		$args = [
+			'dry_run'   => ! empty( $_POST['dry_run'] ),
+			'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin about two-column fix submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'About section fix complete.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_home_about_two_column_fix( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'About section dry run complete.'
+				: 'About section fix complete.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'About section fix failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'About two-column fix action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine(),
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_apply_process_icon_alignment_fix() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::PROCESS_ICON_ALIGNMENT_ACTION );
+
+		$args = [
+			'dry_run'   => ! empty( $_POST['dry_run'] ),
+			'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin process icon alignment fix submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Process section fix complete.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_home_process_icon_alignment_fix( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Process section dry run complete.'
+				: 'Process section fix complete.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Process section fix failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Process icon alignment fix action failed.',
 				[
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
@@ -802,6 +908,82 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
 						Apply Blog Page Setup
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::ABOUT_TWO_COLUMN_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::ABOUT_TWO_COLUMN_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply About Two-Column Fix</h2>
+				<p>Rewrite only the Home page <code>About Section</code> so the image and copy render as a two-column desktop layout, while keeping the change stored directly in the page content after the plugin is removed.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-about-fix">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-about-fix" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Safety</th>
+							<td>
+								<label>
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Home page About section update without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
+						Apply About Two-Column Fix
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::PROCESS_ICON_ALIGNMENT_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::PROCESS_ICON_ALIGNMENT_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Process Icon Alignment Fix</h2>
+				<p>Rewrite only the Home page <code>Process Section</code> so each icon sits next to its step number, and save the needed section styling directly into the page so the result persists after plugin removal.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-process-fix">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-process-fix" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Safety</th>
+							<td>
+								<label>
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Home page Process section update without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
+						Apply Process Icon Alignment Fix
 					</button>
 				</p>
 			</form>
