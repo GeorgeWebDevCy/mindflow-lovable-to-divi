@@ -922,6 +922,7 @@ class DMF_Divi_Import_Runner {
 			}
 
 			$content = $this->apply_home_mobile_single_column_legacy_row_fix( $content );
+			$content = $this->ensure_home_mobile_single_column_style_block( $content );
 
 			foreach ( $section_results as $label => $state ) {
 				if ( 'missing-section' === $state ) {
@@ -1024,11 +1025,7 @@ class DMF_Divi_Import_Runner {
 				if ( $matches ) {
 					$block['attrs'] = $this->merge_divi_block_custom_attributes(
 						(array) ( $block['attrs'] ?? [] ),
-						'dmf-mobile-single-column',
-						[
-							'display'   => 'flex',
-							'flex-wrap' => 'wrap',
-						]
+						'dmf-mobile-single-column'
 					);
 				}
 			}
@@ -1070,6 +1067,26 @@ class DMF_Divi_Import_Runner {
 		);
 
 		return $attrs;
+	}
+
+	private function ensure_home_mobile_single_column_style_block( $content ) {
+		$content = (string) $content;
+		$block   = $this->build_home_mobile_single_column_code_block();
+
+		if ( false !== strpos( $content, 'Home Mobile Single Column Runtime' ) ) {
+			$replaced = $this->replace_divi_block_by_label( $content, 'Home Mobile Single Column Runtime', $block );
+			return is_string( $replaced ) ? $replaced : $content;
+		}
+
+		return $block . "\n" . $content;
+	}
+
+	private function build_home_mobile_single_column_code_block() {
+		return $this->build_code_module(
+			'Home Mobile Single Column Runtime',
+			'<style id="dmf-home-mobile-single-column-fix">@media (max-width: 767px){.dmf-mobile-single-column{display:flex!important;flex-direction:column!important}.dmf-mobile-single-column>.et_pb_column{float:none!important;width:100%!important;max-width:none!important;margin-right:0!important;margin-left:0!important}}</style>',
+			'dmf-home-mobile-single-column-runtime'
+		);
 	}
 
 	public function fix_portfolio_loops( array $args = [] ) {
@@ -3584,11 +3601,7 @@ HTML;
 						),
 					],
 					'1_2,1_2',
-					'dmf-mobile-single-column',
-					[
-						'display'   => 'flex',
-						'flex-wrap' => 'wrap',
-					]
+					'dmf-mobile-single-column'
 				),
 				$this->build_row_module(
 					'About Values Row',
@@ -4410,11 +4423,7 @@ HTML;
 					'Process Cards Row',
 					$steps,
 					'1_3,1_3,1_3',
-					'dmf-mobile-single-column',
-					[
-						'display'   => 'flex',
-						'flex-wrap' => 'wrap',
-					]
+					'dmf-mobile-single-column'
 				)
 			],
 			'',
