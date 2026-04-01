@@ -445,7 +445,7 @@ class DMF_Divi_Import_Admin {
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
 					'file'    => $error->getFile(),
-					'line'    => $error->getLine(),
+					'line'    => $error->getLine()
 				]
 			);
 		}
@@ -495,7 +495,7 @@ class DMF_Divi_Import_Admin {
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
 					'file'    => $error->getFile(),
-					'line'    => $error->getLine(),
+					'line'    => $error->getLine()
 				]
 			);
 		}

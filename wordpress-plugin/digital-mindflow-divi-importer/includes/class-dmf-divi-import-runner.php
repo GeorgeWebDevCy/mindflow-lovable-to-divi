@@ -741,7 +741,7 @@ class DMF_Divi_Import_Runner {
 			'About two-column fix started.',
 			[
 				'dry_run'   => $dry_run,
-				'home_slug' => $home_slug,
+				'home_slug' => $home_slug
 			]
 		);
 
@@ -806,7 +806,7 @@ class DMF_Divi_Import_Runner {
 			'Process icon alignment fix started.',
 			[
 				'dry_run'   => $dry_run,
-				'home_slug' => $home_slug,
+				'home_slug' => $home_slug
 			]
 		);
 
@@ -1647,7 +1647,7 @@ class DMF_Divi_Import_Runner {
 		$result = wp_update_post(
 			[
 				'ID'           => $page->ID,
-				'post_content' => wp_slash( $content ),
+				'post_content' => wp_slash( $content )
 			],
 			true
 		);
