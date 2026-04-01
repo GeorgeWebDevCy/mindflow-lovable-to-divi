@@ -3451,7 +3451,11 @@ HTML;
 						),
 					],
 					'1_2,1_2',
-					'dmf-mobile-single-column'
+					'dmf-mobile-single-column',
+					[
+						'display'   => 'flex',
+						'flex-wrap' => 'wrap',
+					]
 				),
 				$this->build_row_module(
 					'About Values Row',
@@ -4273,7 +4277,11 @@ HTML;
 					'Process Cards Row',
 					$steps,
 					'1_3,1_3,1_3',
-					'dmf-mobile-single-column'
+					'dmf-mobile-single-column',
+					[
+						'display'   => 'flex',
+						'flex-wrap' => 'wrap',
+					]
 				)
 			],
 			'',
