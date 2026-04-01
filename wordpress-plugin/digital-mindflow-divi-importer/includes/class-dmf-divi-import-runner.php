@@ -4144,57 +4144,61 @@ HTML;
 		$steps = [];
 
 		foreach ( $this->get_process_steps() as $index => $step ) {
-			$steps[] = $this->build_group_module(
-				sprintf( 'Process Step %d', $index + 1 ),
+			$steps[] = $this->build_column_module(
+				sprintf( 'Process Step Column %d', $index + 1 ),
 				[
-					$this->build_group_module(
-						sprintf( 'Process Step Head %d', $index + 1 ),
-						[
-							$this->build_text_module( sprintf( 'Process Number %d', $index + 1 ), '<div class="dmf-process-number">' . esc_html( $step['step'] ) . '</div>', 'dmf-home-text' ),
-							$this->build_text_module( sprintf( 'Process Icon %d', $index + 1 ), '<div class="dmf-process-icon-frame">' . $this->build_icon_markup( $step['icon'] ) . '</div>', 'dmf-home-text' ),
-						],
-						'dmf-process-step-head'
+					$this->build_text_module(
+						sprintf( 'Process Step %d', $index + 1 ),
+						'<div style="text-align:center;padding:1rem 0">'
+						. '<div style="display:inline-flex;align-items:center;justify-content:center;gap:0.85rem;margin-bottom:1rem">'
+						. '<div style="display:inline-flex;width:4rem;height:4rem;align-items:center;justify-content:center;border-radius:1.15rem;background:var(--gcid-dmf-primary, #2b5b5b);color:var(--gcid-dmf-white, #fafafa);font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.0575rem, calc(1.0575rem + 0.24vw), 1.2375rem);font-weight:700;box-shadow:0 1.25rem 3.75rem color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 15%, transparent)">'
+						. esc_html( $step['step'] )
+						. '</div>'
+						. '<div style="display:inline-flex;width:2.95rem;height:2.95rem;align-items:center;justify-content:center;border-radius:999rem;background:color-mix(in srgb, var(--gcid-dmf-primary, #2b5b5b) 14%, transparent);color:var(--gcid-dmf-primary, #2b5b5b)">'
+						. $this->build_icon_markup( $step['icon'] )
+						. '</div>'
+						. '</div>'
+						. '<h3 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(1.35rem, calc(1.25rem + 0.55vw), 1.8rem);font-weight:600;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 0.75rem 0">'
+						. esc_html( $step['title'] )
+						. '</h3>'
+						. '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(1rem, calc(0.98rem + 0.16vw), 1.08rem);line-height:1.72;color:var(--gcid-dmf-muted, #486262);margin:0 auto;max-width:19rem">'
+						. esc_html( $step['description'] )
+						. '</p>'
+						. '</div>'
 					),
-					$this->build_text_module( sprintf( 'Process Title %d', $index + 1 ), '<h3 class="dmf-card-title">' . esc_html( $step['title'] ) . '</h3>', 'dmf-home-text' ),
-					$this->build_text_module( sprintf( 'Process Copy %d', $index + 1 ), '<p class="dmf-card-copy">' . esc_html( $step['description'] ) . '</p>', 'dmf-home-text' ),
 				],
-				'dmf-process-step'
+				'1_3'
 			);
 		}
 
 		return $this->build_section_module(
 			'Process Section',
 			[
-				$this->build_code_module( 'Process Section Runtime', $this->build_process_section_runtime_markup(), 'dmf-process-section-runtime' ),
 				$this->build_row_module(
-					'Process Layout Row',
+					'Process Header Row',
 					[
 						$this->build_column_module(
-							'Process Layout Column',
+							'Process Header Column',
 							[
-								$this->build_group_module(
-									'Process Section Shell',
-									[
-										$this->build_text_module( 'Process Eyebrow', '<span class="dmf-section-eyebrow">How We Work</span>', 'dmf-home-text dmf-section-header dmf-section-header--center' ),
-										$this->build_text_module( 'Process Title', '<h2 class="dmf-section-title dmf-section-title--center">Our <span class="dmf-text-gradient">Process</span></h2>', 'dmf-home-text' ),
-										$this->build_text_module( 'Process Body', '<p class="dmf-section-body dmf-section-body--center">A simple, proven three-step approach to driving real results for your business.</p>', 'dmf-home-text' ),
-										$this->build_group_module( 'Process Steps Container', $steps, 'dmf-flex-cards dmf-flex-cards--three dmf-process-steps' ),
-									],
-									'dmf-home-shell dmf-home-stack'
-								),
+								$this->build_text_module( 'Process Eyebrow', '<div style="text-align:center;padding:0.875rem 0 0.5rem"><div style="font-family:var(--gvid-dmf-body-font);font-size:var(--gvid-dmf-text-xs);font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gcid-dmf-primary, #2b5b5b);margin-bottom:calc(var(--gvid-dmf-space-xs) + 0.125rem)">How We Work</div></div>' ),
+								$this->build_text_module( 'Process Title', '<h2 style="font-family:var(--gvid-dmf-heading-font);font-size:clamp(2rem, 4.5vw, 3.375rem);font-weight:700;line-height:1.15;color:var(--gcid-dmf-foreground, #131b26);margin:0 0 1.125rem 0;text-align:center">Our <span style="display:inline-block;color:var(--gcid-dmf-accent, #941213)">Process</span></h2>' ),
+								$this->build_text_module( 'Process Body', '<p style="font-family:var(--gvid-dmf-body-font);font-size:clamp(0.9987rem, calc(0.9987rem + 0.24vw), 1.1688rem);line-height:1.8;color:var(--gcid-dmf-muted, #486262);max-width:42.5rem;margin:0 auto;text-align:center">A simple, proven three-step approach to driving real results for your business.</p>' ),
 							],
-							'4_4',
-							'dmf-home-shell-column'
+							'4_4'
 						),
 					],
-					'4_4',
-					'dmf-home-shell-row'
+					'4_4'
 				),
+				$this->build_row_module(
+					'Process Cards Row',
+					$steps,
+					'1_3,1_3,1_3'
+				)
 			],
-			'dmf-home-section dmf-home-section--light dmf-process-section',
+			'',
 			[],
 			[
-				'id' => 'process',
+				'id' => 'process'
 			]
 		);
 	}
