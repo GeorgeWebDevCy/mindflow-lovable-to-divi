@@ -891,22 +891,37 @@ class DMF_Divi_Import_Runner {
 		if ( ! $home_page instanceof WP_Post ) {
 			$summary['pages_missing'][] = 'Home';
 		} else {
-			$section_results = [
-				'About section'   => $this->apply_home_section_refresh(
-					$home_page,
-					$dry_run,
-					'About Section',
-					$this->build_about_section(),
-					'About section'
-				),
-				'Process section' => $this->apply_home_section_refresh(
-					$home_page,
-					$dry_run,
-					'Process Section',
-					$this->build_process_section(),
-					'Process section'
-				),
-			];
+			$current_content = (string) $home_page->post_content;
+			$content         = $current_content;
+			$section_results = [];
+
+			$about_replacement = (string) $this->build_about_section();
+			if ( false !== strpos( $content, $about_replacement ) ) {
+				$section_results['About section'] = 'unchanged';
+			} else {
+				$about_content = $this->replace_divi_section_by_label( $content, 'About Section', $about_replacement );
+				if ( is_string( $about_content ) ) {
+					$content                           = $about_content;
+					$section_results['About section'] = 'updated';
+				} else {
+					$section_results['About section'] = 'missing-section';
+				}
+			}
+
+			$process_replacement = (string) $this->build_process_section();
+			if ( false !== strpos( $content, $process_replacement ) ) {
+				$section_results['Process section'] = 'unchanged';
+			} else {
+				$process_content = $this->replace_divi_section_by_label( $content, 'Process Section', $process_replacement );
+				if ( is_string( $process_content ) ) {
+					$content                             = $process_content;
+					$section_results['Process section'] = 'updated';
+				} else {
+					$section_results['Process section'] = 'missing-section';
+				}
+			}
+
+			$content = $this->apply_home_mobile_single_column_legacy_row_fix( $content );
 
 			foreach ( $section_results as $label => $state ) {
 				if ( 'missing-section' === $state ) {
@@ -927,6 +942,28 @@ class DMF_Divi_Import_Runner {
 					'updated' === $state && $dry_run ? ' [dry run]' : ( 'unchanged' === $state ? ' already matches the mobile single-column fix' : '' )
 				);
 			}
+
+			if ( $content !== $current_content && ! $dry_run ) {
+				$result = wp_update_post(
+					[
+						'ID'           => $home_page->ID,
+						'post_content' => wp_slash( $content ),
+					],
+					true
+				);
+
+				if ( is_wp_error( $result ) ) {
+					throw new RuntimeException(
+						sprintf(
+							'Failed to update Home mobile single-column fix on page #%1$d: %2$s',
+							$home_page->ID,
+							$result->get_error_message()
+						)
+					);
+				}
+
+				$this->configure_divi_page_meta( (int) $home_page->ID );
+			}
 		}
 
 		if ( ! $dry_run ) {
@@ -937,6 +974,102 @@ class DMF_Divi_Import_Runner {
 		$this->log( 'info', 'Home mobile single-column fix completed.', $summary );
 
 		return $summary;
+	}
+
+	private function apply_home_mobile_single_column_legacy_row_fix( $content ) {
+		$content = (string) $content;
+
+		if ( ! function_exists( 'parse_blocks' ) || ! function_exists( 'serialize_blocks' ) ) {
+			return $content;
+		}
+
+		$blocks = parse_blocks( $content );
+		if ( empty( $blocks ) || ! is_array( $blocks ) ) {
+			return $content;
+		}
+
+		$blocks = $this->mutate_home_mobile_single_column_rows( $blocks );
+		$result = serialize_blocks( $blocks );
+
+		return is_string( $result ) && '' !== $result ? $result : $content;
+	}
+
+	private function mutate_home_mobile_single_column_rows( array $blocks, $current_section_id = '' ) {
+		foreach ( $blocks as &$block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$block_name  = (string) ( $block['blockName'] ?? '' );
+			$admin_label = $this->get_divi_block_admin_label( $block );
+			$section_id  = $current_section_id;
+
+			if ( 'divi/section' === $block_name ) {
+				$attributes = $this->extract_custom_attributes_map( (array) ( $block['attrs'] ?? [] ) );
+				$section_id = sanitize_key( (string) ( $attributes['id'] ?? '' ) );
+			}
+
+			if ( 'divi/row' === $block_name ) {
+				$structure = (string) ( $block['attrs']['module']['advanced']['columnStructure']['desktop']['value'] ?? '' );
+				$matches   = in_array( $admin_label, [ 'About Intro Row', 'Process Cards Row' ], true );
+
+				if ( ! $matches && 'about' === $section_id && '1_2,1_2' === $structure ) {
+					$matches = true;
+				}
+
+				if ( ! $matches && 'process' === $section_id && '1_3,1_3,1_3' === $structure ) {
+					$matches = true;
+				}
+
+				if ( $matches ) {
+					$block['attrs'] = $this->merge_divi_block_custom_attributes(
+						(array) ( $block['attrs'] ?? [] ),
+						'dmf-mobile-single-column',
+						[
+							'display'   => 'flex',
+							'flex-wrap' => 'wrap',
+						]
+					);
+				}
+			}
+
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$block['innerBlocks'] = $this->mutate_home_mobile_single_column_rows( $block['innerBlocks'], $section_id );
+			}
+		}
+
+		unset( $block );
+
+		return $blocks;
+	}
+
+	private function merge_divi_block_custom_attributes( array $attrs, $class_name, array $style_map = [] ) {
+		$existing = $this->extract_custom_attributes_map( $attrs );
+		$class    = trim( (string) ( $existing['class'] ?? '' ) );
+		$classes  = preg_split( '/\s+/', $class, -1, PREG_SPLIT_NO_EMPTY );
+
+		if ( ! in_array( $class_name, $classes, true ) ) {
+			$classes[] = (string) $class_name;
+		}
+
+		$existing_style = [];
+		if ( isset( $existing['style'] ) && is_array( $existing['style'] ) ) {
+			$existing_style = (array) ( $existing['style']['parsed'] ?? [] );
+		}
+
+		$attrs['module']['decoration']['attributes'] = $this->build_custom_attributes(
+			array_filter(
+				[
+					'class' => trim( implode( ' ', $classes ) ),
+					'style' => $this->build_inline_style( array_merge( $existing_style, $style_map ) ),
+				],
+				static function ( $value ) {
+					return '' !== trim( (string) $value );
+				}
+			)
+		);
+
+		return $attrs;
 	}
 
 	public function fix_portfolio_loops( array $args = [] ) {
