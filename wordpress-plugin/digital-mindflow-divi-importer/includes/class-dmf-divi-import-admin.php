@@ -28,6 +28,8 @@ class DMF_Divi_Import_Admin {
 
 	const PROCESS_ICON_ALIGNMENT_ACTION = 'dmf_divi_importer_apply_process_icon_alignment_fix';
 
+	const HOME_MOBILE_SINGLE_COLUMN_ACTION = 'dmf_divi_importer_apply_home_mobile_single_column_fix';
+
 	const CLEAR_LOG_ACTION = 'dmf_divi_importer_clear_log';
 
 	public static function boot() {
@@ -46,6 +48,7 @@ class DMF_Divi_Import_Admin {
 		add_action( 'admin_post_' . self::BLOG_ACTION, [ __CLASS__, 'handle_apply_blog_page_setup' ] );
 		add_action( 'admin_post_' . self::ABOUT_TWO_COLUMN_ACTION, [ __CLASS__, 'handle_apply_about_two_column_fix' ] );
 		add_action( 'admin_post_' . self::PROCESS_ICON_ALIGNMENT_ACTION, [ __CLASS__, 'handle_apply_process_icon_alignment_fix' ] );
+		add_action( 'admin_post_' . self::HOME_MOBILE_SINGLE_COLUMN_ACTION, [ __CLASS__, 'handle_apply_home_mobile_single_column_fix' ] );
 		add_action( 'admin_post_' . self::CLEAR_LOG_ACTION, [ __CLASS__, 'handle_clear_log' ] );
 		add_action( 'acf/init', [ __CLASS__, 'register_portfolio_field_group' ] );
 	}
@@ -491,6 +494,56 @@ class DMF_Divi_Import_Admin {
 			DMF_Divi_Import_Logger::log(
 				'error',
 				'Process icon alignment fix action failed.',
+				[
+					'message' => $error->getMessage(),
+					'type'    => get_class( $error ),
+					'file'    => $error->getFile(),
+					'line'    => $error->getLine()
+				]
+			);
+		}
+
+		set_transient( self::notice_key(), $report, MINUTE_IN_SECONDS * 10 );
+
+		wp_safe_redirect( self::page_url() );
+		exit;
+	}
+
+	public static function handle_apply_home_mobile_single_column_fix() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run this action.', 'dmf-divi-importer' ) );
+		}
+
+		check_admin_referer( self::HOME_MOBILE_SINGLE_COLUMN_ACTION );
+
+		$args = [
+			'dry_run'   => ! empty( $_POST['dry_run'] ),
+			'home_slug' => sanitize_text_field( wp_unslash( $_POST['home_slug'] ?? '' ) ),
+		];
+
+		DMF_Divi_Import_Logger::log( 'info', 'Admin home mobile single-column fix submitted.', $args );
+
+		$runner = new DMF_Divi_Import_Runner( DMF_DIVI_IMPORTER_DIR . 'exports' );
+		$report = [
+			'status'  => 'success',
+			'title'   => 'Home mobile single-column fix complete.',
+			'summary' => [],
+		];
+
+		try {
+			$summary = $runner->apply_home_mobile_single_column_fix( $args );
+
+			$report['title']   = ! empty( $summary['dry_run'] )
+				? 'Home mobile single-column dry run complete.'
+				: 'Home mobile single-column fix complete.';
+			$report['summary'] = $summary;
+		} catch ( Throwable $error ) {
+			$report['status'] = 'error';
+			$report['title']  = 'Home mobile single-column fix failed.';
+			$report['error']  = $error->getMessage();
+			DMF_Divi_Import_Logger::log(
+				'error',
+				'Home mobile single-column fix action failed.',
 				[
 					'message' => $error->getMessage(),
 					'type'    => get_class( $error ),
@@ -984,6 +1037,44 @@ class DMF_Divi_Import_Admin {
 				<p class="submit" style="padding-bottom: 0;">
 					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
 						Apply Process Icon Alignment Fix
+					</button>
+				</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width: 900px; background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 24px; margin-top: 20px;">
+				<?php wp_nonce_field( self::HOME_MOBILE_SINGLE_COLUMN_ACTION ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( self::HOME_MOBILE_SINGLE_COLUMN_ACTION ); ?>">
+
+				<h2 style="margin-top: 0;">Apply Home Mobile Single-Column Fix</h2>
+				<p>Rewrite only the Home page <code>About Section</code> and <code>Process Section</code> so their targeted rows include the new mobile-only single-column behavior automatically, with no manual class editing required.</p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="dmf-home-slug-mobile-single-column-fix">Home page slug</label>
+							</th>
+							<td>
+								<input type="text" id="dmf-home-slug-mobile-single-column-fix" name="home_slug" class="regular-text" placeholder="home">
+								<p class="description">Optional fallback if WordPress static front page is not already configured.</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">Safety</th>
+							<td>
+								<label>
+									<input type="checkbox" name="dry_run" value="1">
+									Dry run only
+								</label>
+								<p class="description">Dry run previews the Home page About and Process section updates without writing to the database.</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<p class="submit" style="padding-bottom: 0;">
+					<button type="submit" class="button button-secondary" <?php disabled( ! $divi_ready ); ?>>
+						Apply Home Mobile Single-Column Fix
 					</button>
 				</p>
 			</form>

@@ -860,6 +860,85 @@ class DMF_Divi_Import_Runner {
 		return $summary;
 	}
 
+	public function apply_home_mobile_single_column_fix( array $args = [] ) {
+		$this->warnings = [];
+
+		$dry_run   = ! empty( $args['dry_run'] );
+		$home_slug = sanitize_title( (string) ( $args['home_slug'] ?? '' ) );
+
+		$this->log(
+			'info',
+			'Home mobile single-column fix started.',
+			[
+				'dry_run'   => $dry_run,
+				'home_slug' => $home_slug,
+			]
+		);
+
+		if ( ! $this->is_divi_ready() ) {
+			throw new RuntimeException( 'Divi 5 portability API is not available. Activate Divi before running this action.' );
+		}
+
+		$summary = [
+			'dry_run'       => $dry_run,
+			'pages_updated' => [],
+			'pages_missing' => [],
+			'warnings'      => [],
+		];
+
+		$home_page = $this->find_target_page( '__front_page__', $home_slug, 'Home' );
+
+		if ( ! $home_page instanceof WP_Post ) {
+			$summary['pages_missing'][] = 'Home';
+		} else {
+			$section_results = [
+				'About section'   => $this->apply_home_section_refresh(
+					$home_page,
+					$dry_run,
+					'About Section',
+					$this->build_about_section(),
+					'About section'
+				),
+				'Process section' => $this->apply_home_section_refresh(
+					$home_page,
+					$dry_run,
+					'Process Section',
+					$this->build_process_section(),
+					'Process section'
+				),
+			];
+
+			foreach ( $section_results as $label => $state ) {
+				if ( 'missing-section' === $state ) {
+					$this->warn(
+						sprintf(
+							'Could not locate the existing %1$s on Home (#%2$d), so the mobile single-column fix was not applied there.',
+							strtolower( $label ),
+							$home_page->ID
+						)
+					);
+					continue;
+				}
+
+				$summary['pages_updated'][] = sprintf(
+					'%1$s on Home (#%2$d)%3$s',
+					$label,
+					$home_page->ID,
+					'updated' === $state && $dry_run ? ' [dry run]' : ( 'unchanged' === $state ? ' already matches the mobile single-column fix' : '' )
+				);
+			}
+		}
+
+		if ( ! $dry_run ) {
+			$this->flush_divi_caches();
+		}
+
+		$summary['warnings'] = $this->warnings;
+		$this->log( 'info', 'Home mobile single-column fix completed.', $summary );
+
+		return $summary;
+	}
+
 	public function fix_portfolio_loops( array $args = [] ) {
 		$this->warnings = [];
 		$this->log(
