@@ -1012,9 +1012,9 @@ class DMF_Divi_Import_Runner {
 
 			if ( 'divi/row' === $block_name ) {
 				$structure = (string) ( $block['attrs']['module']['advanced']['columnStructure']['desktop']['value'] ?? '' );
-				$matches   = in_array( $admin_label, [ 'About Intro Row', 'Process Cards Row' ], true );
+				$matches   = in_array( $admin_label, [ 'About Intro Row', 'About Values Row', 'Process Cards Row' ], true );
 
-				if ( ! $matches && 'about' === $section_id && '1_2,1_2' === $structure ) {
+				if ( ! $matches && 'about' === $section_id && in_array( $structure, [ '1_2,1_2', '1_3,1_3,1_3' ], true ) ) {
 					$matches = true;
 				}
 
